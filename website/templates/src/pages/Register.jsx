@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Box, TextField, Button, Typography, Alert, Paper, Grid } from '@mui/material';
-import { register } from '../services/api'; // Importing register API call
+import { register, login } from '../services/api'; // Import both register and login API calls
 
-const Register = () => {
+const Register = ({ onLogin }) => { // Add onLogin prop
   const navigate = useNavigate(); // Hook for programmatic navigation
   const [formData, setFormData] = useState({
     firstName: '',
@@ -40,10 +40,6 @@ const Register = () => {
     // Password validation
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
-    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
-      newErrors.password = 'Password must contain uppercase, lowercase, and numbers';
     }
 
     // Confirm password validation
@@ -75,37 +71,100 @@ const Register = () => {
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return; // Prevent submission if validation fails
+    if (!validateForm()) return;
 
     try {
-      const response = await register(
+      setServerError(''); // Clear any previous errors
+      setErrors({}); // Clear any field errors
+      console.log('Submitting registration form...');
+      
+      // Register the user
+      const registerResponse = await register(
         formData.email,
         formData.password,
         formData.firstName,
         formData.lastName
-      ); // API call to register
+      );
 
-      if (response.message) {
-        // Redirect to login with a success message after registration
-        navigate('/login', {
-          state: { message: 'Registration successful! Please login.' },
-        });
+      console.log('Registration response:', registerResponse);
+
+      if (registerResponse.message) {
+        console.log('Registration successful, attempting auto-login...');
+        try {
+          // Automatically log in after successful registration
+          const loginResponse = await login(formData.email, formData.password);
+          console.log('Login response:', loginResponse);
+          
+          if (loginResponse.user) {
+            console.log('Login successful, updating state and redirecting...');
+            
+            // Update authentication state
+            onLogin(loginResponse.user);
+            
+            // Redirect to dashboard immediately
+            navigate('/', { replace: true });
+          }
+        } catch (loginError) {
+          console.error('Auto-login failed:', loginError);
+          setServerError('Registration successful! Redirecting to login...');
+          setTimeout(() => {
+            console.log('Redirecting to login page...');
+            navigate('/login', { replace: true });
+          }, 2000);
+        }
       }
     } catch (error) {
-      setServerError(error.error || 'Registration failed. Please try again.');
+      console.error('Registration/Login error:', error);
+      
+      // Handle email exists error
+      if (error.error === 'Email already exists') {
+        setServerError('This email is already registered. Please use a different email or try logging in.');
+        setErrors(prev => ({
+          ...prev,
+          email: 'Email already exists'
+        }));
+        return;
+      }
+      
+      // Handle validation errors
+      if (error.errors) {
+        setErrors(prev => ({
+          ...prev,
+          ...error.errors
+        }));
+        setServerError('Please check your information and try again.');
+        return;
+      }
+      
+      // Handle other errors
+      setServerError(error.error || 'An unexpected error occurred. Please try again.');
     }
   };
 
   return (
     <Box sx={{ marginTop: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <Paper elevation={3} sx={{ p: 4, width: '100%' }}>
+      <Paper elevation={3} sx={{ p: 4, maxWidth: 400, width: '100%' }}>
         <Typography component="h1" variant="h5" align="center" gutterBottom>
           Create Account
         </Typography>
 
-        {/* Display server-side errors */}
         {serverError && (
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert 
+            severity="error" 
+            sx={{ mb: 2 }}
+            action={
+              serverError.includes('already registered') && (
+                <Button
+                  component={Link}
+                  to="/login"
+                  size="small"
+                  color="inherit"
+                >
+                  Go to Login
+                </Button>
+              )
+            }
+          >
             {serverError}
           </Alert>
         )}

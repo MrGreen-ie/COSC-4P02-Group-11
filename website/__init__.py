@@ -16,7 +16,15 @@ DB_NAME = "database.db"
 
 def create_app():
     app = Flask(__name__)
-    CORS(app)
+    CORS(app, supports_credentials=True, resources={
+        r"/*": {
+            "origins": ["http://localhost:3000"],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"],
+            "expose_headers": ["Content-Range", "X-Content-Range"],
+            "supports_credentials": True
+        }
+    })
     app.static_folder = "static"
     app.config["SECRET_KEY"] = "super secret key"
     app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_NAME}"
@@ -60,3 +68,7 @@ def create_database(app):
         with app.app_context():
             db.create_all()
         print("Created Database!")
+
+if __name__ == '__main__':
+    app = create_app()
+    app.run(debug=True, port=5000)

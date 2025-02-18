@@ -20,8 +20,8 @@ from openai import OpenAI
 # for markdown formatting, basically formatting the reponse we get back from calling OpenAI API as markdown
 import markdown
 
-# OpenAI key
-client = OpenAI(api_key="for api key refers to our discord discussion")
+# OpenAI key, will be hidden in .env file later
+client = OpenAI(api_key="107ca8f2f99119418aed5ec2072dbdb3")
 
 # views blueprint
 views = Blueprint("views", __name__)

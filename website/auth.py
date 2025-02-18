@@ -20,28 +20,35 @@ auth = Blueprint("auth", __name__)
 # route to /login
 @auth.route("/login", methods=["GET", "POST"])
 def login():
+    print("Login request received")  # Debug log
     if request.method == "POST":
-        data = request.get_json()
-        email = data.get("email")
-        password = data.get("password")
+        try:
+            data = request.get_json()
+            print("Login data:", data)  # Debug log
+            email = data.get("email")
+            password = data.get("password")
 
-        user = User.query.filter_by(email=email).first()
-        if user:
-            if check_password_hash(user.password, password):
-                login_user(user, remember=True)
-                return {
-                    "message": "Logged in successfully!",
-                    "user": {
-                        "email": user.email,
-                        "firstName": user.first_name
-                    }
-                }, 200
+            user = User.query.filter_by(email=email).first()
+            if user:
+                if check_password_hash(user.password, password):
+                    login_user(user, remember=True)
+                    return {
+                        "message": "Logged in successfully!",
+                        "user": {
+                            "email": user.email,
+                            "firstName": user.first_name
+                        }
+                    }, 200
+                else:
+                    return {"error": "Incorrect password"}, 401
             else:
-                return {"error": "Incorrect password"}, 401
-        else:
-            return {"error": "Email does not exist"}, 404
-
-    return {"error": "Invalid request method"}, 405
+                return {"error": "Email does not exist"}, 404
+        except Exception as e:
+            print("Login error:", str(e))  # Debug log
+            return {"error": str(e)}, 500
+    
+    # For GET requests, return the React app
+    return render_template("index.html")
 
 
 # route to sign up page
@@ -88,4 +95,25 @@ def sign_up():
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for("auth.login"))
+    return {"message": "Logged out successfully"}, 200
+
+
+@auth.route("/editor")
+@login_required  # This decorator ensures user must be logged in
+def editor():
+    if not current_user.is_authenticated:
+        return redirect(url_for('auth.login'))
+    return render_template("index.html")  # This will load our React app, which handles the editor route internally
+
+
+@auth.route("/api/check-auth")
+def check_auth():
+    if current_user.is_authenticated:
+        return {
+            "authenticated": True,
+            "user": {
+                "email": current_user.email,
+                "firstName": current_user.first_name
+            }
+        }, 200
+    return {"authenticated": False}, 401

@@ -18,8 +18,8 @@
   pip3 install markdown
 ```
 
-- React
-Cd into templates/ where the react project is located
+React:
+- Cd into templates/ where the react project is located
 ```
   npm install
 ```

@@ -1,5 +1,5 @@
 # For Login page, signup page and sign out function
-from flask import Blueprint, render_template, request, flash, redirect, url_for, request
+from flask import Blueprint, render_template, request, flash, redirect, url_for, request, jsonify
 
 # for db
 from .models import User
@@ -109,11 +109,11 @@ def editor():
 @auth.route("/api/check-auth")
 def check_auth():
     if current_user.is_authenticated:
-        return {
+        return jsonify({
             "authenticated": True,
             "user": {
                 "email": current_user.email,
                 "firstName": current_user.first_name
             }
-        }, 200
-    return {"authenticated": False}, 401
+        }), 200
+    return jsonify({"authenticated": False}), 401

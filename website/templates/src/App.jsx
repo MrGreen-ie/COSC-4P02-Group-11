@@ -32,17 +32,25 @@ const ProtectedRoute = ({ children }) => {
           }
         });
         
+        if (response.status === 401 || response.status === 403) {
+          // Only clear auth state for actual authentication failures
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          navigate('/login');
+          return;
+        }
+
         if (!response.ok) {
-          throw new Error('Authentication check failed');
+          // For other errors (network, server errors), keep trying
+          console.error('Auth check failed:', response.status);
+          return;
         }
 
         const data = await response.json();
         setIsAuthenticated(data.authenticated);
       } catch (error) {
-        console.error('Auth check failed:', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        navigate('/login');
+        // For unexpected errors, log but don't clear auth state
+        console.error('Auth check error:', error);
       } finally {
         setIsLoading(false);
       }

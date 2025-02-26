@@ -7,6 +7,7 @@ from flask_login import login_required, current_user
 # import Note from db models, db from init
 from .models import Note
 from . import db
+from .cache import redis_cache
 
 # json
 import json
@@ -20,8 +21,15 @@ from openai import OpenAI
 # for markdown formatting, basically formatting the reponse we get back from calling OpenAI API as markdown
 import markdown
 
+# for environment variables
+from dotenv import load_dotenv
+import os
+
+# Load environment variables
+load_dotenv()
+
 # OpenAI key, will be hidden in .env file later
-client = OpenAI(api_key="107ca8f2f99119418aed5ec2072dbdb3")
+client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
 # views blueprint
 views = Blueprint("views", __name__)
@@ -145,3 +153,63 @@ def delete_note():
             db.session.commit()
             # return an empty response, basically turne it into a json object and then return
     return jsonify({})
+
+
+@views.route('/api/summarize', methods=['POST'])
+@login_required
+def summarize():
+    try:
+        data = request.get_json()
+        
+        if not data or 'content' not in data:
+            return jsonify({'error': 'No content provided'}), 400
+            
+        content = data['content']
+        length = data.get('length', 50)  # Default to 50% length
+        tone = data.get('tone', 'professional')  # Default to professional tone
+        
+        # Try to get cached summary
+        cached_result = redis_cache.get_cached_summary(content, length, tone)
+        if cached_result:
+            return jsonify(cached_result)
+        
+        # Initialize OpenAI client
+        client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+        
+        # Create system message based on tone and length
+        system_message = f"You are an AI assistant that creates {tone} summaries. "
+        system_message += f"Create a summary that is approximately {length}% of the original length. "
+        system_message += "Maintain the key points while adjusting the length and tone as specified."
+        
+        # Make API call to OpenAI
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": f"Please summarize the following text:\n\n{content}"}
+            ],
+            temperature=0.7,
+            max_tokens=1500
+        )
+        
+        # Extract the summary from the response
+        summary = response.choices[0].message.content
+        
+        # Prepare response data
+        response_data = {
+            'summary': summary,
+            'original_content': content,
+            'settings': {
+                'length': length,
+                'tone': tone
+            },
+            'cached': False
+        }
+        
+        # Cache the result
+        redis_cache.cache_summary(content, length, tone, response_data)
+        
+        return jsonify(response_data)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

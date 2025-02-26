@@ -1,0 +1,14 @@
+# AI and Language Processing
+openai>=1.61.0
+
+# Web Framework and Extensions
+Flask>=3.0.0
+Flask-Login>=0.6.3
+
+# Database and Caching
+redis>=5.0.1
+python-dotenv>=1.0.0
+
+# Utilities
+markdown>=3.5.1
+requests>=2.31.0

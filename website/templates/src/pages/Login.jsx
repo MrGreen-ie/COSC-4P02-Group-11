@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Box, TextField, Button, Typography, Alert, Paper } from '@mui/material';
+import {
+  Box,
+  TextField,
+  Button,
+  Typography,
+  Alert,
+  Paper,
+} from '@mui/material';
 import { login } from '../services/api';
 
 const Login = ({ onLogin }) => {
@@ -44,13 +51,7 @@ const Login = ({ onLogin }) => {
 
     try {
       const response = await login(formData.email, formData.password);
-      
-      // Update parent component's user state
-      if (onLogin) {
-        onLogin(response.user);
-      }
-
-      // Navigate to dashboard
+      if (onLogin) onLogin(response.user);
       navigate('/', { replace: true });
     } catch (error) {
       console.error('Login error:', error);
@@ -59,9 +60,30 @@ const Login = ({ onLogin }) => {
   };
 
   return (
-    <Box sx={{ marginTop: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <Paper elevation={3} sx={{ p: 4, width: '100%' }}>
-        <Typography component="h1" variant="h5" align="center" gutterBottom>
+    <Box
+      sx={{
+        height: '100vh',
+        width: '100vw',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        background: 'linear-gradient(135deg, #8B0000, #FF4C4C)',
+      }}
+    >
+      <Paper
+        elevation={6}
+        sx={{
+          p: 4,
+          width: '100%',
+          maxWidth: 400,
+          borderRadius: '15px',
+          textAlign: 'center',
+          background: 'rgba(255, 255, 255, 0.1)',
+          backdropFilter: 'blur(10px)',
+          color: 'white',
+        }}
+      >
+        <Typography component="h1" variant="h5" gutterBottom sx={{ fontWeight: 'bold', color: 'white' }}>
           Sign In
         </Typography>
 
@@ -85,6 +107,16 @@ const Login = ({ onLogin }) => {
             onChange={handleChange}
             error={!!errors.email}
             helperText={errors.email}
+            sx={{
+              input: { color: 'white' },
+              '& label': { color: 'white' },
+              '& label.Mui-focused': { color: 'white' },
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': { borderColor: 'white' },
+                '&:hover fieldset': { borderColor: '#ffdd57' },
+                '&.Mui-focused fieldset': { borderColor: '#ffdd57' },
+              },
+            }}
           />
           <TextField
             margin="normal"
@@ -99,14 +131,37 @@ const Login = ({ onLogin }) => {
             onChange={handleChange}
             error={!!errors.password}
             helperText={errors.password}
+            sx={{
+              input: { color: 'white' },
+              '& label': { color: 'white' },
+              '& label.Mui-focused': { color: 'white' },
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': { borderColor: 'white' },
+                '&:hover fieldset': { borderColor: '#ffdd57' },
+                '&.Mui-focused fieldset': { borderColor: '#ffdd57' },
+              },
+            }}
           />
-          <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }}>
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            sx={{
+              mt: 3,
+              mb: 2,
+              background: 'linear-gradient(135deg, #ffdd57, #FFD700)',
+              color: '#8B0000',
+              fontWeight: 'bold',
+              borderRadius: '30px', // Makes the button more rounded
+              '&:hover': { background: '#fff', color: '#8B0000' },
+            }}
+          >
             Sign In
           </Button>
 
-          <Typography align="center">
+          <Typography sx={{ color: 'white' }}>
             Don't have an account?{' '}
-            <Link to="/register" style={{ textDecoration: 'none' }}>
+            <Link to="/register" style={{ color: '#ffdd57', fontWeight: 'bold', textDecoration: 'none' }}>
               Sign Up
             </Link>
           </Typography>

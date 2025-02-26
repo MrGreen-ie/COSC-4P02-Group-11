@@ -20,12 +20,12 @@ const theme = createTheme({
       dark: '#c51162',
     },
     background: {
-      default: '#ffffff',
+      default: 'linear-gradient(135deg, #8B0000, #FF4C4C)',
       paper: '#ffffff',
     },
     text: {
       primary: '#1a1a1a',
-      secondary: '#333333',
+      secondary: '#00000',
     },
   },
   typography: {
@@ -59,7 +59,7 @@ const theme = createTheme({
     MuiContainer: {
       styleOverrides: {
         root: {
-          minHeight: '100vh',
+          minHeight: '100%',
           backgroundColor: '#fff',
           paddingTop: '24px',
           paddingBottom: '24px',
@@ -69,7 +69,7 @@ const theme = createTheme({
     MuiPaper: {
       styleOverrides: {
         root: {
-          backgroundColor: '#ffffff',
+          backgroundColor: 'linear-gradient(135deg, #8B0000, #FF4C4C)',
         },
       },
     },
@@ -85,7 +85,7 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           '& .MuiOutlinedInput-root': {
-            backgroundColor: '#ffffff',
+            backgroundColor: 'linear-gradient(135deg, #8B0000, #FF4C4C'
           },
         },
       },

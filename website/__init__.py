@@ -1,32 +1,33 @@
 from flask import Flask
-
-# for db
 from flask_sqlalchemy import SQLAlchemy
-
-# for create_database(app)
 from os import path
-
-# we need to tell flask how a user actually log in, how to find a user, LoginManager helps us to manage login related things
 from flask_login import LoginManager
 from flask_cors import CORS
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 db = SQLAlchemy()
 DB_NAME = "database.db"
 
+# Global variable to hold the scheduler instance
+scheduler = None
+
 
 def create_app():
     app = Flask(__name__)
-    CORS(app, supports_credentials=True, resources={
-        r"/*": {
-            "origins": ["http://localhost:3000"],
-            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization"],
-            "expose_headers": ["Content-Range", "X-Content-Range"],
-            "supports_credentials": True
-        }
-    })
+    
+    # Configure CORS properly with credentials support
+    CORS(app, 
+         resources={r"/*": {"origins": "http://localhost:3000"}},
+         supports_credentials=True,
+         allow_headers=["Content-Type", "Authorization"],
+         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+    
     app.static_folder = "static"
-    app.config["SECRET_KEY"] = "super secret key"
+    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "super_secret_key_for_twitter_auth")
     app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_NAME}"
     db.init_app(app)
 
@@ -38,7 +39,7 @@ def create_app():
     app.register_blueprint(auth, url_prefix="/")
 
     # check if the db has created before running the server
-    from .models import User, Note
+    from .models import User, Note, ScheduledPost
 
     # db function called
     create_database(app)
@@ -54,6 +55,11 @@ def create_app():
     def load_user(id):
         #  work similar to filter that look for primary key id in db you don thave  to id =
         return User.query.get(int(id))
+    
+    # Initialize the scheduler for scheduled posts
+    from .scheduler import init_scheduler
+    global scheduler
+    scheduler = init_scheduler(app)
 
     return app
 

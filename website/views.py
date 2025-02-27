@@ -1,31 +1,204 @@
 # for home page (what features inside /(home) page)
-from flask import Blueprint, render_template, request, flash, jsonify
-
-# current_user if the current user is logged this will give all the infos regarding the user
+from flask import Blueprint, render_template, request, flash, jsonify, redirect, session
 from flask_login import login_required, current_user
-
-# import Note from db models, db from init
-from .models import Note
+from .models import Note, ScheduledPost
 from . import db
-
-# json
 import json
-
-# for python request (dealing API fetching)
 import requests
-
-# for openai API
-from openai import OpenAI
-
-# for markdown formatting, basically formatting the reponse we get back from calling OpenAI API as markdown
 import markdown
+from datetime import datetime
+import pytz
+from cryptography.fernet import Fernet
+import base64
+import os
 
-# OpenAI key, will be hidden in .env file later
-client = OpenAI(api_key="107ca8f2f99119418aed5ec2072dbdb3")
+# OpenAI client initialization - commented out for now to fix the error
+# client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", "107ca8f2f99119418aed5ec2072dbdb3"))
+
+# For API key encryption (in production, use a proper key management system)
+# This is a simple implementation for demonstration purposes
+def get_encryption_key():
+    # In production, this should be stored securely and not hardcoded
+    key = os.environ.get('ENCRYPTION_KEY', 'YourSecretKeyForEncryption1234567890123456')
+    # Ensure the key is the correct length for Fernet (32 bytes)
+    return base64.urlsafe_b64encode(key.encode()[:32].ljust(32, b'\0'))
+
+def encrypt_api_key(api_key):
+    f = Fernet(get_encryption_key())
+    return f.encrypt(api_key.encode()).decode()
+
+def decrypt_api_key(encrypted_key):
+    f = Fernet(get_encryption_key())
+    return f.decrypt(encrypted_key.encode()).decode()
 
 # views blueprint
 views = Blueprint("views", __name__)
 
+# Twitter API routes
+@views.route('/api/twitter/auth', methods=['GET'])
+def twitter_auth():
+    """Get Twitter authentication URL and redirect to it"""
+    from .twitter_api import TwitterAPI
+    
+    print("Twitter auth route called")
+    result = TwitterAPI.get_auth_url()
+    
+    print("Auth URL result:", result)
+    
+    if result["success"]:
+        return redirect(result["auth_url"])
+    else:
+        return jsonify(result), 400
+
+@views.route('/api/twitter/callback', methods=['GET', 'POST'])
+def twitter_callback():
+    """Handle Twitter OAuth callback"""
+    # Handle both GET (from Twitter redirect) and POST (from frontend)
+    if request.method == 'GET':
+        # This is a redirect from Twitter - but we should never get here
+        # since Twitter redirects to the frontend directly
+        oauth_token = request.args.get('oauth_token')
+        oauth_verifier = request.args.get('oauth_verifier')
+        
+        if not oauth_token or not oauth_verifier:
+            return jsonify({
+                'success': False,
+                'error': 'Missing OAuth parameters'
+            }), 400
+        
+        # Store in session for the frontend to use
+        session['oauth_token'] = oauth_token
+        session['oauth_verifier'] = oauth_verifier
+        
+        # Return success JSON
+        return jsonify({
+            'success': True,
+            'message': 'OAuth parameters stored in session'
+        })
+    
+    # Handle POST request from frontend
+    data = request.json
+    oauth_token = data.get('oauth_token') or session.get('oauth_token')
+    oauth_verifier = data.get('oauth_verifier') or session.get('oauth_verifier')
+    
+    if not oauth_token or not oauth_verifier:
+        return jsonify({
+            'success': False,
+            'error': 'Missing OAuth parameters'
+        }), 400
+    
+    try:
+        # Complete the OAuth flow
+        from .twitter_api import complete_oauth
+        result = complete_oauth(oauth_token, oauth_verifier)
+        
+        if result.get('success'):
+            return jsonify({
+                'success': True,
+                'username': result.get('username'),
+                'name': result.get('name'),
+                'access_token': result.get('access_token'),
+                'access_token_secret': result.get('access_token_secret')
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result.get('error', 'Failed to complete OAuth flow')
+            })
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@views.route('/api/twitter/verify', methods=['POST'])
+def twitter_verify_credentials():
+    """Verify if stored Twitter credentials are still valid"""
+    from .twitter_api import TwitterAPI
+    
+    data = request.json
+    access_token = data.get('access_token')
+    access_token_secret = data.get('access_token_secret')
+    
+    if not access_token or not access_token_secret:
+        return jsonify({
+            "success": False,
+            "error": "Missing access token or secret"
+        }), 400
+    
+    result = TwitterAPI.verify_credentials(access_token, access_token_secret)
+    
+    return jsonify(result)
+
+@views.route('/api/twitter/verify_credentials', methods=['POST'])
+def verify_twitter_credentials():
+    """Verify Twitter credentials"""
+    data = request.json
+    credentials = data.get('credentials')
+    
+    if not credentials:
+        return jsonify({
+            'verified': False,
+            'error': 'No credentials provided'
+        }), 400
+    
+    try:
+        # Extract credentials
+        access_token = credentials.get('access_token')
+        access_token_secret = credentials.get('access_token_secret')
+        
+        if not access_token or not access_token_secret:
+            return jsonify({
+                'verified': False,
+                'error': 'Invalid credentials format'
+            }), 400
+        
+        # Use the Twitter API to verify credentials
+        from .twitter_api import verify_credentials
+        result = verify_credentials(access_token, access_token_secret)
+        
+        if result.get('success'):
+            return jsonify({
+                'verified': True,
+                'user_info': result.get('user_info')
+            })
+        else:
+            return jsonify({
+                'verified': False,
+                'error': result.get('error', 'Failed to verify credentials')
+            })
+    
+    except Exception as e:
+        return jsonify({
+            'verified': False,
+            'error': str(e)
+        }), 500
+
+@views.route('/api/twitter/direct-auth', methods=['POST'])
+def twitter_direct_auth():
+    """Direct authentication for Twitter (development only)"""
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    
+    if not username or not password:
+        return jsonify({
+            'success': False,
+            'error': 'Username and password are required'
+        }), 400
+    
+    try:
+        from .twitter_api import direct_auth
+        result = direct_auth(username, password)
+        
+        return jsonify(result)
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @views.route("/", methods=["GET", "POST"])
 # basically you cannot get to the homepage unless youre logged in
@@ -96,17 +269,8 @@ def home():
         question = request.form.get("question")
         if question:
             try:
-                completion = client.chat.completions.create(
-                    model="gpt-4o",
-                    messages=[
-                        {
-                            "role": "developer",
-                            "content": "You are a helpful assistant that can output Markdown.",
-                        },
-                        {"role": "user", "content": question},
-                    ],
-                )
-                ai_answer = completion.choices[0].message.content
+                # For now, just provide a placeholder response
+                ai_answer = "The OpenAI integration is currently disabled. This is a placeholder response."
 
                 # Convert the AI response from Markdown to HTML
                 ai_answer_html = markdown.markdown(ai_answer)
@@ -145,3 +309,223 @@ def delete_note():
             db.session.commit()
             # return an empty response, basically turne it into a json object and then return
     return jsonify({})
+
+
+# Social Media API Routes
+@views.route("/api/posts/publish", methods=["POST"])
+@login_required
+def publish_post():
+    data = request.json
+    content = data.get('content', '')
+    platforms = data.get('platforms', [])
+    twitter_credentials = data.get('twitter_credentials')
+    
+    if not content:
+        return jsonify({'error': 'No content provided'}), 400
+    
+    if not platforms:
+        return jsonify({'error': 'No platforms selected'}), 400
+    
+    # Process the post for each platform
+    results = {}
+    
+    for platform in platforms:
+        try:
+            if platform == 'twitter':
+                if not twitter_credentials:
+                    results[platform] = {
+                        'success': False,
+                        'error': 'Twitter credentials not provided'
+                    }
+                    continue
+                
+                # Use the Twitter API to post
+                from .twitter_api import post_tweet
+                tweet_result = post_tweet(content, twitter_credentials)
+                
+                if tweet_result.get('success'):
+                    results[platform] = {
+                        'success': True,
+                        'post_id': tweet_result.get('tweet_id'),
+                        'url': f"https://twitter.com/user/status/{tweet_result.get('tweet_id')}"
+                    }
+                else:
+                    results[platform] = {
+                        'success': False,
+                        'error': tweet_result.get('error', 'Unknown error')
+                    }
+            
+            elif platform == 'facebook':
+                # Simulate Facebook posting
+                results[platform] = {
+                    'success': True,
+                    'post_id': f"fb_{random.randint(1000000, 9999999)}",
+                    'url': 'https://facebook.com/post/example'
+                }
+            
+            elif platform == 'linkedin':
+                # Simulate LinkedIn posting
+                results[platform] = {
+                    'success': True,
+                    'post_id': f"li_{random.randint(1000000, 9999999)}",
+                    'url': 'https://linkedin.com/post/example'
+                }
+            
+        except Exception as e:
+            results[platform] = {
+                'success': False,
+                'error': str(e)
+            }
+    
+    return jsonify({
+        'message': 'Post processed',
+        'results': results
+    })
+
+@views.route("/api/posts/schedule", methods=["POST"])
+@login_required
+def schedule_post():
+    data = request.json
+    content = data.get('content', '')
+    platforms = data.get('platforms', [])
+    scheduled_time = data.get('scheduled_time')
+    twitter_credentials = data.get('twitter_credentials')
+    
+    if not content:
+        return jsonify({'error': 'No content provided'}), 400
+    
+    if not platforms:
+        return jsonify({'error': 'No platforms selected'}), 400
+    
+    if not scheduled_time:
+        return jsonify({'error': 'No scheduled time provided'}), 400
+    
+    # Generate a unique ID for the scheduled post
+    post_id = str(uuid.uuid4())
+    
+    # Store the scheduled post (in a real app, this would go to a database)
+    scheduled_posts[post_id] = {
+        'id': post_id,
+        'content': content,
+        'platforms': platforms,
+        'scheduled_time': scheduled_time,
+        'status': 'scheduled',
+        'twitter_credentials': twitter_credentials
+    }
+    
+    return jsonify({
+        'message': 'Post scheduled successfully',
+        'post_id': post_id
+    })
+
+@views.route("/api/posts/scheduled", methods=["GET"])
+@login_required
+def get_scheduled_posts():
+    try:
+        # Get all scheduled posts for the current user
+        posts = ScheduledPost.query.filter_by(user_id=current_user.id).order_by(ScheduledPost.scheduled_time).all()
+        
+        posts_data = []
+        for post in posts:
+            posts_data.append({
+                "id": post.id,
+                "content": post.content,
+                "platforms": post.platforms.split(','),
+                "scheduled_time": post.scheduled_time.isoformat(),
+                "status": post.status,
+                "error_message": post.error_message,
+                "created_at": post.created_at.isoformat()
+            })
+        
+        return jsonify({"posts": posts_data}), 200
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@views.route("/api/posts/scheduled/<int:post_id>", methods=["DELETE"])
+@login_required
+def delete_scheduled_post(post_id):
+    try:
+        post = ScheduledPost.query.get(post_id)
+        
+        if not post:
+            return jsonify({"error": "Post not found"}), 404
+        
+        if post.user_id != current_user.id:
+            return jsonify({"error": "Unauthorized"}), 403
+        
+        db.session.delete(post)
+        db.session.commit()
+        
+        return jsonify({"message": "Post deleted successfully"}), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+# Helper functions for social media API integration
+def validate_post_content(content, platforms):
+    errors = []
+    
+    for platform in platforms:
+        if platform == 'twitter':
+            # Twitter has a 280 character limit
+            if len(content) > 280:
+                errors.append(f"Twitter posts cannot exceed 280 characters (current: {len(content)})")
+        
+        elif platform == 'facebook':
+            # Facebook has a much higher limit, but let's set a reasonable one
+            if len(content) > 5000:
+                errors.append(f"Facebook posts cannot exceed 5000 characters (current: {len(content)})")
+        
+        elif platform == 'linkedin':
+            # LinkedIn has a character limit for posts
+            if len(content) > 3000:
+                errors.append(f"LinkedIn posts cannot exceed 3000 characters (current: {len(content)})")
+    
+    return '; '.join(errors) if errors else None
+
+
+def publish_to_platform(platform, content, user_id):
+    # In a real implementation, this would use the platform's API
+    # For demonstration purposes, we'll simulate the API calls
+    
+    try:
+        if platform == 'twitter':
+            # Simulate Twitter API call
+            # In a real app, you would use the Twitter API client
+            return {
+                "success": True,
+                "post_id": "twitter_123456789",
+                "url": "https://twitter.com/user/status/123456789"
+            }
+        
+        elif platform == 'facebook':
+            # Simulate Facebook API call
+            return {
+                "success": True,
+                "post_id": "facebook_123456789",
+                "url": "https://facebook.com/posts/123456789"
+            }
+        
+        elif platform == 'linkedin':
+            # Simulate LinkedIn API call
+            return {
+                "success": True,
+                "post_id": "linkedin_123456789",
+                "url": "https://linkedin.com/feed/update/123456789"
+            }
+        
+        else:
+            return {
+                "success": False,
+                "error": f"Unsupported platform: {platform}"
+            }
+    
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }

@@ -79,7 +79,6 @@ const PostSystem = () => {
 
   // State for Twitter authentication
   const [isTwitterAuthenticated, setIsTwitterAuthenticated] = useState(false);
-  const [twitterCredentials, setTwitterCredentials] = useState(null);
 
   // Character limits for different platforms
   const characterLimits = {
@@ -164,9 +163,8 @@ const PostSystem = () => {
   };
 
   // Handle Twitter authentication status change
-  const handleTwitterAuthStatusChange = (status, credentials) => {
+  const handleTwitterAuthStatusChange = (status) => {
     setIsTwitterAuthenticated(status);
-    setTwitterCredentials(credentials);
     
     // If Twitter is deauthenticated, deselect it from platforms
     if (!status && platforms.twitter) {
@@ -200,8 +198,7 @@ const PostSystem = () => {
         },
         body: JSON.stringify({
           content,
-          platforms: selectedPlatforms,
-          twitter_credentials: platforms.twitter ? twitterCredentials : null
+          platforms: selectedPlatforms
         }),
       });
       
@@ -253,8 +250,7 @@ const PostSystem = () => {
         body: JSON.stringify({
           content,
           platforms: selectedPlatforms,
-          scheduled_time: scheduledTime.toISOString(),
-          twitter_credentials: platforms.twitter ? twitterCredentials : null
+          scheduled_time: scheduledTime.toISOString()
         }),
       });
       

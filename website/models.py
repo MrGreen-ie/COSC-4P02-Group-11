@@ -27,3 +27,23 @@ class User(db.Model, UserMixin):
     first_name = db.Column(db.String(150))
     # tell flask and sql do the magic, list store diff notes, uppercase 'Note'
     notes = db.relationship("Note")
+    # Relationship with scheduled posts
+    scheduled_posts = db.relationship("ScheduledPost")
+
+
+# Social media post scheduling model
+class ScheduledPost(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.String(1000))
+    platforms = db.Column(db.String(200))  # Comma-separated list of platforms
+    scheduled_time = db.Column(db.DateTime(timezone=True))
+    status = db.Column(db.String(50), default="scheduled")  # scheduled, posted, failed
+    error_message = db.Column(db.String(500))
+    created_at = db.Column(db.DateTime(timezone=True), default=func.now())
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    
+    # Store encrypted API keys - these would be set up per user in a production app
+    # In a real app, these would be in a separate table with proper encryption
+    twitter_token = db.Column(db.String(500))
+    facebook_token = db.Column(db.String(500))
+    linkedin_token = db.Column(db.String(500))

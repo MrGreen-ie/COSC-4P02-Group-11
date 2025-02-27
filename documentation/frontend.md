@@ -82,6 +82,57 @@ website/templates/
 ## UI Library (Styling)
 - **Material-UI (MUI)**: A popular React UI framework that implements Google's Material Design.
 
+## Features
+
+### AI Summary Page (AISummary.jsx)
+The AI Summary feature provides intelligent content summarization with customizable settings:
+
+#### Components
+1. **Configuration Panel**
+   - Length slider (10-100%)
+   - Tone selection dropdown (Professional, Casual, Academic, Friendly)
+   - Real-time configuration updates
+
+2. **Content Display**
+   - Side-by-side view of original and summarized content
+   - Responsive layout with proper scrolling
+   - Clear visual separation of content sections
+
+3. **Control Features**
+   - Regenerate button for alternative summaries
+   - Visual feedback for loading and cached states
+   - Error handling and user notifications
+
+#### Implementation Status
+- ✅ Configuration UI components
+- ✅ Side-by-side display layout
+- ✅ Regenerate functionality
+- ✅ Redis caching integration
+- 🔄 Loading states (In Progress)
+- 🔄 Error handling (In Progress)
+
+#### Usage
+```jsx
+// Example API call in your component
+const generateSummary = async (content, settings) => {
+  try {
+    const response = await fetch('/api/summarize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content,
+        length: settings.length,
+        tone: settings.tone
+      })
+    });
+    const data = await response.json();
+    // Handle response...
+  } catch (error) {
+    // Handle error...
+  }
+};
+```
+
 ## Pages
 1. **Login / Sign up Pages**
    - Secure user authentication and registration

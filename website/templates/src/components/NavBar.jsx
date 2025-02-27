@@ -1,191 +1,200 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
+  AppBar,
+  Toolbar,
+  Typography,
+  IconButton,
   Drawer,
   List,
   ListItem,
-  ListItemIcon,
   ListItemText,
-  Divider,
+  ListItemIcon,
   Box,
-  IconButton,
-  Typography,
+  Button
 } from '@mui/material';
 import {
-  Dashboard as DashboardIcon,
-  Edit as EditorIcon,
-  Description as TemplateIcon,
-  AutoStories as AISummaryIcon,
-  PostAdd as PostSystemIcon,
-  Favorite as FavoriteIcon,
-  MailOutline as MailOutlineIcon,
-  Logout as LogoutIcon,
-  History as HistoryIcon,
+  Menu as MenuIcon,
+  Close as CloseIcon,
+  Home as HomeIcon,
+  Info as InfoIcon,
+  Contacts as ContactsIcon,
+  PersonAdd as PersonAddIcon,
+  Login as LoginIcon,
+  Logout as LogoutIcon
 } from '@mui/icons-material';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 function NavBar({ user, onLogout }) {
   const navigate = useNavigate();
-  const location = useLocation();
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
-  // Redirect to login if user is not authenticated and trying to access protected routes
-  useEffect(() => {
-    const protectedRoutes = ['/dashboard', '/editor', '/templates', '/ai-summary', '/post-system', '/favourites', '/newsletters', '/history'];
-    if (!user && protectedRoutes.includes(location.pathname)) {
-      navigate('/login');
-    }
-  }, [user, location.pathname, navigate]);
+  const toggleSidebar = () => setOpen(!open);
 
-  const toggleSidebar = () => {
-    setOpen(!open);
-  };
-
-  const handleMenuItemClick = (path) => {
+  const handleNavigation = (path) => {
     navigate(path);
+    setOpen(false);
   };
-
-  const handleLogout = () => {
-    onLogout();
-    navigate('/login');
-  };
-
-  const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-    { text: 'Editor', icon: <EditorIcon />, path: '/editor' },
-    { text: 'Templates', icon: <TemplateIcon />, path: '/templates' },
-    { text: 'AI Summary', icon: <AISummaryIcon />, path: '/ai-summary' },
-    { text: 'Post System', icon: <PostSystemIcon />, path: '/post-system' },
-    { text: 'Favourites', icon: <FavoriteIcon />, path: '/favourites' },
-    { text: 'Newsletters', icon: <MailOutlineIcon />, path: '/newsletters' },
-    { text: 'History', icon: <HistoryIcon />, path: '/history' },
-  ];
 
   return (
-    <Drawer
-      variant="permanent"
-      sx={{
-        width: open ? 240 : 80,
-        flexShrink: 0,
-        '& .MuiDrawer-paper': {
-          width: open ? 240 : 80,
-          boxSizing: 'border-box',
-          backgroundColor: '#121212',
-          color: 'white',
-          transition: 'width 0.3s',
-        },
-      }}
-    >
-      {/* Sidebar Header */}
-      <Box
+    <>
+      {/* Top Navbar */}
+      <AppBar
+        position="fixed"
         sx={{
+          background: 'linear-gradient(135deg, #8B0000, #FF4C4C)', // Updated Gradient Color
+          height: '60px',
           display: 'flex',
-          alignItems: 'center',
-          p: 2,
-          justifyContent: open ? 'space-between' : 'center',
+          justifyContent: 'center',
+          border: 'none', // Removed border
+          boxShadow: 'none', // Removed shadow
         }}
       >
-        {open && <Typography variant="h6">Content Generator</Typography>}
-        <IconButton onClick={toggleSidebar} sx={{ color: 'white' }}>
-          <DashboardIcon />
-        </IconButton>
-      </Box>
-
-      <Divider />
-
-      {/* Main Navigation Items */}
-      <List>
-        {user ? (
-          menuItems.map((item) => (
-            <ListItem
-              button
-              key={item.path}
-              onClick={() => handleMenuItemClick(item.path)}
-              selected={location.pathname === item.path}
+        <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+          {/* Left Side: Hamburger Menu + Website Name */}
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <IconButton onClick={toggleSidebar} sx={{ color: '#fff', mr: 1 }}>
+              {open ? <CloseIcon /> : <MenuIcon />}
+            </IconButton>
+            <Typography
+              variant="h6"
               sx={{
-                '&:hover': {
-                  backgroundColor: '#444',
-                },
-                '&.Mui-selected': {
-                  backgroundColor: '#333',
-                  '&:hover': {
-                    backgroundColor: '#444',
-                  },
-                },
+                fontWeight: 'bold',
+                letterSpacing: '1px',
+                color: '#fff',
+                cursor: 'pointer',
+                '&:hover': { opacity: 0.8 },
               }}
+              onClick={() => handleNavigation('/home')}
             >
+              AI Newsletter Generator
+            </Typography>
+          </Box>
+
+          {/* Center: Navigation Links */}
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 3 }}>
+            {[
+              { label: 'Home', path: '/home' },
+              { label: 'About Us', path: '/aboutus' },
+              { label: 'Contact Us', path: '/contact' }
+            ].map((item) => (
+              <Button
+                key={item.path}
+                onClick={() => handleNavigation(item.path)}
+                sx={{
+                  color: 'white',
+                  fontWeight: 'bold',
+                  textTransform: 'none',
+                  transition: '0.3s',
+                  '&:hover': { color: '#ffdd57' },
+                }}
+              >
+                {item.label}
+              </Button>
+            ))}
+          </Box>
+
+          {/* Right Side: Sign Up & Login */}
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 2 }}>
+            {!user && (
+              <>
+                <Button
+                  onClick={() => handleNavigation('/register')}
+                  sx={{
+                    color: 'white',
+                    fontWeight: 'bold',
+                    border: '1px solid white',
+                    borderRadius: '20px',
+                    px: 2,
+                    transition: '0.3s',
+                    '&:hover': { background: '#fff', color: '#8B0000' },
+                  }}
+                >
+                  Sign Up
+                </Button>
+                <Button
+                  onClick={() => handleNavigation('/login')}
+                  sx={{
+                    color: 'white',
+                    fontWeight: 'bold',
+                    border: '1px solid white',
+                    borderRadius: '20px',
+                    px: 2,
+                    transition: '0.3s',
+                    '&:hover': { background: '#fff', color: '#8B0000' },
+                  }}
+                >
+                  Login
+                </Button>
+              </>
+            )}
+            {user && (
+              <Button
+                onClick={onLogout}
+                sx={{
+                  color: 'white',
+                  fontWeight: 'bold',
+                  border: '1px solid white',
+                  borderRadius: '20px',
+                  px: 2,
+                  transition: '0.3s',
+                  '&:hover': { background: '#fff', color: '#8B0000' },
+                }}
+              >
+                Logout
+              </Button>
+            )}
+          </Box>
+        </Toolbar>
+      </AppBar>
+
+      {/* Sidebar Drawer with Icons */}
+      <Drawer
+        anchor="left"
+        open={open}
+        onClose={toggleSidebar}
+        sx={{
+          '& .MuiDrawer-paper': {
+            width: 250,
+            background: '#8B0000',
+            color: 'white',
+            paddingTop: '10px',
+          },
+        }}
+      >
+        <List>
+          {[
+            { label: 'Home', path: '/home', icon: <HomeIcon /> },
+            { label: 'About Us', path: '/aboutus', icon: <InfoIcon /> },
+            { label: 'Contact Us', path: '/contact', icon: <ContactsIcon /> }
+          ].map((item) => (
+            <ListItem button key={item.path} onClick={() => handleNavigation(item.path)}>
               <ListItemIcon sx={{ color: 'white' }}>{item.icon}</ListItemIcon>
-              {open && <ListItemText primary={item.text} />}
+              <ListItemText primary={item.label} />
             </ListItem>
-          ))
-        ) : (
-          <>
-            <ListItem
-              button
-              onClick={() => navigate('/login')}
-              selected={location.pathname === '/login'}
-              sx={{
-                '&:hover': {
-                  backgroundColor: '#444',
-                },
-                '&.Mui-selected': {
-                  backgroundColor: '#333',
-                },
-              }}
-            >
-              <ListItemIcon sx={{ color: 'white' }}>
-                <DashboardIcon />
-              </ListItemIcon>
-              {open && <ListItemText primary="Login" />}
-            </ListItem>
-            <ListItem
-              button
-              onClick={() => navigate('/register')}
-              selected={location.pathname === '/register'}
-              sx={{
-                '&:hover': {
-                  backgroundColor: '#444',
-                },
-                '&.Mui-selected': {
-                  backgroundColor: '#333',
-                },
-              }}
-            >
-              <ListItemIcon sx={{ color: 'white' }}>
-                <DashboardIcon />
-              </ListItemIcon>
-              {open && <ListItemText primary="Register" />}
-            </ListItem>
-          </>
-        )}
-      </List>
+          ))}
 
-      {user && (
-        <>
-          <Divider sx={{ marginTop: 'auto' }} />
-          {/* Account Settings and Logout */}
-          <List>
-            <ListItem button>
-              <ListItemIcon sx={{ color: 'white' }}>
-                <DashboardIcon />
-              </ListItemIcon>
-              {open && (
-                <ListItemText 
-                  primary="Account" 
-                  secondary={user.email}
-                  sx={{ '& .MuiListItemText-secondary': { color: '#aaa' } }}
-                />
-              )}
+          {!user && (
+            <>
+              <ListItem button onClick={() => handleNavigation('/register')}>
+                <ListItemIcon sx={{ color: 'white' }}><PersonAddIcon /></ListItemIcon>
+                <ListItemText primary="Sign Up" />
+              </ListItem>
+              <ListItem button onClick={() => handleNavigation('/login')}>
+                <ListItemIcon sx={{ color: 'white' }}><LoginIcon /></ListItemIcon>
+                <ListItemText primary="Login" />
+              </ListItem>
+            </>
+          )}
+
+          {user && (
+            <ListItem button onClick={onLogout}>
+              <ListItemIcon sx={{ color: 'white' }}><LogoutIcon /></ListItemIcon>
+              <ListItemText primary="Logout" />
             </ListItem>
-            <ListItem button onClick={handleLogout}>
-              <ListItemIcon sx={{ color: 'white' }}>
-                <LogoutIcon />
-              </ListItemIcon>
-              {open && <ListItemText primary="Logout" />}
-            </ListItem>
-          </List>
-        </>
-      )}
-    </Drawer>
+          )}
+        </List>
+      </Drawer>
+    </>
   );
 }
 

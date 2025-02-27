@@ -3,6 +3,12 @@ from flask import Blueprint, render_template, request, flash, jsonify, redirect,
 from flask_login import login_required, current_user
 from .models import Note, ScheduledPost
 from . import db
+<<<<<<< HEAD
+=======
+from .cache import redis_cache
+
+# json
+>>>>>>> 4f6d18c03799e78dbe8358da17bb417368d17e00
 import json
 import requests
 import markdown
@@ -12,6 +18,7 @@ from cryptography.fernet import Fernet
 import base64
 import os
 
+<<<<<<< HEAD
 # OpenAI client initialization - commented out for now to fix the error
 # client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", "107ca8f2f99119418aed5ec2072dbdb3"))
 
@@ -30,6 +37,17 @@ def encrypt_api_key(api_key):
 def decrypt_api_key(encrypted_key):
     f = Fernet(get_encryption_key())
     return f.decrypt(encrypted_key.encode()).decode()
+=======
+# for environment variables
+from dotenv import load_dotenv
+import os
+
+# Load environment variables
+load_dotenv()
+
+# OpenAI key, will be hidden in .env file later
+client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+>>>>>>> 4f6d18c03799e78dbe8358da17bb417368d17e00
 
 # views blueprint
 views = Blueprint("views", __name__)
@@ -311,6 +329,7 @@ def delete_note():
     return jsonify({})
 
 
+<<<<<<< HEAD
 # Social Media API Routes
 @views.route("/api/posts/publish", methods=["POST"])
 @login_required
@@ -529,3 +548,63 @@ def publish_to_platform(platform, content, user_id):
             "success": False,
             "error": str(e)
         }
+=======
+@views.route('/api/summarize', methods=['POST'])
+@login_required
+def summarize():
+    try:
+        data = request.get_json()
+        
+        if not data or 'content' not in data:
+            return jsonify({'error': 'No content provided'}), 400
+            
+        content = data['content']
+        length = data.get('length', 50)  # Default to 50% length
+        tone = data.get('tone', 'professional')  # Default to professional tone
+        
+        # Try to get cached summary
+        cached_result = redis_cache.get_cached_summary(content, length, tone)
+        if cached_result:
+            return jsonify(cached_result)
+        
+        # Initialize OpenAI client
+        client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+        
+        # Create system message based on tone and length
+        system_message = f"You are an AI assistant that creates {tone} summaries. "
+        system_message += f"Create a summary that is approximately {length}% of the original length. "
+        system_message += "Maintain the key points while adjusting the length and tone as specified."
+        
+        # Make API call to OpenAI
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": f"Please summarize the following text:\n\n{content}"}
+            ],
+            temperature=0.7,
+            max_tokens=1500
+        )
+        
+        # Extract the summary from the response
+        summary = response.choices[0].message.content
+        
+        # Prepare response data
+        response_data = {
+            'summary': summary,
+            'original_content': content,
+            'settings': {
+                'length': length,
+                'tone': tone
+            },
+            'cached': False
+        }
+        
+        # Cache the result
+        redis_cache.cache_summary(content, length, tone, response_data)
+        
+        return jsonify(response_data)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+>>>>>>> 4f6d18c03799e78dbe8358da17bb417368d17e00

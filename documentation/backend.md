@@ -7,6 +7,9 @@ website/
 ├── auth.py             # Authentication routes and logic
 ├── models.py           # Database models
 ├── views.py            # Application routes
+├── cache.py            # Redis caching implementation
+├── tests/              # Test files
+│   └── test_redis.py   # Redis connection tests
 ├── static/             # Static assets
 │   ├── index.js        # Legacy JavaScript
 │   └── style.css       # Global styles
@@ -33,6 +36,9 @@ website/
 ├── auth.py             # Authentication routes and logic
 ├── models.py           # Database models
 ├── views.py            # Application routes
+├── cache.py            # Redis caching implementation
+├── tests/              # Test files
+│   └── test_redis.py   # Redis connection tests
 ├── static/             # Static assets
 │   ├── index.js        # Legacy JavaScript
 │   └── style.css       # Global styles
@@ -122,6 +128,34 @@ website/
    GET    /api/user/settings # Get settings
    PUT    /api/user/settings # Update settings
    ```
+
+### AI Summary
+- `POST /api/summarize`
+  - Generate AI-powered summaries with configurable length and tone
+  - Parameters:
+    - `content`: Text to summarize
+    - `length`: Summary length as percentage (default: 50)
+    - `tone`: Summary tone (default: 'professional')
+  - Returns:
+    - `summary`: Generated summary
+    - `original_content`: Input text
+    - `settings`: Applied configuration
+    - `cached`: Whether result was from cache
+
+### Caching System
+The application uses Redis Cloud for caching frequently requested summaries:
+- Cache key: MD5 hash of content + parameters
+- Cache duration: 1 hour (configurable via REDIS_CACHE_EXPIRY)
+- Automatic fallback if Redis is unavailable
+- SSL/TLS encryption for Redis communication
+
+### Environment Variables
+Required environment variables in `.env.local`:
+```
+OPENAI_API_KEY=your_api_key
+REDIS_URL=redis://default:password@host:port
+REDIS_CACHE_EXPIRY=3600  # Optional, defaults to 3600
+```
 
 ## Framework
 - **Flask**: A lightweight WSGI web application framework in Python.

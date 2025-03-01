@@ -1,4 +1,6 @@
 # for home page (what features inside /(home) page)
+from email.mime.text import MIMEText
+import smtplib
 from flask import Blueprint, render_template, request, flash, jsonify, redirect, session
 from flask_login import login_required, current_user
 from .models import Note, ScheduledPost
@@ -44,6 +46,29 @@ def decrypt_api_key(encrypted_key):
 
 # views blueprint
 views = Blueprint("views", __name__)
+
+
+# Email/Newsletter API routes
+@views.route('/api/newsletter/subscribe', methods=['POST'])
+def send_email():
+    data = request.json
+    recipient = data['recipient']
+    subject = data['subject']
+    body = data['body']
+
+    msg = MIMEText(body)
+    msg['Subject'] = subject
+    msg['From'] = 'cosc.4p02.summit@gmail.com'
+    msg['To'] = recipient
+
+    try:
+        with smtplib.SMTP('smtp.gmail.com', 587) as server:
+            server.starttls()
+            server.login('cosc.4p02.summit@gmail.com', 'kght ejuo omgw oqru')
+            server.sendmail('cosc.4p02.summit@gmail.com', recipient, msg.as_string())
+        return jsonify({'message': 'Email sent successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # Twitter API routes
 @views.route('/api/twitter/auth', methods=['GET'])

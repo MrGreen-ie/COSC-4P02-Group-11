@@ -16,6 +16,11 @@ import AboutUs from './pages/AboutUs';
 import Contact from './pages/Contact';  
 
 const ProtectedRoute = ({ children }) => {
+  return children; // Always render children without authentication
+};
+
+/* 
+const ProtectedRoute = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
@@ -62,7 +67,7 @@ const ProtectedRoute = ({ children }) => {
   }
 
   return isAuthenticated ? children : <Navigate to="/login" />;
-};
+}; */
 
 const App = () => {
   const navigate = useNavigate();

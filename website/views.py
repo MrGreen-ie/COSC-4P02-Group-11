@@ -3,7 +3,7 @@ from email.mime.text import MIMEText
 import smtplib
 from flask import Blueprint, render_template, request, flash, jsonify, redirect, session
 from flask_login import login_required, current_user
-from .models import Note, ScheduledPost
+from .models import Newsletter, Note, ScheduledPost
 from . import db
 from .cache import redis_cache
 import openai
@@ -69,6 +69,69 @@ def send_email():
         return jsonify({'message': 'Email sent successfully'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# Newsletter CRUD API routes
+@views.route('/api/newsletters', methods=['GET'])
+@login_required
+def get_newsletters():
+    newsletters = Newsletter.query.filter_by(user_id=current_user.id).all()
+    return jsonify([newsletter.to_dict() for newsletter in newsletters])
+
+@views.route('/api/newsletters', methods=['POST'])
+@login_required
+def create_newsletter():
+    data = request.get_json()
+    new_newsletter = Newsletter(
+        title=data['title'],
+        description=data['description'],
+        subject=data['subject'],
+        content=data['content'],
+        user_id=current_user.id
+    )
+    db.session.add(new_newsletter)
+    db.session.commit()
+    return jsonify(new_newsletter.to_dict()), 201
+
+@views.route('/api/newsletters/<int:id>', methods=['PUT'])
+@login_required
+def update_newsletter(id):
+    data = request.get_json()
+    newsletter = Newsletter.query.get_or_404(id)
+    if newsletter.user_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    newsletter.title = data['title']
+    newsletter.description = data['description']
+    newsletter.subject = data['subject']
+    newsletter.content = data['content']
+    db.session.commit()
+    return jsonify(newsletter.to_dict())
+
+@views.route('/api/newsletters/<int:id>', methods=['DELETE'])
+@login_required
+def delete_newsletter(id):
+    newsletter = Newsletter.query.get_or_404(id)
+    if newsletter.user_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    db.session.delete(newsletter)
+    db.session.commit()
+    return '', 204
+
+# Add a method to convert the Newsletter model to a dictionary
+def to_dict(self):
+    return {
+        'id': self.id,
+        'title': self.title,
+        'description': self.description,
+        'subject': self.subject,
+        'content': self.content,
+        'scheduled_time': self.scheduled_time,
+        'status': self.status,
+        'created_at': self.created_at,
+        'user_id': self.user_id
+    }
+
+# Add the to_dict method to the Newsletter model
+Newsletter.to_dict = to_dict
 
 # Twitter API routes
 @views.route('/api/twitter/auth', methods=['GET'])

@@ -17,6 +17,7 @@ scheduler = None
 
 
 def create_app():
+    global scheduler
     app = Flask(__name__)
     
     # Configure CORS properly with credentials support
@@ -39,7 +40,7 @@ def create_app():
     app.register_blueprint(auth, url_prefix="/")
 
     # check if the db has created before running the server
-    from .models import User, Note, ScheduledPost
+    from .models import User, Note, ScheduledPost, Newsletter
 
     # db function called
     create_database(app)
@@ -68,7 +69,7 @@ def create_app():
 def create_database(app):
     # using path model to check if the db model is existed
     if not path.exists("website/" + DB_NAME):
-        # if not we create, app is which app we crreate db for
+# if not we create, app is which app we crreate db for
         # old flask version
         # db.create_all(app=app)
         with app.app_context():

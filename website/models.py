@@ -29,6 +29,8 @@ class User(db.Model, UserMixin):
     notes = db.relationship("Note")
     # Relationship with scheduled posts
     scheduled_posts = db.relationship("ScheduledPost")
+    # Relationship with newsletters
+    newsletters = db.relationship("Newsletter", back_populates="user")
 
 
 # Social media post scheduling model
@@ -47,3 +49,19 @@ class ScheduledPost(db.Model):
     twitter_token = db.Column(db.String(500))
     facebook_token = db.Column(db.String(500))
     linkedin_token = db.Column(db.String(500))
+
+
+# Newsletter model
+class Newsletter(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200))
+    description = db.Column(db.Text)
+    subject = db.Column(db.String(200))
+    content = db.Column(db.Text)
+    scheduled_time = db.Column(db.DateTime(timezone=True))
+    status = db.Column(db.String(50), default="scheduled")  # scheduled, sent, failed
+    created_at = db.Column(db.DateTime(timezone=True), default=func.now())
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+
+    # Relationship with User
+    user = db.relationship("User", back_populates="newsletters")

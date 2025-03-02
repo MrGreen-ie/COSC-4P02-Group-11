@@ -37,29 +37,22 @@ const Newsletters = () => {
   const [newNewsletter, setNewNewsletter] = useState({
     title: '',
     description: '',
+    subject: '',
+    content: '',
   });
   const [editOpen, setEditOpen] = useState(false);
   const [currentNewsletter, setCurrentNewsletter] = useState(null);
 
   useEffect(() => {
-    // Fetch newsletters data from backend or use mock data
+    // Fetch newsletters data from backend
     const fetchNewsletters = async () => {
-      // Replace with actual API call
-      const mockData = [
-        {
-          id: 1,
-          title: 'Newsletter 1',
-          lastModified: '2025-03-01',
-          description: 'Description of Newsletter 1',
-        },
-        {
-          id: 2,
-          title: 'Newsletter 2',
-          lastModified: '2025-03-01',
-          description: 'Description of Newsletter 2',
-        },
-      ];
-      setNewsletters(mockData);
+      try {
+        const response = await fetch('/api/newsletters');
+        const data = await response.json();
+        setNewsletters(data);
+      } catch (error) {
+        console.error('Error fetching newsletters:', error);
+      }
     };
 
     fetchNewsletters();
@@ -120,17 +113,27 @@ const Newsletters = () => {
   };
 
   const handleCreateNewsletter = async () => {
-    // Add logic to create a new newsletter (e.g., API call)
-    // For now, we'll just add it to the mock data
-    const newId = newsletters.length + 1;
-    const newNewsletterData = {
-      id: newId,
-      title: newNewsletter.title,
-      lastModified: new Date().toISOString().split('T')[0],
-      description: newNewsletter.description,
-    };
-    setNewsletters((prev) => [...prev, newNewsletterData]);
-    handleCreateClose();
+    try {
+      const response = await fetch('/api/newsletters', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newNewsletter),
+      });
+
+      if (response.ok) {
+        const createdNewsletter = await response.json();
+        setNewsletters((prev) => [...prev, createdNewsletter]);
+        handleCreateClose();
+      } else {
+        const errorData = await response.json();
+        alert(`Error: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error('Error creating newsletter:', error);
+      alert('Error creating newsletter');
+    }
   };
 
   const handleEditOpen = (newsletter) => {
@@ -149,20 +152,49 @@ const Newsletters = () => {
   };
 
   const handleEditNewsletter = async () => {
-    // Add logic to edit the newsletter (e.g., API call)
-    // For now, we'll just update the mock data
-    setNewsletters((prev) =>
-      prev.map((newsletter) =>
-        newsletter.id === currentNewsletter.id ? currentNewsletter : newsletter
-      )
-    );
-    handleEditClose();
+    try {
+      const response = await fetch(`/api/newsletters/${currentNewsletter.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(currentNewsletter),
+      });
+
+      if (response.ok) {
+        const updatedNewsletter = await response.json();
+        setNewsletters((prev) =>
+          prev.map((newsletter) =>
+            newsletter.id === updatedNewsletter.id ? updatedNewsletter : newsletter
+          )
+        );
+        handleEditClose();
+      } else {
+        const errorData = await response.json();
+        alert(`Error: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error('Error editing newsletter:', error);
+      alert('Error editing newsletter');
+    }
   };
 
-  const handleDeleteNewsletter = (id) => {
-    // Add logic to delete the newsletter (e.g., API call)
-    // For now, we'll just remove it from the mock data
-    setNewsletters((prev) => prev.filter((newsletter) => newsletter.id !== id));
+  const handleDeleteNewsletter = async (id) => {
+    try {
+      const response = await fetch(`/api/newsletters/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setNewsletters((prev) => prev.filter((newsletter) => newsletter.id !== id));
+      } else {
+        const errorData = await response.json();
+        alert(`Error: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error('Error deleting newsletter:', error);
+      alert('Error deleting newsletter');
+    }
   };
 
   const handleViewStats = (newsletter) => {
@@ -324,6 +356,28 @@ const Newsletters = () => {
             value={newNewsletter.description}
             onChange={handleCreateChange}
           />
+          <TextField
+            margin="dense"
+            name="subject"
+            label="Subject"
+            type="text"
+            fullWidth
+            variant="outlined"
+            value={newNewsletter.subject}
+            onChange={handleCreateChange}
+          />
+          <TextField
+            margin="dense"
+            name="content"
+            label="Content"
+            type="text"
+            fullWidth
+            variant="outlined"
+            multiline
+            rows={4}
+            value={newNewsletter.content}
+            onChange={handleCreateChange}
+          />
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCreateClose} color="primary">
@@ -360,6 +414,28 @@ const Newsletters = () => {
             multiline
             rows={4}
             value={currentNewsletter?.description || ''}
+            onChange={handleEditChange}
+          />
+          <TextField
+            margin="dense"
+            name="subject"
+            label="Subject"
+            type="text"
+            fullWidth
+            variant="outlined"
+            value={currentNewsletter?.subject || ''}
+            onChange={handleEditChange}
+          />
+          <TextField
+            margin="dense"
+            name="content"
+            label="Content"
+            type="text"
+            fullWidth
+            variant="outlined"
+            multiline
+            rows={4}
+            value={currentNewsletter?.content || ''}
             onChange={handleEditChange}
           />
         </DialogContent>

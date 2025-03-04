@@ -1,20 +1,24 @@
 # for home page (what features inside /(home) page)
-from flask import Blueprint, render_template, request, flash, jsonify, redirect, session
+from flask import Blueprint, render_template, request, flash, jsonify, redirect, session, current_app
 from flask_login import login_required, current_user
 from .models import Note, ScheduledPost
 from . import db
 from .cache import redis_cache
 import openai
+import os
+import json
+import uuid
+import random
+from datetime import datetime
+from werkzeug.utils import secure_filename
 
 # json
-import json
 import requests
 import markdown
 from datetime import datetime
 import pytz
 from cryptography.fernet import Fernet
 import base64
-import os
 
 # for environment variables
 from dotenv import load_dotenv
@@ -186,31 +190,6 @@ def verify_twitter_credentials():
             'error': str(e)
         }), 500
 
-@views.route('/api/twitter/direct-auth', methods=['POST'])
-def twitter_direct_auth():
-    """Direct authentication for Twitter (development only)"""
-    data = request.json
-    username = data.get('username')
-    password = data.get('password')
-    
-    if not username or not password:
-        return jsonify({
-            'success': False,
-            'error': 'Username and password are required'
-        }), 400
-    
-    try:
-        from .twitter_api import direct_auth
-        result = direct_auth(username, password)
-        
-        return jsonify(result)
-    
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
 @views.route("/", methods=["GET", "POST"])
 # basically you cannot get to the homepage unless youre logged in
 @login_required
@@ -325,18 +304,26 @@ def delete_note():
 @views.route("/api/posts/publish", methods=["POST"])
 @login_required
 def publish_post():
-    data = request.json
-    content = data.get('content', '')
-    platforms = data.get('platforms', [])
-    twitter_credentials = data.get('twitter_credentials')
+    # Extract form data
+    content = request.form.get('content', '')
+    platforms_json = request.form.get('platforms', '[]')
+    twitter_credentials_json = request.form.get('twitter_credentials')
     
-    if not content:
-        return jsonify({'error': 'No content provided'}), 400
+    try:
+        platforms = json.loads(platforms_json)
+        twitter_credentials = json.loads(twitter_credentials_json) if twitter_credentials_json else None
+    except json.JSONDecodeError:
+        return jsonify({'error': 'Invalid JSON data'}), 400
+    
+    if not content and not request.files:
+        return jsonify({'error': 'No content or media provided'}), 400
     
     if not platforms:
         return jsonify({'error': 'No platforms selected'}), 400
     
-    # Process the post for each platform
+    # Save uploaded media files
+    media_paths = save_media_files(request.files)
+    
     results = {}
     
     for platform in platforms:
@@ -351,7 +338,7 @@ def publish_post():
                 
                 # Use the Twitter API to post
                 from .twitter_api import post_tweet
-                tweet_result = post_tweet(content, twitter_credentials)
+                tweet_result = post_tweet(content, twitter_credentials, media_paths)
                 
                 if tweet_result.get('success'):
                     results[platform] = {
@@ -387,6 +374,14 @@ def publish_post():
                 'error': str(e)
             }
     
+    # Clean up temporary media files after posting
+    for file_path in media_paths:
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+        except Exception as e:
+            print(f"Error removing temporary file {file_path}: {str(e)}")
+    
     return jsonify({
         'message': 'Post processed',
         'results': results
@@ -395,20 +390,29 @@ def publish_post():
 @views.route("/api/posts/schedule", methods=["POST"])
 @login_required
 def schedule_post():
-    data = request.json
-    content = data.get('content', '')
-    platforms = data.get('platforms', [])
-    scheduled_time = data.get('scheduled_time')
-    twitter_credentials = data.get('twitter_credentials')
+    # Extract form data
+    content = request.form.get('content', '')
+    platforms_json = request.form.get('platforms', '[]')
+    scheduled_time = request.form.get('scheduled_time')
+    twitter_credentials_json = request.form.get('twitter_credentials')
     
-    if not content:
-        return jsonify({'error': 'No content provided'}), 400
+    try:
+        platforms = json.loads(platforms_json)
+        twitter_credentials = json.loads(twitter_credentials_json) if twitter_credentials_json else None
+    except json.JSONDecodeError:
+        return jsonify({'error': 'Invalid JSON data'}), 400
+    
+    if not content and not request.files:
+        return jsonify({'error': 'No content or media provided'}), 400
     
     if not platforms:
         return jsonify({'error': 'No platforms selected'}), 400
     
     if not scheduled_time:
         return jsonify({'error': 'No scheduled time provided'}), 400
+    
+    # Save uploaded media files
+    media_paths = save_media_files(request.files)
     
     # Generate a unique ID for the scheduled post
     post_id = str(uuid.uuid4())
@@ -420,7 +424,8 @@ def schedule_post():
         'platforms': platforms,
         'scheduled_time': scheduled_time,
         'status': 'scheduled',
-        'twitter_credentials': twitter_credentials
+        'twitter_credentials': twitter_credentials,
+        'media_paths': media_paths
     }
     
     return jsonify({
@@ -428,17 +433,112 @@ def schedule_post():
         'post_id': post_id
     })
 
+@views.route("/api/posts/execute/<post_id>", methods=["POST"])
+@login_required
+def execute_scheduled_post(post_id):
+    if post_id not in scheduled_posts:
+        return jsonify({'error': 'Scheduled post not found'}), 404
+    
+    post = scheduled_posts[post_id]
+    
+    # Mark the post as in progress
+    post['status'] = 'in_progress'
+    
+    results = {}
+    
+    for platform in post['platforms']:
+        try:
+            if platform == 'twitter':
+                twitter_credentials = post.get('twitter_credentials')
+                if not twitter_credentials:
+                    results[platform] = {
+                        'success': False,
+                        'error': 'Twitter credentials not provided'
+                    }
+                    continue
+                
+                # Use the Twitter API to post
+                from .twitter_api import post_tweet
+                tweet_result = post_tweet(post['content'], twitter_credentials, post.get('media_paths', []))
+                
+                if tweet_result.get('success'):
+                    results[platform] = {
+                        'success': True,
+                        'post_id': tweet_result.get('tweet_id'),
+                        'url': f"https://twitter.com/user/status/{tweet_result.get('tweet_id')}"
+                    }
+                else:
+                    results[platform] = {
+                        'success': False,
+                        'error': tweet_result.get('error', 'Unknown error')
+                    }
+            
+            elif platform == 'facebook':
+                # Simulate Facebook posting
+                results[platform] = {
+                    'success': True,
+                    'post_id': f"fb_{random.randint(1000000, 9999999)}",
+                    'url': 'https://facebook.com/post/example'
+                }
+            
+            elif platform == 'linkedin':
+                # Simulate LinkedIn posting
+                results[platform] = {
+                    'success': True,
+                    'post_id': f"li_{random.randint(1000000, 9999999)}",
+                    'url': 'https://linkedin.com/post/example'
+                }
+            
+        except Exception as e:
+            results[platform] = {
+                'success': False,
+                'error': str(e)
+            }
+    
+    # Clean up temporary media files after posting
+    media_paths = post.get('media_paths', [])
+    for file_path in media_paths:
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+        except Exception as e:
+            print(f"Error removing temporary file {file_path}: {str(e)}")
+    
+    # Mark the post as completed
+    post['status'] = 'completed'
+    post['results'] = results
+    post['executed_at'] = datetime.now().isoformat()
+    
+    return jsonify({
+        'message': 'Scheduled post executed',
+        'results': results
+    })
+
 @views.route("/api/posts/scheduled", methods=["GET"])
 @login_required
 def get_scheduled_posts():
     try:
-        # Get all scheduled posts for the current user
-        posts = ScheduledPost.query.filter_by(user_id=current_user.id).order_by(ScheduledPost.scheduled_time).all()
-        
         posts_data = []
-        for post in posts:
+        
+        # Get in-memory scheduled posts
+        for post_id, post in scheduled_posts.items():
+            post_data = {
+                "id": post_id,
+                "content": post.get('content', ''),
+                "platforms": post.get('platforms', []),
+                "scheduled_time": post.get('scheduled_time', ''),
+                "status": post.get('status', 'scheduled'),
+                "media_paths": post.get('media_paths', []),
+                "created_at": post.get('created_at', datetime.now().isoformat())
+            }
+            posts_data.append(post_data)
+        
+        # Get database scheduled posts
+        db_posts = ScheduledPost.query.filter_by(user_id=current_user.id).order_by(ScheduledPost.scheduled_time).all()
+        
+        for post in db_posts:
             posts_data.append({
-                "id": post.id,
+                "id": str(post.id),
                 "content": post.content,
                 "platforms": post.platforms.split(','),
                 "scheduled_time": post.scheduled_time.isoformat(),
@@ -447,31 +547,54 @@ def get_scheduled_posts():
                 "created_at": post.created_at.isoformat()
             })
         
+        # Sort posts by scheduled time
+        posts_data.sort(key=lambda x: x.get('scheduled_time', ''))
+        
         return jsonify({"posts": posts_data}), 200
     
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
-@views.route("/api/posts/scheduled/<int:post_id>", methods=["DELETE"])
+@views.route("/api/posts/scheduled/<post_id>", methods=["DELETE"])
 @login_required
 def delete_scheduled_post(post_id):
     try:
-        post = ScheduledPost.query.get(post_id)
+        # Check if this is an in-memory post
+        if post_id in scheduled_posts:
+            # Remove the post from memory
+            post = scheduled_posts.pop(post_id)
+            
+            # Clean up any media files
+            for file_path in post.get('media_paths', []):
+                try:
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
+                except Exception as e:
+                    print(f"Error removing file {file_path}: {str(e)}")
+            
+            return jsonify({"message": "Scheduled post deleted"}), 200
         
-        if not post:
+        # If not in memory, try to find in database
+        try:
+            # Convert to int if it's a database ID
+            db_post_id = int(post_id)
+            post = ScheduledPost.query.get(db_post_id)
+            
+            if not post:
+                return jsonify({"error": "Post not found"}), 404
+            
+            if post.user_id != current_user.id:
+                return jsonify({"error": "Unauthorized"}), 403
+            
+            db.session.delete(post)
+            db.session.commit()
+            
+            return jsonify({"message": "Scheduled post deleted"}), 200
+        except ValueError:
+            # If post_id is not a valid integer, it's not a database post
             return jsonify({"error": "Post not found"}), 404
-        
-        if post.user_id != current_user.id:
-            return jsonify({"error": "Unauthorized"}), 403
-        
-        db.session.delete(post)
-        db.session.commit()
-        
-        return jsonify({"message": "Post deleted successfully"}), 200
     
     except Exception as e:
-        db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
 
@@ -539,6 +662,39 @@ def publish_to_platform(platform, content, user_id):
             "success": False,
             "error": str(e)
         }
+
+# In-memory storage for scheduled posts (in a real app, this would be a database)
+scheduled_posts = {}
+
+# Create a directory for temporary media storage
+def ensure_media_dir():
+    media_dir = os.path.join(current_app.root_path, 'temp_media')
+    if not os.path.exists(media_dir):
+        os.makedirs(media_dir)
+    return media_dir
+
+# Save uploaded media files
+def save_media_files(request_files):
+    media_paths = []
+    
+    if not request_files:
+        return media_paths
+    
+    media_dir = ensure_media_dir()
+    
+    # Process each uploaded file
+    for key in request_files:
+        if key.startswith('media_'):
+            file = request_files[key]
+            if file:
+                filename = secure_filename(file.filename)
+                # Generate a unique filename to avoid collisions
+                unique_filename = f"{uuid.uuid4()}_{filename}"
+                file_path = os.path.join(media_dir, unique_filename)
+                file.save(file_path)
+                media_paths.append(file_path)
+    
+    return media_paths
 
 @views.route('/api/summarize', methods=['POST'])
 @login_required

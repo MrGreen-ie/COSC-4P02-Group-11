@@ -23,7 +23,14 @@ import {
   DialogContent,
   DialogActions,
   LinearProgress,
-  Divider
+  Divider,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  ListItemSecondaryAction,
+  Stack,
+  CardMedia
 } from '@mui/material';
 import { 
   Twitter as TwitterIcon, 
@@ -33,7 +40,11 @@ import {
   Send as SendIcon, 
   Delete as DeleteIcon,
   Check as CheckIcon,
-  Error as ErrorIcon
+  Error as ErrorIcon,
+  AttachFile as AttachFileIcon,
+  Image as ImageIcon,
+  Description as DocumentIcon,
+  Clear as ClearIcon
 } from '@mui/icons-material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -81,11 +92,37 @@ const PostSystem = () => {
   const [isTwitterAuthenticated, setIsTwitterAuthenticated] = useState(false);
   const [twitterCredentials, setTwitterCredentials] = useState(null);
 
+  // State for media attachments
+  const [mediaFiles, setMediaFiles] = useState([]);
+  const [mediaError, setMediaError] = useState('');
+  
+  // File input reference
+  const fileInputRef = React.useRef(null);
+
   // Character limits for different platforms
   const characterLimits = {
     twitter: 280,
     facebook: 5000,
     linkedin: 3000
+  };
+
+  // Media limits for different platforms
+  const mediaLimits = {
+    twitter: {
+      count: 4,
+      size: 5 * 1024 * 1024, // 5MB
+      types: ['image/jpeg', 'image/png', 'image/gif', 'video/mp4']
+    },
+    facebook: {
+      count: 10,
+      size: 25 * 1024 * 1024, // 25MB
+      types: ['image/jpeg', 'image/png', 'image/gif', 'video/mp4']
+    },
+    linkedin: {
+      count: 9,
+      size: 100 * 1024 * 1024, // 100MB
+      types: ['image/jpeg', 'image/png', 'image/gif', 'video/mp4', 'application/pdf']
+    }
   };
 
   // Load scheduled posts on component mount
@@ -95,13 +132,25 @@ const PostSystem = () => {
 
   // Fetch scheduled posts from the backend
   const fetchScheduledPosts = async () => {
-    setIsLoading(true);
     try {
+      setIsLoading(true);
+      
       const response = await fetch('/api/posts/scheduled');
       const data = await response.json();
       
       if (response.ok) {
-        setScheduledPosts(data.posts || []);
+        // Process posts to ensure consistent format
+        const processedPosts = data.posts.map(post => ({
+          ...post,
+          // Ensure platforms is always an array
+          platforms: Array.isArray(post.platforms) ? post.platforms : [],
+          // Ensure scheduled_time is a string
+          scheduled_time: post.scheduled_time || new Date().toISOString(),
+          // Ensure status has a default value
+          status: post.status || 'scheduled'
+        }));
+        
+        setScheduledPosts(processedPosts);
       } else {
         showAlert(data.error || 'Failed to fetch scheduled posts', 'error');
       }
@@ -177,6 +226,84 @@ const PostSystem = () => {
     }
   };
 
+  // Handle file selection
+  const handleFileSelect = (event) => {
+    const files = Array.from(event.target.files);
+    
+    if (files.length === 0) return;
+    
+    // Validate files
+    const validationError = validateFiles(files);
+    if (validationError) {
+      setMediaError(validationError);
+      return;
+    }
+    
+    // Create file objects with preview URLs
+    const newFiles = files.map(file => ({
+      file,
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : null
+    }));
+    
+    setMediaFiles(prev => [...prev, ...newFiles]);
+    setMediaError('');
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+  
+  // Handle file removal
+  const handleFileRemove = (index) => {
+    setMediaFiles(prev => {
+      const newFiles = [...prev];
+      // Revoke object URL to avoid memory leaks
+      if (newFiles[index].preview) {
+        URL.revokeObjectURL(newFiles[index].preview);
+      }
+      newFiles.splice(index, 1);
+      return newFiles;
+    });
+  };
+  
+  // Validate files against platform rules
+  const validateFiles = (files) => {
+    const selectedPlatforms = Object.keys(platforms).filter(p => platforms[p]);
+    
+    if (selectedPlatforms.length === 0) {
+      return null;
+    }
+    
+    // Get the most restrictive limits from selected platforms
+    let maxCount = Math.min(...selectedPlatforms.map(p => mediaLimits[p].count));
+    let maxSize = Math.min(...selectedPlatforms.map(p => mediaLimits[p].size));
+    let allowedTypes = selectedPlatforms.reduce((types, platform) => {
+      return types.filter(type => mediaLimits[platform].types.includes(type));
+    }, [...new Set(selectedPlatforms.flatMap(p => mediaLimits[p].types))]);
+    
+    // Check if adding these files would exceed the count limit
+    if (mediaFiles.length + files.length > maxCount) {
+      return `You can only attach up to ${maxCount} files for the selected platforms`;
+    }
+    
+    // Check file sizes and types
+    for (const file of files) {
+      if (file.size > maxSize) {
+        return `File "${file.name}" exceeds the maximum size limit (${Math.round(maxSize / (1024 * 1024))}MB)`;
+      }
+      
+      if (!allowedTypes.includes(file.type)) {
+        return `File type "${file.type}" is not supported by all selected platforms`;
+      }
+    }
+    
+    return null;
+  };
+
   // Handle post submission
   const handlePost = async () => {
     // Validate inputs
@@ -193,16 +320,23 @@ const PostSystem = () => {
     try {
       setIsLoading(true);
       
+      // Create FormData for file uploads
+      const formData = new FormData();
+      formData.append('content', content);
+      formData.append('platforms', JSON.stringify(selectedPlatforms));
+      
+      if (platforms.twitter) {
+        formData.append('twitter_credentials', JSON.stringify(twitterCredentials));
+      }
+      
+      // Add media files
+      mediaFiles.forEach((mediaItem, index) => {
+        formData.append(`media_${index}`, mediaItem.file);
+      });
+      
       const response = await fetch('/api/posts/publish', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          content,
-          platforms: selectedPlatforms,
-          twitter_credentials: platforms.twitter ? twitterCredentials : null
-        }),
+        body: formData,
       });
       
       const data = await response.json();
@@ -210,6 +344,7 @@ const PostSystem = () => {
       if (response.ok) {
         showAlert('Post published successfully!', 'success');
         setContent('');
+        setMediaFiles([]);
         
         // Show detailed results
         setStatusDialog({
@@ -245,17 +380,24 @@ const PostSystem = () => {
     try {
       setIsLoading(true);
       
+      // Create FormData for file uploads
+      const formData = new FormData();
+      formData.append('content', content);
+      formData.append('platforms', JSON.stringify(selectedPlatforms));
+      formData.append('scheduled_time', scheduledTime.toISOString());
+      
+      if (platforms.twitter) {
+        formData.append('twitter_credentials', JSON.stringify(twitterCredentials));
+      }
+      
+      // Add media files
+      mediaFiles.forEach((mediaItem, index) => {
+        formData.append(`media_${index}`, mediaItem.file);
+      });
+      
       const response = await fetch('/api/posts/schedule', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          content,
-          platforms: selectedPlatforms,
-          scheduled_time: scheduledTime.toISOString(),
-          twitter_credentials: platforms.twitter ? twitterCredentials : null
-        }),
+        body: formData,
       });
       
       const data = await response.json();
@@ -263,6 +405,7 @@ const PostSystem = () => {
       if (response.ok) {
         showAlert('Post scheduled successfully!', 'success');
         setContent('');
+        setMediaFiles([]);
         setIsScheduling(false);
         fetchScheduledPosts(); // Refresh the list
       } else {
@@ -282,14 +425,15 @@ const PostSystem = () => {
       setIsLoading(true);
       
       const response = await fetch(`/api/posts/scheduled/${postId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       });
       
+      const data = await response.json();
+      
       if (response.ok) {
-        showAlert('Post deleted successfully!', 'success');
+        showAlert('Scheduled post deleted successfully!', 'success');
         fetchScheduledPosts(); // Refresh the list
       } else {
-        const data = await response.json();
         showAlert(data.error || 'Failed to delete post', 'error');
       }
     } catch (error) {
@@ -300,11 +444,46 @@ const PostSystem = () => {
     }
   };
 
+  // Handle executing a scheduled post
+  const handleExecuteScheduledPost = async (postId) => {
+    try {
+      setIsLoading(true);
+      
+      const response = await fetch(`/api/posts/execute/${postId}`, {
+        method: 'POST',
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        showAlert('Post executed successfully!', 'success');
+        fetchScheduledPosts(); // Refresh the list
+        
+        // Show detailed results if available
+        if (data.results) {
+          setStatusDialog({
+            open: true,
+            title: 'Post Results',
+            content: 'Your post has been processed with the following results:',
+            results: data.results
+          });
+        }
+      } else {
+        showAlert(data.error || 'Failed to execute post', 'error');
+      }
+    } catch (error) {
+      showAlert('Error connecting to the server', 'error');
+      console.error('Error executing post:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Validate all inputs before submission
   const validateInputs = () => {
     // Check if content is provided
-    if (!content.trim()) {
-      showAlert('Please enter some content for your post', 'error');
+    if (!content.trim() && mediaFiles.length === 0) {
+      showAlert('Please enter some content or attach media for your post', 'error');
       return false;
     }
     
@@ -316,8 +495,15 @@ const PostSystem = () => {
     }
     
     // Validate content against platform rules
-    if (!validateContent(content)) {
+    if (content.trim() && !validateContent(content)) {
       showAlert(contentError, 'error');
+      return false;
+    }
+    
+    // Validate media files
+    const mediaValidationError = validateFiles([]);
+    if (mediaValidationError) {
+      showAlert(mediaValidationError, 'error');
       return false;
     }
     
@@ -369,6 +555,84 @@ const PostSystem = () => {
     return date.toLocaleString();
   };
 
+  // Render a scheduled post
+  const renderScheduledPost = (post) => {
+    const scheduledTime = new Date(post.scheduled_time);
+    const isPastDue = scheduledTime < new Date();
+    const hasMedia = post.media_paths && post.media_paths.length > 0;
+    
+    return (
+      <Card key={post.id} sx={{ mb: 2 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Scheduled Post
+          </Typography>
+          
+          <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', mb: 2 }}>
+            {post.content}
+          </Typography>
+          
+          {/* Display media attachment indicators if present */}
+          {hasMedia && (
+            <Box sx={{ mb: 2 }}>
+              <Chip 
+                icon={<AttachFileIcon />} 
+                label={`${post.media_paths.length} media attachment${post.media_paths.length > 1 ? 's' : ''}`}
+                color="primary" 
+                variant="outlined" 
+                size="small"
+              />
+            </Box>
+          )}
+          
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+            <ScheduleIcon sx={{ mr: 1, color: 'text.secondary' }} />
+            <Typography variant="body2" color={isPastDue ? 'error' : 'text.secondary'}>
+              {scheduledTime.toLocaleString()} {isPastDue ? '(Past Due)' : ''}
+            </Typography>
+          </Box>
+          
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
+            {post.platforms.map(platform => (
+              <Chip
+                key={platform}
+                icon={getPlatformIcon(platform)}
+                label={platform.charAt(0).toUpperCase() + platform.slice(1)}
+                size="small"
+                variant="outlined"
+              />
+            ))}
+          </Box>
+          
+          <Typography variant="body2" color="text.secondary">
+            Status: {post.status.charAt(0).toUpperCase() + post.status.slice(1)}
+          </Typography>
+        </CardContent>
+        <CardActions>
+          {post.status === 'scheduled' && (
+            <Button 
+              size="small" 
+              startIcon={<SendIcon />}
+              onClick={() => handleExecuteScheduledPost(post.id)}
+              disabled={isLoading}
+            >
+              Post Now
+            </Button>
+          )}
+          <Button 
+            size="small" 
+            startIcon={<DeleteIcon />}
+            onClick={() => handleDeleteScheduledPost(post.id)}
+            disabled={isLoading}
+            color="error"
+          >
+            Delete
+          </Button>
+        </CardActions>
+      </Card>
+    );
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       {/* Twitter Authentication Section */}
@@ -396,6 +660,71 @@ const PostSystem = () => {
           error={!!contentError}
           helperText={contentError}
         />
+        
+        {/* Media attachments section */}
+        <Box sx={{ mt: 2, mb: 2 }}>
+          <Typography variant="subtitle1" gutterBottom>
+            Media Attachments
+          </Typography>
+          
+          {mediaError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {mediaError}
+            </Alert>
+          )}
+          
+          {/* Media files preview */}
+          {mediaFiles.length > 0 && (
+            <Stack direction="row" spacing={2} sx={{ mb: 2, flexWrap: 'wrap', gap: 2 }}>
+              {mediaFiles.map((file, index) => (
+                <Card key={index} sx={{ width: 150, position: 'relative' }}>
+                  {file.preview ? (
+                    <CardMedia
+                      component="img"
+                      height="100"
+                      image={file.preview}
+                      alt={file.name}
+                    />
+                  ) : (
+                    <Box sx={{ height: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <DocumentIcon sx={{ fontSize: 40, color: 'text.secondary' }} />
+                    </Box>
+                  )}
+                  <CardContent sx={{ p: 1 }}>
+                    <Typography variant="caption" noWrap>
+                      {file.name}
+                    </Typography>
+                  </CardContent>
+                  <IconButton 
+                    size="small" 
+                    onClick={() => handleFileRemove(index)}
+                    sx={{ position: 'absolute', top: 5, right: 5, bgcolor: 'rgba(255,255,255,0.7)' }}
+                  >
+                    <ClearIcon fontSize="small" />
+                  </IconButton>
+                </Card>
+              ))}
+            </Stack>
+          )}
+          
+          {/* File upload button */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/*,video/*,application/pdf"
+            style={{ display: 'none' }}
+            onChange={handleFileSelect}
+          />
+          <Button
+            variant="outlined"
+            startIcon={<AttachFileIcon />}
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isLoading}
+          >
+            Attach Media
+          </Button>
+        </Box>
         
         {/* Platform selection */}
         <FormControl component="fieldset" sx={{ mt: 2 }}>
@@ -520,60 +849,7 @@ const PostSystem = () => {
           <LinearProgress />
         ) : scheduledPosts.length > 0 ? (
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            {scheduledPosts.map((post) => (
-              <Grid item xs={12} md={6} key={post.id}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="body1" sx={{ mb: 2 }}>
-                      {post.content}
-                    </Typography>
-                    
-                    <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                      {post.platforms.map((platform) => (
-                        <Chip
-                          key={platform}
-                          icon={getPlatformIcon(platform)}
-                          label={platform.charAt(0).toUpperCase() + platform.slice(1)}
-                          size="small"
-                          color="primary"
-                          variant="outlined"
-                        />
-                      ))}
-                    </Box>
-                    
-                    <Typography variant="caption" color="text.secondary">
-                      Scheduled for: {formatDate(post.scheduled_time)}
-                    </Typography>
-                    
-                    {post.status !== 'scheduled' && (
-                      <Box sx={{ mt: 1 }}>
-                        <Chip
-                          icon={post.status === 'posted' ? <CheckIcon /> : <ErrorIcon />}
-                          label={post.status.charAt(0).toUpperCase() + post.status.slice(1)}
-                          color={post.status === 'posted' ? 'success' : 'error'}
-                          size="small"
-                        />
-                        {post.error_message && (
-                          <Typography variant="caption" color="error" sx={{ display: 'block', mt: 1 }}>
-                            {post.error_message}
-                          </Typography>
-                        )}
-                      </Box>
-                    )}
-                  </CardContent>
-                  <CardActions>
-                    <IconButton 
-                      size="small" 
-                      color="error"
-                      onClick={() => handleDeleteScheduledPost(post.id)}
-                      disabled={isLoading}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </CardActions>
-                </Card>
-              </Grid>
-            ))}
+            {scheduledPosts.map(post => renderScheduledPost(post))}
           </Grid>
         ) : (
           <Typography variant="body2" color="text.secondary">

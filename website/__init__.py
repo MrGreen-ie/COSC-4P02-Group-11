@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from os import path
 from flask_login import LoginManager
 from flask_cors import CORS
+from flask import Flask
 import os
 from dotenv import load_dotenv
 
@@ -17,7 +18,7 @@ scheduler = None
 
 
 def create_app():
-    app = Flask(__name__)
+    app = Flask(__name__, static_folder='static')
     
     # Configure CORS properly with credentials support
     CORS(app, 
@@ -26,7 +27,6 @@ def create_app():
          allow_headers=["Content-Type", "Authorization"],
          methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
     
-    app.static_folder = "static"
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "super_secret_key_for_twitter_auth")
     app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_NAME}"
     db.init_app(app)
@@ -42,7 +42,13 @@ def create_app():
     from .models import User, Note, ScheduledPost
 
     # db function called
-    create_database(app)
+    with app.app_context():
+        db.create_all()
+        
+        # Create temp_media directory for file uploads
+        media_dir = os.path.join(app.root_path, 'temp_media')
+        if not os.path.exists(media_dir):
+            os.makedirs(media_dir)
 
     # manage user login
     login_manager = LoginManager()

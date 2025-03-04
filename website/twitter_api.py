@@ -1,10 +1,11 @@
 import os
 import tweepy
+from flask import current_app, url_for, session, redirect
+import json
+import uuid
+import base64
 from cryptography.fernet import Fernet
 from dotenv import load_dotenv
-import json
-from flask import session
-import base64
 
 # Load environment variables
 load_dotenv()
@@ -84,13 +85,14 @@ def verify_credentials(access_token, access_token_secret):
             'error': str(e)
         }
 
-def post_tweet(content, credentials):
+def post_tweet(content, credentials, media_files=None):
     """
     Post a tweet using the provided credentials
     
     Args:
         content (str): The content of the tweet
         credentials (dict): Twitter credentials with access_token and access_token_secret
+        media_files (list): Optional list of paths to media files to attach
         
     Returns:
         dict: Result of the tweet operation
@@ -119,8 +121,35 @@ def post_tweet(content, credentials):
             access_token_secret=access_token_secret
         )
         
-        # Post the tweet
-        response = client.create_tweet(text=content)
+        # For media uploads, we need the v1.1 API
+        auth = tweepy.OAuth1UserHandler(
+            consumer_key=TWITTER_API_KEY,
+            consumer_secret=TWITTER_API_SECRET,
+            access_token=access_token,
+            access_token_secret=access_token_secret
+        )
+        api = tweepy.API(auth)
+        
+        # Handle media uploads if provided
+        media_ids = []
+        if media_files and len(media_files) > 0:
+            for media_file in media_files:
+                try:
+                    if os.path.exists(media_file):
+                        # Upload the media file
+                        media = api.media_upload(media_file)
+                        media_ids.append(media.media_id)
+                except Exception as e:
+                    return {
+                        'success': False,
+                        'error': f"Failed to upload media: {str(e)}"
+                    }
+        
+        # Post the tweet with or without media
+        if media_ids:
+            response = client.create_tweet(text=content, media_ids=media_ids)
+        else:
+            response = client.create_tweet(text=content)
         
         # Extract the tweet ID from the response
         tweet_id = response.data['id']
@@ -129,7 +158,7 @@ def post_tweet(content, credentials):
             'success': True,
             'tweet_id': tweet_id
         }
-    
+        
     except Exception as e:
         # Handle any exceptions that might occur
         return {
@@ -160,7 +189,7 @@ def complete_oauth(oauth_token, oauth_verifier):
             auth = tweepy.OAuth1UserHandler(
                 TWITTER_API_KEY,
                 TWITTER_API_SECRET,
-                callback="http://localhost:3000"
+                callback="http://localhost:3000/post-system"
             )
             
             # Set the request token with just what we have
@@ -173,7 +202,7 @@ def complete_oauth(oauth_token, oauth_verifier):
             auth = tweepy.OAuth1UserHandler(
                 TWITTER_API_KEY,
                 TWITTER_API_SECRET,
-                callback="http://localhost:3000"
+                callback="http://localhost:3000/post-system"
             )
             
             # Set the request token
@@ -227,64 +256,6 @@ def complete_oauth(oauth_token, oauth_verifier):
             'error': str(e)
         }
 
-def direct_auth(username, password):
-    """
-    Directly authenticate with Twitter using username and password
-    This is a simplified version for development - in production, OAuth is required
-    
-    Args:
-        username (str): Twitter username
-        password (str): Twitter password
-        
-    Returns:
-        dict: Result with access tokens if successful
-    """
-    try:
-        print(f"Direct auth attempt for user: {username}")
-        
-        # For development, we'll use the app's tokens directly
-        # In production, this would use the OAuth flow
-        
-        # Create a client with the app's tokens
-        client = tweepy.Client(
-            consumer_key=TWITTER_API_KEY,
-            consumer_secret=TWITTER_API_SECRET,
-            access_token=TWITTER_ACCESS_TOKEN,
-            access_token_secret=TWITTER_ACCESS_SECRET
-        )
-        
-        # Try to verify the credentials
-        try:
-            # Get the authenticated user's information
-            user_info = client.get_me(user_fields=['name', 'username'])
-            
-            if user_info.data:
-                return {
-                    'success': True,
-                    'username': user_info.data.username,
-                    'name': user_info.data.name,
-                    'access_token': TWITTER_ACCESS_TOKEN,
-                    'access_token_secret': TWITTER_ACCESS_SECRET
-                }
-            else:
-                return {
-                    'success': False,
-                    'error': 'Could not retrieve user information'
-                }
-        except Exception as e:
-            print(f"Error verifying credentials: {str(e)}")
-            return {
-                'success': False,
-                'error': f"Error verifying credentials: {str(e)}"
-            }
-            
-    except Exception as e:
-        print(f"Error in direct auth: {str(e)}")
-        return {
-            'success': False,
-            'error': str(e)
-        }
-
 class TwitterAPI:
     @staticmethod
     def get_oauth_handler():
@@ -303,7 +274,11 @@ class TwitterAPI:
             auth = tweepy.OAuth1UserHandler(
                 TWITTER_API_KEY, 
                 TWITTER_API_SECRET,
-                callback="http://localhost:3000"  # Use frontend URL as callback
+                # IMPORTANT: This callback URL MUST be registered in your Twitter Developer Portal
+                # Go to https://developer.twitter.com/en/portal/dashboard
+                # Navigate to your app > Settings > User authentication settings
+                # Add this URL to the "Callback URLs" section
+                callback="http://localhost:3000/post-system"  # Redirect back to the post-system page
             )
             
             # Get the authorization URL
@@ -375,14 +350,15 @@ class TwitterAPI:
             }
     
     @staticmethod
-    def post_tweet(content, credentials):
+    def post_tweet(content, credentials, media_files=None):
         """
         Post a tweet using the provided credentials
         
         Args:
             content (str): The content of the tweet
             credentials (dict): Twitter credentials with access_token and access_token_secret
-            
+            media_files (list): Optional list of paths to media files to attach
+        
         Returns:
             dict: Result of the tweet operation
         """
@@ -410,8 +386,35 @@ class TwitterAPI:
                 access_token_secret=access_token_secret
             )
             
-            # Post the tweet
-            response = client.create_tweet(text=content)
+            # For media uploads, we need the v1.1 API
+            auth = tweepy.OAuth1UserHandler(
+                consumer_key=TWITTER_API_KEY,
+                consumer_secret=TWITTER_API_SECRET,
+                access_token=access_token,
+                access_token_secret=access_token_secret
+            )
+            api = tweepy.API(auth)
+            
+            # Handle media uploads if provided
+            media_ids = []
+            if media_files and len(media_files) > 0:
+                for media_file in media_files:
+                    try:
+                        if os.path.exists(media_file):
+                            # Upload the media file
+                            media = api.media_upload(media_file)
+                            media_ids.append(media.media_id)
+                    except Exception as e:
+                        return {
+                            'success': False,
+                            'error': f"Failed to upload media: {str(e)}"
+                        }
+            
+            # Post the tweet with or without media
+            if media_ids:
+                response = client.create_tweet(text=content, media_ids=media_ids)
+            else:
+                response = client.create_tweet(text=content)
             
             # Extract the tweet ID from the response
             tweet_id = response.data['id']
@@ -420,7 +423,7 @@ class TwitterAPI:
                 'success': True,
                 'tweet_id': tweet_id
             }
-        
+            
         except Exception as e:
             # Handle any exceptions that might occur
             return {

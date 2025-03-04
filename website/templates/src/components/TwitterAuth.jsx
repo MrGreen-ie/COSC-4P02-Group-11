@@ -13,16 +13,14 @@ import {
   DialogActions, 
   CircularProgress, 
   Alert, 
-  IconButton,
-  TextField
+  IconButton
 } from '@mui/material';
 import { 
   Twitter as TwitterIcon, 
   Link as LinkIcon, 
   Check as CheckIcon,
   Close as CloseIcon,
-  Logout as LogoutIcon,
-  Lock as LockIcon
+  Logout as LogoutIcon
 } from '@mui/icons-material';
 
 const TwitterAuth = ({ onAuthStatusChange }) => {
@@ -38,14 +36,6 @@ const TwitterAuth = ({ onAuthStatusChange }) => {
   const [authError, setAuthError] = useState({
     show: false,
     message: '',
-    error: ''
-  });
-  
-  // State for direct auth dialog
-  const [directAuthDialog, setDirectAuthDialog] = useState({
-    open: false,
-    username: '',
-    password: '',
     error: ''
   });
   
@@ -84,7 +74,79 @@ const TwitterAuth = ({ onAuthStatusChange }) => {
       }
     };
     
+    // Check for OAuth callback parameters in URL
+    const handleOAuthCallback = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const oauthToken = urlParams.get('oauth_token');
+      const oauthVerifier = urlParams.get('oauth_verifier');
+      
+      if (oauthToken && oauthVerifier) {
+        console.log('OAuth callback detected with token and verifier');
+        setIsLoading(true);
+        
+        try {
+          // Call backend to complete authentication
+          const response = await fetch('http://localhost:5000/api/twitter/callback', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              oauth_token: oauthToken,
+              oauth_verifier: oauthVerifier
+            }),
+            credentials: 'include'
+          });
+          
+          const data = await response.json();
+          
+          if (response.ok && data.success) {
+            // Store credentials
+            const credentials = {
+              username: data.username,
+              name: data.name,
+              access_token: data.access_token,
+              access_token_secret: data.access_token_secret
+            };
+            
+            localStorage.setItem('twitterAuthenticated', 'true');
+            localStorage.setItem('twitterCredentials', JSON.stringify(credentials));
+            
+            setIsAuthenticated(true);
+            setTwitterCredentials(credentials);
+            setUserData({
+              username: data.username || '',
+              name: data.name || '',
+              access_token: data.access_token,
+              access_token_secret: data.access_token_secret
+            });
+            
+            updateAuthStatus(true, credentials);
+            
+            // Clear the URL parameters without refreshing the page
+            window.history.replaceState({}, document.title, window.location.pathname);
+          } else {
+            setAuthError({
+              show: true,
+              message: 'Failed to complete Twitter authentication',
+              error: data.error || 'Unknown error'
+            });
+          }
+        } catch (error) {
+          console.error('Error completing Twitter authentication:', error);
+          setAuthError({
+            show: true,
+            message: 'Error completing Twitter authentication',
+            error: error.message || 'Unknown error'
+          });
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+    
     checkStoredCredentials();
+    handleOAuthCallback();
   }, []);
   
   // Handle connect with Twitter (OAuth)
@@ -93,6 +155,7 @@ const TwitterAuth = ({ onAuthStatusChange }) => {
       setIsLoading(true);
       
       // Redirect to the backend OAuth endpoint
+      // Make sure this URL is accessible from your frontend
       window.location.href = 'http://localhost:5000/api/twitter/auth';
     } catch (error) {
       console.error('Error during Twitter authentication:', error);
@@ -140,103 +203,6 @@ const TwitterAuth = ({ onAuthStatusChange }) => {
       error: ''
     });
   };
-  
-  // Handle direct auth dialog open
-  const handleDirectAuthOpen = () => {
-    setDirectAuthDialog({
-      ...directAuthDialog,
-      open: true
-    });
-  };
-
-  // Handle direct auth dialog close
-  const handleDirectAuthClose = () => {
-    setDirectAuthDialog({
-      ...directAuthDialog,
-      open: false
-    });
-  };
-
-  // Handle input change in direct auth dialog
-  const handleDirectAuthInputChange = (event) => {
-    setDirectAuthDialog({
-      ...directAuthDialog,
-      [event.target.name]: event.target.value,
-      error: '' // Clear any previous error
-    });
-  };
-
-  // Handle direct authentication
-  const handleDirectAuth = async () => {
-    try {
-      setIsLoading(true);
-      
-      // Validate inputs
-      if (!directAuthDialog.username || !directAuthDialog.password) {
-        setDirectAuthDialog({
-          ...directAuthDialog,
-          error: 'Username and password are required'
-        });
-        return;
-      }
-      
-      // Call the direct auth endpoint
-      const response = await fetch('http://localhost:5000/api/twitter/direct-auth', {
-        method: 'POST',
-        mode: 'cors',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          username: directAuthDialog.username,
-          password: directAuthDialog.password
-        }),
-      });
-      
-      const data = await response.json();
-      
-      if (response.ok && data.success) {
-        // Authentication successful
-        const credentials = {
-          username: data.username,
-          name: data.name,
-          access_token: data.access_token,
-          access_token_secret: data.access_token_secret
-        };
-        
-        // Save credentials to localStorage
-        localStorage.setItem('twitterAuthenticated', 'true');
-        localStorage.setItem('twitterCredentials', JSON.stringify(credentials));
-        
-        setIsAuthenticated(true);
-        setTwitterCredentials(credentials);
-        setUserData(credentials);
-        updateAuthStatus(true, credentials);
-        
-        // Close the dialog
-        setDirectAuthDialog({
-          ...directAuthDialog,
-          open: false
-        });
-      } else {
-        // Authentication failed
-        setDirectAuthDialog({
-          ...directAuthDialog,
-          error: data.error || 'Authentication failed. Please check your credentials.'
-        });
-      }
-    } catch (error) {
-      console.error('Error during direct authentication:', error);
-      setDirectAuthDialog({
-        ...directAuthDialog,
-        error: 'Error connecting to the server. Please try again.'
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <Box sx={{ mb: 4 }}>
@@ -277,26 +243,15 @@ const TwitterAuth = ({ onAuthStatusChange }) => {
               Disconnect
             </Button>
           ) : (
-            <>
-              <Button 
-                variant="contained" 
-                color="primary" 
-                onClick={handleConnect}
-                disabled={isLoading}
-                startIcon={<TwitterIcon />}
-              >
-                Connect with Twitter
-              </Button>
-              <Button 
-                variant="outlined" 
-                color="primary" 
-                onClick={handleDirectAuthOpen}
-                disabled={isLoading}
-                startIcon={<LockIcon />}
-              >
-                Direct Auth
-              </Button>
-            </>
+            <Button 
+              variant="contained" 
+              color="primary" 
+              onClick={handleConnect}
+              disabled={isLoading}
+              startIcon={<TwitterIcon />}
+            >
+              Connect with Twitter
+            </Button>
           )}
         </CardActions>
       </Card>
@@ -328,69 +283,6 @@ const TwitterAuth = ({ onAuthStatusChange }) => {
         <DialogActions>
           <Button onClick={handleErrorClose}>
             Close
-          </Button>
-        </DialogActions>
-      </Dialog>
-      
-      {/* Direct Auth Dialog */}
-      <Dialog 
-        open={directAuthDialog.open} 
-        onClose={handleDirectAuthClose}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <TwitterIcon sx={{ color: '#1DA1F2' }} />
-            <Typography variant="h6">Direct Twitter Authentication</Typography>
-          </Box>
-          <IconButton onClick={handleDirectAuthClose} size="small">
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        
-        <DialogContent>
-          <DialogContentText sx={{ mb: 2 }}>
-            Enter your Twitter credentials to authenticate directly.
-          </DialogContentText>
-          
-          {directAuthDialog.error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {directAuthDialog.error}
-            </Alert>
-          )}
-          
-          <TextField
-            label="Username"
-            name="username"
-            value={directAuthDialog.username}
-            onChange={handleDirectAuthInputChange}
-            sx={{ mb: 2 }}
-            fullWidth
-          />
-          
-          <TextField
-            label="Password"
-            name="password"
-            type="password"
-            value={directAuthDialog.password}
-            onChange={handleDirectAuthInputChange}
-            sx={{ mb: 2 }}
-            fullWidth
-          />
-        </DialogContent>
-        
-        <DialogActions>
-          <Button onClick={handleDirectAuthClose} disabled={isLoading}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleDirectAuth} 
-            variant="contained" 
-            color="primary"
-            disabled={isLoading}
-          >
-            {isLoading ? <CircularProgress size={24} /> : 'Authenticate'}
           </Button>
         </DialogActions>
       </Dialog>

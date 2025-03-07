@@ -1,60 +1,8 @@
 # Backend Documentation
 
 ## Project Structure
-```
-website/
-├── __init__.py          # Flask application factory
-├── auth.py             # Authentication routes and logic
-├── models.py           # Database models
-├── views.py            # Application routes
-├── cache.py            # Redis caching implementation
-├── tests/              # Test files
-│   └── test_redis.py   # Redis connection tests
-├── static/             # Static assets
-│   ├── index.js        # Legacy JavaScript
-│   └── style.css       # Global styles
-└── templates/          # Frontend application
-    ├── index.html      # Main HTML template
-    ├── package.json    # Frontend dependencies
-    ├── vite.config.js  # Vite configuration
-    └── src/           # React source code
-        ├── App.jsx
-        ├── main.jsx
-        ├── index.jsx
-        ├── components/
-        ├── pages/
-        ├── services/
-        └── utils/
-```
 
-## Project Structure
-
-### Backend (Flask)
-```
-website/
-├── __init__.py          # Flask application factory
-├── auth.py             # Authentication routes and logic
-├── models.py           # Database models
-├── views.py            # Application routes
-├── cache.py            # Redis caching implementation
-├── tests/              # Test files
-│   └── test_redis.py   # Redis connection tests
-├── static/             # Static assets
-│   ├── index.js        # Legacy JavaScript
-│   └── style.css       # Global styles
-└── templates/          # Frontend application
-    ├── index.html      # Main HTML template
-    ├── package.json    # Frontend dependencies
-    ├── vite.config.js  # Vite configuration
-    └── src/           # React source code
-        ├── App.jsx
-        ├── main.jsx
-        ├── index.jsx
-        ├── components/
-        ├── pages/
-        ├── services/
-        └── utils/
-```
+- See @documentation/structure.md for current structure
 
 ### Key Files
 
@@ -152,7 +100,7 @@ The application uses Redis Cloud for caching frequently requested summaries:
 ### Environment Variables
 Required environment variables in `.env.local`:
 ```
-OPENAI_API_KEY=your_api_key
+GEMINI_API_KEY=your_api_key
 REDIS_URL=redis://default:password@host:port
 REDIS_CACHE_EXPIRY=3600  # Optional, defaults to 3600
 ```
@@ -174,7 +122,7 @@ REDIS_CACHE_EXPIRY=3600  # Optional, defaults to 3600
   - CSRF protection
 
 ## AI Integration
-- **OpenAI API**: For summarization and content generation.
+- **Gemini API**: For summarization and content generation.
 
 ## Endpoints
 1. **User Authentication**
@@ -219,6 +167,18 @@ REDIS_CACHE_EXPIRY=3600  # Optional, defaults to 3600
        updated_at = db.Column(db.DateTime, default=datetime.utcnow)
        type = db.Column(db.String(50))  # 'draft', 'published', etc.
    ```
+2. **Saved Summary**
+   ```python
+   class SavedSummary(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    headline = db.Column(db.String(200))
+    summary = db.Column(db.Text)
+    tags = db.Column(db.String(500))  # Comma-separated list of tags/categories
+    tone = db.Column(db.String(50))
+    length = db.Column(db.Integer)
+    created_at = db.Column(db.DateTime(timezone=True), default=func.now())
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    ```
 
 ## Implementation Details
 1. **Authentication Flow**
@@ -238,7 +198,7 @@ REDIS_CACHE_EXPIRY=3600  # Optional, defaults to 3600
    - Scheduling
    - AI requests
 
-3. **Integrate OpenAI API** for summarization and content generation.
+3. **Integrate Gemini API** for summarization and content generation.
 
 4. **Database models** for:
    - Users with secure password handling
@@ -250,7 +210,7 @@ REDIS_CACHE_EXPIRY=3600  # Optional, defaults to 3600
 1. Implement Content model and migrations
 2. Create REST API endpoints for Editor content management
 3. Add content validation and sanitization
-4. Implement OpenAI integration endpoints
+4. Implement Gemini integration endpoints
 
 ## Testing
 1. **Unit tests** for Flask routes using pytest or unittest.
@@ -259,7 +219,7 @@ REDIS_CACHE_EXPIRY=3600  # Optional, defaults to 3600
 
 ## Deployment
 - Host on a cloud platform (e.g., Heroku, AWS, or Azure).
-- Configure environment variables for OpenAI API key and database connections.
+- Configure environment variables for Gemini API key and database connections.
 
 ## Maintenance & Iteration
 - Gather user feedback for continuous improvement.

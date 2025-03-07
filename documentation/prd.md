@@ -12,7 +12,7 @@ A SaaS platform that allows users to automatically collect, curate, and summariz
 2. **Custom News Aggregation**
    - Users specify news sources (RSS feeds, links) or keywords to fetch and filter articles automatically.
 3. **AI Summarization**
-   - Integrates with OpenAI API to summarize articles, generating concise text for newsletters or social media.
+   - Integrates with Gemini API to summarize articles, generating concise text for newsletters or social media.
 4. **Template Management & Rich Text Editing**
    - Users can create or edit newsletter templates or social media posts with a rich text editor (Draft.js).
 5. **Scheduling & Automation**
@@ -52,7 +52,7 @@ A SaaS platform that allows users to automatically collect, curate, and summariz
    - Store fetched articles in a database (SQLite for MVP).
    - Handle duplicates (i.e., do not re-fetch or store the same article multiple times).
 3. **AI Summarization & Content Generation**
-   - Integrate with the OpenAI API to summarize, rephrase, or generate short/long-form text.
+   - Integrate with the Gemini API to summarize, rephrase, or generate short/long-form text.
    - Display AI-generated summaries or content in a user-friendly format.
 4. **Rich Text Editing & Template Management**
    - Provide a rich text editor (Draft.js) for customizing newsletter or social post content.
@@ -74,13 +74,13 @@ A SaaS platform that allows users to automatically collect, curate, and summariz
    - Handle moderate concurrency (multiple users pulling content simultaneously).
 2. **Scalability & Modularity**
    - Built in a way that allows switching the database from SQLite to a more robust system (e.g., PostgreSQL) if usage grows.
-   - The AI integration (OpenAI API) should be modular so it can be swapped or extended with other NLP/LLM services in the future.
+   - The AI integration (Gemini API) should be modular so it can be swapped or extended with other NLP/LLM services in the future.
 3. **Reliability**
    - The aggregator and summarization services must reliably run without crashing, even if certain sources or APIs fail.
    - The scheduling feature must handle unexpected downtime or restarts without losing track of queued tasks.
 4. **Security**
    - Protect user data with secure authentication and password hashing (Flask-Login, HTTPS, etc.).
-   - Store secrets (OpenAI API key, database credentials) in environment variables or a secure location.
+   - Store secrets (Gemini API key, database credentials) in environment variables or a secure location.
    - Prevent unauthorized access to user accounts and avoid exposing sensitive data (like personal email lists).
 5. **Maintainability**
    - Code must be well-documented; particularly the AI integration logic and data flow.
@@ -102,52 +102,10 @@ A SaaS platform that allows users to automatically collect, curate, and summariz
 - **Framework**: Flask (Python)
 - **Database**: SQLite / PostgreSQL / MongoDB
 - **Authentication System**: Flask-Login
-- **AI Integration**: OpenAI API for summarization and content generation
+- **AI Integration**: Gemini API for summarization and content generation
 
 ## Project Structure
-
-### Backend (Flask)
-
-```
-website/
-├── __init__.py          # Flask app initialization and configuration
-├── auth.py             # Authentication routes and user management
-├── models.py           # Database models and schemas
-├── views.py            # Main application routes and API endpoints
-└── static/             # Static assets
-    ├── index.js        # Legacy JavaScript utilities
-    └── style.css       # Global CSS styles
-```
-
-### Frontend (React + Vite)
-
-```
-website/templates/
-├── index.html          # Main HTML template
-├── package.json        # Frontend dependencies and scripts
-├── vite.config.js      # Vite build configuration
-└── src/               # React source code
-    ├── main.jsx       # Application entry point
-    ├── App.jsx        # Root component and routing
-    ├── index.jsx      # React DOM initialization
-    ├── components/    # Reusable UI components
-    │   └── NavBar.jsx # Navigation sidebar
-    ├── pages/         # Page components
-    │   ├── Home.jsx           # Dashboard/overview
-    │   ├── Editor.jsx         # Content editor
-    │   ├── Template.jsx       # Content templates
-    │   ├── AISummary.jsx      # AI content analysis
-    │   ├── PostSystem.jsx     # Social media posting
-    │   ├── Favourites.jsx     # Saved content
-    │   ├── Newsletters.jsx    # Newsletter management
-    │   ├── History.jsx        # Content history
-    │   ├── Login.jsx          # User login
-    │   └── Register.jsx       # User registration
-    ├── services/      # API and utility services
-    │   └── api.js     # API client configuration
-    └── utils/         # Utility functions
-        └── draft-polyfill.js # Rich text editor utilities
-```
+- See @documentation/structure.md
 
 ### Component Descriptions
 
@@ -229,14 +187,14 @@ website/templates/
 3. **Implementation**:
    - Set up front-end routes, Material UI components, Editor with Draft.js.
    - Build Flask endpoints for user auth, article fetching, scheduling, AI requests.
-   - Integrate OpenAI API for summarization.
+   - Integrate Gemini API for summarization.
 4. **Testing**:
    - Unit tests (front-end components, Flask routes).
    - Integration tests (API calls to endpoints).
    - User acceptance tests (manual checks on the UI).
 5. **Deployment**:
    - Host on a cloud platform (e.g., Heroku, AWS, or Azure).
-   - Configure environment variables (OpenAI API key, DB connection).
+   - Configure environment variables (Gemini API key, DB connection).
 6. **Maintenance & Iteration**:
    - Gather user feedback.
    - Prioritize enhancements (e.g., advanced analytics, multi-language support).

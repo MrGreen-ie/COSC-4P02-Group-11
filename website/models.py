@@ -29,6 +29,8 @@ class User(db.Model, UserMixin):
     notes = db.relationship("Note")
     # Relationship with scheduled posts
     scheduled_posts = db.relationship("ScheduledPost")
+    # Relationship with saved summaries
+    saved_summaries = db.relationship("SavedSummary")
 
 
 # Social media post scheduling model
@@ -47,3 +49,14 @@ class ScheduledPost(db.Model):
     twitter_token = db.Column(db.String(500))
     facebook_token = db.Column(db.String(500))
     linkedin_token = db.Column(db.String(500))
+
+# Saved AI Summary model
+class SavedSummary(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    headline = db.Column(db.String(200))
+    summary = db.Column(db.Text)
+    tags = db.Column(db.String(500))  # Comma-separated list of tags/categories
+    tone = db.Column(db.String(50))
+    length = db.Column(db.Integer)
+    created_at = db.Column(db.DateTime(timezone=True), default=func.now())
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"))

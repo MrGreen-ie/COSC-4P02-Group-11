@@ -2,33 +2,7 @@
 
 ## Project Structure
 
-### Frontend (React + Vite)
-```
-website/templates/
-├── package.json        # Dependencies and scripts
-├── vite.config.js      # Vite configuration
-├── src/
-│   ├── main.jsx       # Application entry point
-│   ├── App.jsx        # Root component and routing
-│   ├── index.jsx      # React DOM rendering
-│   ├── components/    # Reusable components
-│   │   └── NavBar.jsx # Navigation sidebar
-│   ├── pages/         # Page components
-│   │   ├── Home.jsx   # Dashboard page
-│   │   ├── Editor.jsx # Content editor
-│   │   ├── Template.jsx # Template management
-│   │   ├── AISummary.jsx # AI content summary
-│   │   ├── PostSystem.jsx # Social media posting
-│   │   ├── Favourites.jsx # Saved content
-│   │   ├── Login.jsx  # User authentication
-│   │   ├── Register.jsx # User registration
-│   │   ├── Newsletters.jsx # Newsletter management
-│   │   └── History.jsx # Content history tracking
-│   ├── services/      # API services
-│   │   └── api.js     # API client
-│   └── utils/         # Utility functions
-│       └── draft-polyfill.js # Draft.js helpers
-```
+- See @documentation/structure.md for current structure
 
 ### Key Components
 
@@ -161,7 +135,7 @@ const generateSummary = async (content, settings) => {
    - Rich text editor using Draft.js for content creation
    - Basic save functionality (currently logs to console)
    - Clean, minimal interface with Material-UI styling
-   - Placeholder for future OpenAI integration
+   - Placeholder for future Gemini integration
    - Route: `/editor`
 
 5. **History Page**
@@ -228,7 +202,7 @@ const generateSummary = async (content, settings) => {
 
 ## Next Steps
 1. Implement content persistence with backend
-2. Add OpenAI integration
+2. Add Gemini integration
 3. Add template management
 4. Implement multi-channel publishing options
 

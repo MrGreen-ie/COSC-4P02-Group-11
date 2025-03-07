@@ -1,134 +1,77 @@
-# 4P02-G11
+# Summit (4P02-G11)
 
-### Setup & Installation
-- Basic flask extension
-  pip3 install flask
-  pip3 install flask-login
-  pip3 install flask-sqlalchemy
-  pip3 install flask-cors
-```
+## Overview
+A content management system with AI-powered features for content creation, management, and social media integration.
 
-- OpenAi
-```
-  pip3 install --upgrade openai
-```
-- For formatting the AI reponse in markdown
-```
-  pip3 install markdown
-```
+## Setup & Installation
 
-React:
-- Cd into templates/ where the react project is located
-```
-  npm install
-```
+### Prerequisites
+- Python 3.x
+- Node.js and npm
+- SQLite (included)
 
-
-## Running the tests
-Backend (running on http://127.0.0.1:5000/):
-- Open one terminal, cd into project folder and run:
-```
-    python3 main.py
-```
-
-Frontend (running on http://127.0.0.1:3000/):
-- Open a 2nd terminal, cd into templates/ where the react project is located
-```
-    npm run dev
-```
-
-
-## Running the tests
-
-- Homepage
-
-```
-  http://127.0.0.1:3000/
-  http://127.0.0.1:3000/dashboard
-```
-
-- Login page
-
-```
-  http://127.0.0.1:3000/login
-```
-
-- Sign-up Page
-
-```
-  http://127.0.0.1:3000/sign-up
-```
-
-- Checking database
-Use 
-
-```
-  https://sqliteviewer.app/
-```
-
-Drag and drop database.db located in the 'instance' folder onto the site to view it.
-You will have to upload the file again to see any databasechanges, as 
-it doesn't update automatically.
-
-
-## Social Media Post System
-
-The Social Media Post System allows users to create, schedule, and manage posts across multiple social media platforms from a single interface.
-
-### Features
-
-- **Multi-Platform Integration**: Post to Twitter, Facebook, and LinkedIn simultaneously
-- **Post Scheduling**: Schedule posts for future publication
-- **Content Validation**: Automatically validates content against platform-specific rules (e.g., character limits)
-- **Real-time Status Updates**: Get immediate feedback on post success or failure
-- **Secure API Key Management**: All social media API keys are encrypted using AES-256
-
-### Technical Implementation
-
-- **Backend**: Flask with SQLAlchemy for database management
-- **Frontend**: React with Material-UI for a modern, responsive interface
-- **Scheduling**: APScheduler for handling scheduled posts
-- **Security**: Cryptography library for API key encryption
-
-### Setup Instructions
-
+### Backend Setup
 1. Install backend dependencies:
-   ```
+   ```bash
    pip install -r requirements.txt
    ```
 
-2. Install frontend dependencies:
-   ```
+### Frontend Setup
+1. Install frontend dependencies:
+   ```bash
    cd website/templates
    npm install
    ```
 
-3. Set up environment variables in `.env` file:
-   ```
-   ENCRYPTION_KEY=your_secure_encryption_key
-   ```
+### Environment Configuration
+1. Configure environment variables in `.env.local` file in root directory.
 
-4. Run the application:
-   ```
-   python main.py
-   ```
+## Running the Application
 
-5. Access the application at http://localhost:5000
+### Start Backend Server
+```bash
+python3 main.py
+```
+Backend will run on: http://127.0.0.1:5000/
 
-### API Endpoints
+### Start Frontend Development Server
+```bash
+cd website/templates
+npm run dev
+```
+Frontend will run on: http://127.0.0.1:3000/
 
-- `POST /api/posts/publish`: Publish content to selected platforms immediately
-- `POST /api/posts/schedule`: Schedule a post for future publication
-- `GET /api/posts/scheduled`: Get all scheduled posts for the current user
-- `DELETE /api/posts/scheduled/<post_id>`: Delete a scheduled post
+## Navigation Guide
 
-### Social Media Platform Integration
+### Main Pages
+- **Dashboard**: http://127.0.0.1:3000/ or http://127.0.0.1:3000/dashboard
+- **Login**: http://127.0.0.1:3000/login
+- **Sign-up**: http://127.0.0.1:3000/sign-up
 
-In a production environment, you would need to:
+- **Content Editor**: http://127.0.0.1:3000/editor
+- **Templates**: http://127.0.0.1:3000/template
+- **AI Summary**: http://127.0.0.1:3000/ai-summary
+- **Post System**: http://127.0.0.1:3000/post-system
+- **Favourites**: http://127.0.0.1:3000/favourites
+- **Newsletters**: http://127.0.0.1:3000/newsletters
+- **History**: http://127.0.0.1:3000/history
 
-1. Register developer accounts on each social media platform
-2. Create applications to obtain API keys
-3. Implement OAuth2 flows for user authentication
-4. Store encrypted API keys securely
+## Database Management
 
-The current implementation includes simulation of these APIs for demonstration purposes.
+### Viewing the Database
+1. Use [SQLite Viewer](https://sqliteviewer.app/)
+2. Drag and drop `database.db` from the `instance` folder onto the site
+
+**Note**: The SQLite Viewer doesn't update automatically. You'll need to re-upload the file to see any database changes.
+
+## Running Tests
+```bash
+pytest
+```
+
+## Troubleshooting
+
+If you encounter any issues:
+1. Ensure all dependencies are properly installed
+2. Check that both backend and frontend servers are running
+3. Verify environment variables are correctly set

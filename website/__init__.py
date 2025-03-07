@@ -21,7 +21,7 @@ def create_app():
     
     # Configure CORS properly with credentials support
     CORS(app, 
-         resources={r"/*": {"origins": "http://localhost:3000"}},
+         resources={r"/*": {"origins": ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173", "http://127.0.0.1:5173"]}},
          supports_credentials=True,
          allow_headers=["Content-Type", "Authorization"],
          methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
@@ -31,6 +31,7 @@ def create_app():
     app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_NAME}"
     db.init_app(app)
 
+    # Import blueprints here to avoid circular imports
     from .views import views
     from .auth import auth
 
@@ -57,12 +58,12 @@ def create_app():
         return User.query.get(int(id))
     
     # Initialize the scheduler for scheduled posts
+    # Import here to avoid circular imports
     from .scheduler import init_scheduler
     global scheduler
     scheduler = init_scheduler(app)
 
     return app
-
 
 # check if the db existed, if already we dont want to overwrite it
 def create_database(app):

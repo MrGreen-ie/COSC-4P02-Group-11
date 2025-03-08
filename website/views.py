@@ -1,22 +1,13 @@
 # for home page (what features inside /(home) page)
-<<<<<<< HEAD
-from flask import Blueprint, render_template, request, flash, jsonify, redirect, session, current_app
-=======
 from email.mime.text import MIMEText
 import smtplib
-from flask import Blueprint, render_template, request, flash, jsonify, redirect, session
->>>>>>> parent of 7ceee3b (ai summary implementation)
+from flask import Blueprint, render_template, request, flash, jsonify, redirect, session, current_app
 from flask_login import login_required, current_user
 from .models import Note, ScheduledPost
 from . import db
 from .cache import redis_cache
 import openai
-<<<<<<< HEAD
 import os
-=======
-
-# json
->>>>>>> parent of 7ceee3b (ai summary implementation)
 import json
 import uuid
 import random
@@ -30,10 +21,6 @@ from datetime import datetime
 import pytz
 from cryptography.fernet import Fernet
 import base64
-<<<<<<< HEAD
-=======
-import os
->>>>>>> parent of 7ceee3b (ai summary implementation)
 
 # for environment variables
 from dotenv import load_dotenv
@@ -64,9 +51,6 @@ def decrypt_api_key(encrypted_key):
 # views blueprint
 views = Blueprint("views", __name__)
 
-<<<<<<< HEAD
-=======
-
 # Email/Newsletter API routes
 @views.route('/api/newsletter/subscribe', methods=['POST'])
 def send_email():
@@ -89,7 +73,6 @@ def send_email():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
->>>>>>> parent of 7ceee3b (ai summary implementation)
 # Twitter API routes
 @views.route('/api/twitter/auth', methods=['GET'])
 def twitter_auth():

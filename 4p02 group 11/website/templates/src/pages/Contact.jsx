@@ -61,7 +61,7 @@ const Contact = () => {
 
         {submitted ? (
           <Typography variant="h6" sx={{ color: '#FFD700', mt: 2 }}>
-            ✅ Your message has been sent! We’ll be in touch soon.
+            ✅ Your message id sent! We’ll be in touch soon.
           </Typography>
         ) : (
           <form onSubmit={handleSubmit}>

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   AppBar,
   Toolbar,
-  Typography,
   IconButton,
   Drawer,
   List,
@@ -23,6 +22,7 @@ import {
   Logout as LogoutIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import logo from '../assests/logo.png';
 
 function NavBar({ user, onLogout }) {
   const navigate = useNavigate();
@@ -57,24 +57,17 @@ function NavBar({ user, onLogout }) {
           minHeight: { xs: '56px', sm: '64px' },
           px: { xs: 1, sm: 2 }
         }}>
-          {/* Left Side: Hamburger Menu + Website Name */}
+          {/* Left Side: Hamburger Menu + Logo */}
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <IconButton onClick={toggleSidebar} sx={{ color: '#fff', mr: 1 }}>
               {open ? <CloseIcon /> : <MenuIcon />}
             </IconButton>
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: 'bold',
-                letterSpacing: '1px',
-                color: '#fff',
-                cursor: 'pointer',
-                '&:hover': { opacity: 0.8 },
-              }}
-              onClick={() => handleNavigation('/home')}
-            >
-              AI Newsletter Generator
-            </Typography>
+            <img 
+                src={logo} 
+                alt="Logo" 
+                 style={{ height: '120px', width: 'auto', cursor: 'pointer' }} 
+                onClick={() => handleNavigation('/home')} 
+              />
           </Box>
 
           {/* Center: Navigation Links */}
@@ -82,7 +75,8 @@ function NavBar({ user, onLogout }) {
             {[
               { label: 'Home', path: '/home' },
               { label: 'About Us', path: '/aboutus' },
-              { label: 'Contact Us', path: '/contact' }
+              { label: 'Contact Us', path: '/contact' },
+              { label: 'Pricing', path: '/pricing' }
             ].map((item) => (
               <Button
                 key={item.path}
@@ -172,7 +166,8 @@ function NavBar({ user, onLogout }) {
           {[
             { label: 'Home', path: '/home', icon: <HomeIcon /> },
             { label: 'About Us', path: '/aboutus', icon: <InfoIcon /> },
-            { label: 'Contact Us', path: '/contact', icon: <ContactsIcon /> }
+            { label: 'Contact Us', path: '/contact', icon: <ContactsIcon /> },
+            { label: 'Pricing', path: '/pricing', icon: <ContactsIcon /> }
           ].map((item) => (
             <ListItem button key={item.path} onClick={() => handleNavigation(item.path)}>
               <ListItemIcon sx={{ color: 'white' }}>{item.icon}</ListItemIcon>

@@ -41,15 +41,22 @@ function NavBar({ user, onLogout }) {
       <AppBar
         position="fixed"
         sx={{
-          background: 'linear-gradient(135deg, #8B0000, #FF4C4C)', // Updated Gradient Color
-          height: '60px',
+          background: 'linear-gradient(135deg, #8B0000, #FF4C4C)',
+          height: { xs: '56px', sm: '64px' },
           display: 'flex',
           justifyContent: 'center',
-          border: 'none', // Removed border
-          boxShadow: 'none', // Removed shadow
+          border: 'none',
+          boxShadow: 'none',
+          zIndex: (theme) => theme.zIndex.drawer + 1
         }}
       >
-        <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+        <Toolbar sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          width: '100%',
+          minHeight: { xs: '56px', sm: '64px' },
+          px: { xs: 1, sm: 2 }
+        }}>
           {/* Left Side: Hamburger Menu + Website Name */}
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <IconButton onClick={toggleSidebar} sx={{ color: '#fff', mr: 1 }}>

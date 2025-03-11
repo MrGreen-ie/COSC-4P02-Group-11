@@ -123,8 +123,8 @@ const TwitterAuth = ({ onAuthStatusChange }) => {
             
             updateAuthStatus(true, credentials);
             
-            // Clear the URL parameters without refreshing the page
-            window.history.replaceState({}, document.title, window.location.pathname);
+            // Redirect to post-system page instead of just clearing URL parameters
+            window.location.href = 'http://localhost:3000/post-system';
           } else {
             setAuthError({
               show: true,
@@ -205,87 +205,117 @@ const TwitterAuth = ({ onAuthStatusChange }) => {
   };
 
   return (
-    <Box sx={{ mb: 4 }}>
-      <Typography variant="h6" gutterBottom>
-        Twitter Authentication
-      </Typography>
-      
-      <Card>
-        <CardContent>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <TwitterIcon sx={{ color: '#1DA1F2', fontSize: 40 }} />
-            <Box>
-              <Typography variant="h6">Twitter</Typography>
-              <Typography variant="body2" color="text.secondary">
-                {isAuthenticated ? 'Connected' : 'Not connected'}
-              </Typography>
-            </Box>
+    <Box sx={{ 
+      width: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center'
+    }}>
+      {isAuthenticated ? (
+        <Box sx={{ 
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          p: 1
+        }}>
+          <TwitterIcon sx={{ fontSize: 24, color: '#ffdd57' }} />
+          <Box sx={{ flex: 1 }}>
+            <Typography variant="subtitle2" sx={{ color: 'white', fontWeight: 'bold' }}>
+              {userData.name}
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+              @{userData.username}
+            </Typography>
           </Box>
-          
-          {isAuthenticated && (
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="body2">
-                Connected as <strong>{userData.name}</strong> (@{userData.username})
-              </Typography>
-            </Box>
-          )}
-        </CardContent>
-        
-        <CardActions>
-          {isAuthenticated ? (
-            <Button 
-              variant="outlined" 
-              color="error" 
-              onClick={handleDisconnect}
-              disabled={isLoading}
-              startIcon={<LogoutIcon />}
-            >
-              Disconnect
-            </Button>
-          ) : (
-            <Button 
-              variant="contained" 
-              color="primary" 
-              onClick={handleConnect}
-              disabled={isLoading}
-              startIcon={<TwitterIcon />}
-            >
-              Connect with Twitter
-            </Button>
-          )}
-        </CardActions>
-      </Card>
-      
-      {/* Error Dialog */}
-      <Dialog 
-        open={authError.show} 
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={handleDisconnect}
+            disabled={isLoading}
+            sx={{
+              color: 'white',
+              borderColor: 'white',
+              minWidth: 'auto',
+              px: 2,
+              '&:hover': {
+                borderColor: '#ffdd57',
+                color: '#ffdd57'
+              }
+            }}
+          >
+            Disconnect
+          </Button>
+        </Box>
+      ) : (
+        <Box sx={{ 
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          p: 1
+        }}>
+          <Button
+            variant="contained"
+            startIcon={<TwitterIcon />}
+            onClick={handleConnect}
+            disabled={isLoading}
+            size="medium"
+            sx={{
+              background: 'linear-gradient(135deg, #ffdd57, #FFD700)',
+              color: '#8B0000',
+              fontWeight: 'bold',
+              borderRadius: '30px',
+              px: 3,
+              '&:hover': { 
+                background: '#fff',
+                color: '#8B0000'
+              }
+            }}
+          >
+            {isLoading ? 'Connecting...' : 'Connect with Twitter'}
+          </Button>
+        </Box>
+      )}
+
+      <Dialog
+        open={authError.show}
         onClose={handleErrorClose}
+        PaperProps={{
+          sx: {
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(10px)',
+            borderRadius: '15px'
+          }
+        }}
       >
-        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6">Authentication Error</Typography>
-          <IconButton onClick={handleErrorClose} size="small">
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        
+        <DialogTitle>Authentication Error</DialogTitle>
         <DialogContent>
           <DialogContentText>
             {authError.message}
+            {authError.error && (
+              <Typography color="error" sx={{ mt: 1 }}>
+                Error details: {authError.error}
+              </Typography>
+            )}
           </DialogContentText>
-          
-          {authError.error && (
-            <Alert severity="error" sx={{ mt: 2 }}>
-              {authError.error}
-            </Alert>
-          )}
         </DialogContent>
-        
         <DialogActions>
-          <Button onClick={handleErrorClose}>
+          <Button onClick={handleErrorClose} sx={{ color: '#8B0000' }}>
             Close
           </Button>
         </DialogActions>
       </Dialog>
+
+      {isLoading && (
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          mt: 1
+        }}>
+          <CircularProgress size={20} sx={{ color: '#ffdd57' }} />
+        </Box>
+      )}
     </Box>
   );
 };

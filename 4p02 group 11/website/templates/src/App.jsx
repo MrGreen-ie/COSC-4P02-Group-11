@@ -16,6 +16,7 @@ import AboutUs from './pages/AboutUs';
 import Contact from './pages/Contact';  
 import Pricing from './pages/Pricing';
 
+
 const App = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(() => {

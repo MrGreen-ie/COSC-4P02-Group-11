@@ -1,36 +1,49 @@
+# Standard Library Imports
 # for home page (what features inside /(home) page)
 from email.mime.text import MIMEText
+import random
 import smtplib
-from flask import Blueprint, render_template, request, flash, jsonify, redirect, session, current_app
+import uuid
+from flask import Blueprint, current_app, render_template, request, flash, jsonify, redirect, session, url_for
 from flask_login import login_required, current_user
-from .models import Note, ScheduledPost
+from .models import Note, User, ScheduledPost, SavedSummary
 from . import db
 from .cache import redis_cache
-import openai
-import os
+from .content_processor import process_content, preprocess_for_gemini
+from .content_filter import filter_content
+from .async_processor import async_processor, compress_content, decompress_content, chunk_content
 import json
-import uuid
-import random
-from datetime import datetime
-from werkzeug.utils import secure_filename
-
-# json
 import requests
 import markdown
 from datetime import datetime
 import pytz
 from cryptography.fernet import Fernet
 import base64
+import os
+from os import environ
+import google.generativeai as genai
+import time
+import hmac
+import hashlib
+from werkzeug.utils import secure_filename
+
+
 
 # for environment variables
 from dotenv import load_dotenv
-import os
-
 # Load environment variables
 load_dotenv()
 
-# OpenAI client initialization
-openai.api_key = os.getenv('OPENAI_API_KEY')
+# Gemini API initialization
+try:
+    # Initialize Gemini API client
+    genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
+    # Set up the model
+    model = genai.GenerativeModel('gemini-1.5-flash')
+    print("Gemini API initialized successfully")
+except Exception as e:
+    print(f"Error initializing Gemini API: {str(e)}")
+    model = None
 
 # For API key encryption (in production, use a proper key management system)
 # This is a simple implementation for demonstration purposes
@@ -50,6 +63,10 @@ def decrypt_api_key(encrypted_key):
 
 # views blueprint
 views = Blueprint("views", __name__)
+
+# Email configuration
+EMAIL_ADDRESS = os.getenv('EMAIL_ADDRESS')
+EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD')
 
 # Email/Newsletter API routes
 @views.route('/api/newsletter/subscribe', methods=['POST'])
@@ -726,52 +743,832 @@ def summarize():
     try:
         data = request.get_json()
         
-        if not data or 'content' not in data:
-            return jsonify({'error': 'No content provided'}), 400
+        # Validate request data
+        if not data:
+            return jsonify({'error': 'Invalid request format. JSON body required.'}), 400
+        
+        # Check if we have content or URL
+        has_content = 'content' in data and data['content'].strip()
+        has_url = 'url' in data and data['url'].strip()
+        
+        if not has_content and not has_url:
+            return jsonify({'error': 'No content or URL provided.'}), 400
             
-        content = data['content']
-        length = data.get('length', 50)  # Default to 50% length
-        tone = data.get('tone', 'professional')  # Default to professional tone
+        # Validate and sanitize parameters
+        try:
+            length = int(data.get('length', 50))
+            if length < 10 or length > 90:
+                return jsonify({'error': 'Length must be between 10 and 90 percent.'}), 400
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Length must be a valid number.'}), 400
+            
+        # Validate tone parameter
+        valid_tones = ['professional', 'casual', 'academic', 'friendly', 'promotional', 'informative']
+        tone = data.get('tone', 'professional').lower()
+        if tone not in valid_tones:
+            return jsonify({'error': f'Invalid tone. Must be one of: {", ".join(valid_tones)}'}), 400
+        
+        # Check if this is a batch request
+        is_batch = data.get('is_batch', False)
+        
+        # Process the content using our content processor
+        processing_input = {
+            'content': data.get('content', ''),
+            'url': data.get('url', ''),
+            'is_html': data.get('is_html', False)
+        }
+        
+        processing_result = process_content(processing_input)
+        
+        if not processing_result['success']:
+            return jsonify({'error': processing_result['error']}), 400
+        
+        content = processing_result['content']
+        metadata = processing_result['metadata']
+        
+        # Check content length after processing
+        if len(content) > 10000:
+            # For very large content, use chunking
+            if len(content) > 20000:
+                # Use chunking for extremely large content
+                return handle_chunked_content(content, length, tone, metadata, data)
+            else:
+                # For moderately large content, use compression
+                compressed = compress_content(content)
+                if compressed:
+                    metadata['compressed'] = True
+                    metadata['original_size'] = len(content)
+                    content = compressed
+        elif len(content) < 50:
+            return jsonify({'error': 'Content must be at least 50 characters.'}), 400
+        
+        # Apply content filtering
+        # All users have 'user' role now
+        user_role = 'user'
+        strict_mode = data.get('strict_filtering', False)
+        
+        filtering_result = filter_content(content, user_role=user_role, strict_mode=strict_mode)
+        
+        # Add filtering results to metadata
+        metadata['categories'] = filtering_result['categories']
+        
+        # Check if content is allowed
+        if not filtering_result['allowed']:
+            return jsonify({
+                'error': 'Content contains inappropriate material and cannot be processed.',
+                'filtering_result': filtering_result
+            }), 400
+        
+        # Add warnings to response if present
+        warnings = filtering_result.get('warnings', [])
+        
+        # Log the request (without the full content for privacy)
+        print(f"Summary request: length={length}, tone={tone}, content_length={len(content)}")
+        
+        # For batch requests or long content, use async processing
+        if is_batch or len(content) > 5000:
+            # Submit task to async processor
+            task_id = async_processor.submit_task(
+                generate_summary_task,
+                content=content,
+                length=length,
+                tone=tone,
+                metadata=metadata,
+                warnings=warnings
+            )
+            
+            # Return task ID for client to poll
+            return jsonify({
+                'task_id': task_id,
+                'status': 'processing',
+                'message': 'Summary generation in progress. Please poll for results.'
+            })
+        
+        # For regular requests, process synchronously
+        # Try to get cached summary
+        if metadata.get('compressed'):
+            # Decompress content for cache lookup
+            decompressed = decompress_content(content)
+            cached_result = redis_cache.get_cached_summary(decompressed, length, tone)
+        else:
+            cached_result = redis_cache.get_cached_summary(content, length, tone)
+            
+        if cached_result:
+            print("Returning cached summary")
+            # Add metadata and filtering results to cached result
+            cached_result['metadata'] = metadata
+            cached_result['warnings'] = warnings
+            return jsonify(cached_result)
+        
+        # Check if Gemini model is available
+        if model is None:
+            return jsonify({'error': 'AI service is currently unavailable. Please try again later.'}), 503
+        
+        # If content is compressed, decompress it
+        if metadata.get('compressed'):
+            content = decompress_content(content)
+            if not content:
+                return jsonify({'error': 'Failed to decompress content.'}), 500
+        
+        # Create prompt for Gemini that includes headline generation
+        prompt = f"""You are an AI assistant that creates {tone} summaries with headlines and categories.
+Create a summary that is approximately {length}% of the original length.
+Maintain the key points while adjusting the length and tone as specified.
+
+Also create a compelling headline in the {tone} tone that captures the essence of the content.
+
+Additionally, identify the primary and secondary categories that best describe this content.
+Choose from these categories: technology, business, news, health, science, politics, entertainment, sports, general.
+
+Format your response exactly like this:
+HEADLINE: [Your headline here]
+
+CATEGORIES: [Primary Category], [Secondary Category]
+
+SUMMARY:
+[Your summary here]
+
+Please summarize the following text:
+
+{content}"""
+        
+        # Make API call to Gemini with error handling
+        try:
+            # Gemini API call
+            response = model.generate_content(
+                contents=prompt,
+                generation_config={
+                    "temperature": 0.7,
+                    "max_output_tokens": 1500,
+                }
+            )
+            
+            # Extract the headline and summary from the response
+            response_text = response.text
+            
+            # Parse the response to extract headline and summary
+            headline = ""
+            summary = response_text
+            categories = {}
+            
+            if "HEADLINE:" in response_text:
+                # Split by sections
+                sections = response_text.split("\n\n")
+                
+                # Extract headline
+                for section in sections:
+                    if section.startswith("HEADLINE:"):
+                        headline = section.replace("HEADLINE:", "").strip()
+                    elif section.startswith("CATEGORIES:"):
+                        # Extract categories
+                        categories_text = section.replace("CATEGORIES:", "").strip()
+                        category_list = [cat.strip() for cat in categories_text.split(",")]
+                        
+                        if len(category_list) >= 2:
+                            categories = {
+                                'primary_category': category_list[0],
+                                'secondary_category': category_list[1],
+                                'confidence': 90  # High confidence since it's AI-generated
+                            }
+                        elif len(category_list) == 1:
+                            categories = {
+                                'primary_category': category_list[0],
+                                'secondary_category': 'general',
+                                'confidence': 90
+                            }
+                    elif section.startswith("SUMMARY:"):
+                        summary = section.replace("SUMMARY:", "").strip()
+            
+            # If no categories were extracted, use default
+            if not categories:
+                categories = {
+                    'primary_category': 'general',
+                    'secondary_category': 'informational',
+                    'confidence': 50
+                }
+            
+            # Update metadata with AI-generated categories
+            metadata['categories'] = categories
+            
+            # Prepare response data
+            response_data = {
+                'headline': headline,
+                'summary': summary,
+                'original_content': content,
+                'settings': {
+                    'length': length,
+                    'tone': tone
+                },
+                'metadata': metadata,
+                'warnings': warnings,
+                'cached': False
+            }
+            
+            # Cache the result
+            if not metadata.get('compressed'):
+                redis_cache.cache_summary(content, length, tone, response_data)
+            
+            return jsonify(response_data)
+            
+        except Exception as api_error:
+            print(f"Gemini API error: {str(api_error)}")
+            return jsonify({'error': 'Failed to generate summary. API service unavailable.'}), 503
+        
+    except Exception as e:
+        print(f"Summarization error: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred while processing your request.'}), 500
+
+@views.route('/api/summarize/status/<task_id>', methods=['GET'])
+@login_required
+def summarize_status(task_id):
+    """
+    Check the status of an asynchronous summarization task
+    
+    Args:
+        task_id (str): Task ID to check
+        
+    Returns:
+        JSON response with task status
+    """
+    try:
+        # Get task status from async processor
+        status = async_processor.get_task_status(task_id)
+        
+        if status['status'] == 'unknown':
+            return jsonify({
+                'status': 'unknown',
+                'message': 'Task not found'
+            }), 404
+        
+        if status['status'] == 'pending':
+            return jsonify({
+                'status': 'processing',
+                'message': 'Summary generation in progress'
+            })
+        
+        if status['status'] == 'timeout':
+            return jsonify({
+                'status': 'error',
+                'error': 'Summary generation timed out'
+            }), 500
+        
+        if status['status'] == 'error':
+            return jsonify({
+                'status': 'error',
+                'error': status.get('error', 'An error occurred during summary generation')
+            }), 500
+        
+        if status['status'] == 'completed':
+            # Return the completed result
+            return jsonify(status['result'])
+        
+        # Default response for unknown status
+        return jsonify({
+            'status': status['status'],
+            'message': 'Task is in an unknown state'
+        })
+        
+    except Exception as e:
+        print(f"Error checking task status: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'error': 'Failed to check task status'
+        }), 500
+
+@views.route('/api/summarize/batch', methods=['POST'])
+@login_required
+def summarize_batch():
+    """
+    Process a batch of content for summarization
+    
+    Returns:
+        JSON response with task IDs for each content item
+    """
+    try:
+        data = request.get_json()
+        
+        # Validate request data
+        if not data or 'items' not in data or not isinstance(data['items'], list):
+            return jsonify({'error': 'Invalid request format. JSON body with items array required.'}), 400
+        
+        # Get common parameters
+        length = data.get('length', 50)
+        tone = data.get('tone', 'professional')
+        
+        # Process each item
+        task_ids = []
+        for item in data['items']:
+            # Set batch flag
+            item['is_batch'] = True
+            
+            # Submit to regular summarize endpoint
+            try:
+                # Create a mock request object
+                class MockRequest:
+                    def get_json(self):
+                        return item
+                
+                # Call the summarize function directly
+                request._mock = MockRequest()
+                response = summarize()
+                request._mock = None
+                
+                # Extract task ID from response
+                if isinstance(response, tuple):
+                    response_data = json.loads(response[0].data)
+                else:
+                    response_data = json.loads(response.data)
+                
+                task_ids.append({
+                    'item_id': item.get('id'),
+                    'task_id': response_data.get('task_id'),
+                    'status': response_data.get('status')
+                })
+            except Exception as item_error:
+                task_ids.append({
+                    'item_id': item.get('id'),
+                    'error': str(item_error),
+                    'status': 'error'
+                })
+        
+        return jsonify({
+            'tasks': task_ids,
+            'message': f'Batch processing started for {len(task_ids)} items'
+        })
+        
+    except Exception as e:
+        print(f"Batch summarization error: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred while processing your batch request.'}), 500
+
+def handle_chunked_content(content, length, tone, metadata, data):
+    """
+    Handle very large content by chunking it into smaller pieces
+    
+    Args:
+        content (str): Content to summarize
+        length (int): Summary length percentage
+        tone (str): Summary tone
+        metadata (dict): Content metadata
+        data (dict): Request data
+        
+    Returns:
+        JSON response with task ID for polling
+    """
+    try:
+        # Add chunking info to metadata
+        metadata['chunked'] = True
+        
+        # Get user role and strict mode
+        user_role = 'user'  # All users have 'user' role for now
+        strict_mode = data.get('strict_filtering', False)
+        
+        # Create chunks
+        chunks = chunk_content(content)
+        if not chunks:
+            return jsonify({'error': 'Failed to chunk content.'}), 500
+            
+        # Add chunk count to metadata
+        metadata['chunk_count'] = len(chunks)
+        
+        # Submit task to async processor
+        task_id = async_processor.submit_task(
+            process_chunked_content,
+            chunks=chunks,
+            length=length,
+            tone=tone,
+            metadata=metadata,
+            user_role=user_role,
+            strict_mode=strict_mode
+        )
+        
+        # Return task ID for client to poll
+        return jsonify({
+            'task_id': task_id,
+            'status': 'processing',
+            'message': f'Processing large content in {len(chunks)} chunks. Please poll for results.'
+        })
+        
+    except Exception as e:
+        print(f"Error handling chunked content: {str(e)}")
+        return jsonify({'error': 'Failed to process large content.'}), 500
+
+def process_chunked_content(chunks, length, tone, metadata, user_role, strict_mode):
+    """
+    Process chunked content asynchronously
+    
+    Args:
+        chunks (list): List of content chunks
+        length (int): Summary length percentage
+        tone (str): Summary tone
+        metadata (dict): Content metadata
+        user_role (str): User role for filtering
+        strict_mode (bool): Whether to use strict filtering
+        
+    Returns:
+        dict: Summary result
+    """
+    try:
+        print(f"Processing {len(chunks)} chunks for summary")
+        
+        # Process each chunk to get individual summaries
+        chunk_summaries = []
+        
+        for i, chunk in enumerate(chunks):
+            print(f"Processing chunk {i+1}/{len(chunks)}")
+            
+            # Apply content filtering to each chunk
+            filtering_result = filter_content(chunk, user_role=user_role, strict_mode=strict_mode)
+            
+            # Skip chunks that don't pass filtering
+            if not filtering_result['allowed']:
+                print(f"Chunk {i+1} filtered out due to inappropriate content")
+                continue
+                
+            # Create prompt for this chunk
+            prompt = f"""You are an AI assistant that creates concise summaries.
+Summarize the following text in a {tone} tone, capturing the key points:
+
+{chunk}"""
+            
+            try:
+                # Gemini API call for this chunk
+                response = model.generate_content(
+                    contents=prompt,
+                    generation_config={
+                        "temperature": 0.5,
+                        "max_output_tokens": 800,
+                    }
+                )
+                
+                # Add chunk summary to list
+                chunk_summaries.append(response.text)
+                
+            except Exception as chunk_error:
+                print(f"Error processing chunk {i+1}: {str(chunk_error)}")
+                # Continue with other chunks even if one fails
+        
+        # If we have no summaries, return error
+        if not chunk_summaries:
+            return {
+                'status': 'error',
+                'error': 'Failed to generate summaries for any content chunks.'
+            }
+            
+        # Combine chunk summaries
+        combined_summary = "\n\n".join(chunk_summaries)
+        
+        # Generate final summary with headline from the combined chunk summaries
+        final_prompt = f"""You are an AI assistant that creates {tone} summaries with headlines and categories.
+The following text contains summaries of different sections of a larger document.
+Create a cohesive final summary in a {tone} tone that is approximately {length}% of the original length.
+
+Also create a compelling headline in the {tone} tone that captures the essence of the content.
+
+Additionally, identify the primary and secondary categories that best describe this content.
+Choose from these categories: technology, business, news, health, science, politics, entertainment, sports, general.
+
+Format your response exactly like this:
+HEADLINE: [Your headline here]
+
+CATEGORIES: [Primary Category], [Secondary Category]
+
+SUMMARY:
+[Your summary here]
+
+Here are the section summaries to combine:
+
+{combined_summary}"""
+        
+        try:
+            # Gemini API call for final summary
+            final_response = model.generate_content(
+                contents=final_prompt,
+                generation_config={
+                    "temperature": 0.7,
+                    "max_output_tokens": 1500,
+                }
+            )
+            
+            # Extract the headline and summary from the response
+            response_text = final_response.text
+            
+            # Parse the response to extract headline and summary
+            headline = ""
+            summary = response_text
+            categories = {}
+            
+            if "HEADLINE:" in response_text:
+                # Split by sections
+                sections = response_text.split("\n\n")
+                
+                # Extract headline
+                for section in sections:
+                    if section.startswith("HEADLINE:"):
+                        headline = section.replace("HEADLINE:", "").strip()
+                    elif section.startswith("CATEGORIES:"):
+                        # Extract categories
+                        categories_text = section.replace("CATEGORIES:", "").strip()
+                        category_list = [cat.strip() for cat in categories_text.split(",")]
+                        
+                        if len(category_list) >= 2:
+                            categories = {
+                                'primary_category': category_list[0],
+                                'secondary_category': category_list[1],
+                                'confidence': 90  # High confidence since it's AI-generated
+                            }
+                        elif len(category_list) == 1:
+                            categories = {
+                                'primary_category': category_list[0],
+                                'secondary_category': 'general',
+                                'confidence': 90
+                            }
+                    elif section.startswith("SUMMARY:"):
+                        summary = section.replace("SUMMARY:", "").strip()
+            
+            # If no categories were extracted, use default
+            if not categories:
+                categories = {
+                    'primary_category': 'general',
+                    'secondary_category': 'informational',
+                    'confidence': 50
+                }
+            
+            # Update metadata with AI-generated categories
+            metadata['categories'] = categories
+            
+            # Prepare response data
+            return {
+                'headline': headline,
+                'summary': summary,
+                'settings': {
+                    'length': length,
+                    'tone': tone
+                },
+                'metadata': metadata,
+                'warnings': [],  # We've already filtered each chunk
+                'cached': False,
+                'status': 'completed'
+            }
+            
+        except Exception as final_error:
+            print(f"Error generating final summary: {str(final_error)}")
+            return {
+                'status': 'error',
+                'error': 'Failed to generate final summary from chunks.'
+            }
+        
+    except Exception as e:
+        print(f"Error processing chunked content: {str(e)}")
+        return {
+            'status': 'error',
+            'error': 'An unexpected error occurred while processing chunked content.'
+        }
+
+def generate_summary_task(content, length, tone, metadata, warnings):
+    """
+    Task function for generating summaries asynchronously
+    
+    Args:
+        content (str): Content to summarize
+        length (int): Summary length percentage
+        tone (str): Summary tone
+        metadata (dict): Content metadata
+        warnings (list): Content warnings
+        
+    Returns:
+        dict: Summary result
+    """
+    try:
+        print(f"Starting async summary generation: length={length}, tone={tone}")
+        
+        # Check if content is compressed
+        if metadata.get('compressed'):
+            content = decompress_content(content)
+            if not content:
+                return {
+                    'status': 'error',
+                    'error': 'Failed to decompress content.'
+                }
         
         # Try to get cached summary
         cached_result = redis_cache.get_cached_summary(content, length, tone)
         if cached_result:
-            return jsonify(cached_result)
+            print("Returning cached summary for async task")
+            # Add metadata and warnings to cached result
+            cached_result['metadata'] = metadata
+            cached_result['warnings'] = warnings
+            cached_result['status'] = 'completed'
+            return cached_result
         
-        # Create system message based on tone and length
-        system_message = f"You are an AI assistant that creates {tone} summaries. "
-        system_message += f"Create a summary that is approximately {length}% of the original length. "
-        system_message += "Maintain the key points while adjusting the length and tone as specified."
+        # Check if Gemini model is available
+        if model is None:
+            return {
+                'status': 'error',
+                'error': 'AI service is currently unavailable. Please try again later.'
+            }
         
-        # Make API call to OpenAI
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": system_message},
-                {"role": "user", "content": f"Please summarize the following text:\n\n{content}"}
-            ],
-            temperature=0.7,
-            max_tokens=1500
-        )
+        # Create prompt for Gemini that includes headline generation
+        prompt = f"""You are an AI assistant that creates {tone} summaries with headlines and categories.
+Create a summary that is approximately {length}% of the original length.
+Maintain the key points while adjusting the length and tone as specified.
+
+Also create a compelling headline in the {tone} tone that captures the essence of the content.
+
+Additionally, identify the primary and secondary categories that best describe this content.
+Choose from these categories: technology, business, news, health, science, politics, entertainment, sports, general.
+
+Format your response exactly like this:
+HEADLINE: [Your headline here]
+
+CATEGORIES: [Primary Category], [Secondary Category]
+
+SUMMARY:
+[Your summary here]
+
+Please summarize the following text:
+
+{content}"""
         
-        # Extract the summary from the response
-        summary = response.choices[0].message['content']
-        
-        # Prepare response data
-        response_data = {
-            'summary': summary,
-            'original_content': content,
-            'settings': {
-                'length': length,
-                'tone': tone
-            },
-            'cached': False
-        }
-        
-        # Cache the result
-        redis_cache.cache_summary(content, length, tone, response_data)
-        
-        return jsonify(response_data)
+        # Make API call to Gemini with error handling
+        try:
+            # Gemini API call
+            response = model.generate_content(
+                contents=prompt,
+                generation_config={
+                    "temperature": 0.7,
+                    "max_output_tokens": 1500,
+                }
+            )
+            
+            # Extract the headline and summary from the response
+            response_text = response.text
+            
+            # Parse the response to extract headline and summary
+            headline = ""
+            summary = response_text
+            categories = {}
+            
+            if "HEADLINE:" in response_text:
+                # Split by sections
+                sections = response_text.split("\n\n")
+                
+                # Extract headline
+                for section in sections:
+                    if section.startswith("HEADLINE:"):
+                        headline = section.replace("HEADLINE:", "").strip()
+                    elif section.startswith("CATEGORIES:"):
+                        # Extract categories
+                        categories_text = section.replace("CATEGORIES:", "").strip()
+                        category_list = [cat.strip() for cat in categories_text.split(",")]
+                        
+                        if len(category_list) >= 2:
+                            categories = {
+                                'primary_category': category_list[0],
+                                'secondary_category': category_list[1],
+                                'confidence': 90  # High confidence since it's AI-generated
+                            }
+                        elif len(category_list) == 1:
+                            categories = {
+                                'primary_category': category_list[0],
+                                'secondary_category': 'general',
+                                'confidence': 90
+                            }
+                    elif section.startswith("SUMMARY:"):
+                        summary = section.replace("SUMMARY:", "").strip()
+            
+            # If no categories were extracted, use default
+            if not categories:
+                categories = {
+                    'primary_category': 'general',
+                    'secondary_category': 'informational',
+                    'confidence': 50
+                }
+            
+            # Update metadata with AI-generated categories
+            metadata['categories'] = categories
+            
+            # Prepare response data
+            response_data = {
+                'headline': headline,
+                'summary': summary,
+                'original_content': content,
+                'settings': {
+                    'length': length,
+                    'tone': tone
+                },
+                'metadata': metadata,
+                'warnings': warnings,
+                'cached': False,
+                'status': 'completed'
+            }
+            
+            # Cache the result
+            if not metadata.get('compressed'):
+                redis_cache.cache_summary(content, length, tone, response_data)
+            
+            return response_data
+            
+        except Exception as api_error:
+            print(f"Gemini API error in async task: {str(api_error)}")
+            return {
+                'status': 'error',
+                'error': 'Failed to generate summary. API service unavailable.'
+            }
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"Async summarization error: {str(e)}")
+        return {
+            'status': 'error',
+            'error': 'An unexpected error occurred while processing your request.'
+        }
+
+@views.route('/api/summary/save', methods=['POST'])
+@login_required
+def save_summary():
+    """
+    Save a generated summary to the database
+    
+    Request body:
+    {
+        "headline": "Summary headline",
+        "summary": "Generated summary content",
+        "tags": "tag1,tag2,tag3",
+        "tone": "professional",
+        "length": 50
+    }
+    
+    Returns:
+        JSON response with saved summary ID
+    """
+    try:
+        data = request.get_json()
+        
+        # Validate request data
+        if not data:
+            return jsonify({'error': 'Invalid request format. JSON body required.'}), 400
+        
+        # Check required fields
+        required_fields = ['headline', 'summary']
+        for field in required_fields:
+            if field not in data or not data[field].strip():
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+        
+        # Create new SavedSummary object
+        new_summary = SavedSummary(
+            headline=data['headline'],
+            summary=data['summary'],
+            tags=data.get('tags', ''),
+            tone=data.get('tone', 'professional'),
+            length=data.get('length', 50),
+            user_id=current_user.id
+        )
+        
+        # Add to database
+        db.session.add(new_summary)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Summary saved successfully',
+            'summary_id': new_summary.id
+        })
+        
+    except Exception as e:
+        print(f"Error saving summary: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': 'An unexpected error occurred while saving the summary.'}), 500
+
+@views.route('/api/summary/saved', methods=['GET'])
+@login_required
+def get_saved_summaries():
+    """
+    Get all saved summaries for the current user
+    
+    Returns:
+        JSON response with list of saved summaries
+    """
+    try:
+        # Get all summaries for current user
+        summaries = SavedSummary.query.filter_by(user_id=current_user.id).order_by(SavedSummary.created_at.desc()).all()
+        
+        # Convert to JSON
+        summaries_list = []
+        for summary in summaries:
+            summaries_list.append({
+                'id': summary.id,
+                'headline': summary.headline,
+                'summary': summary.summary,
+                'tags': summary.tags,
+                'tone': summary.tone,
+                'length': summary.length,
+                'created_at': summary.created_at.isoformat()
+            })
+        
+        return jsonify({
+            'success': True,
+            'summaries': summaries_list
+        })
+        
+    except Exception as e:
+        print(f"Error retrieving saved summaries: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred while retrieving saved summaries.'}), 500

@@ -1,4 +1,5 @@
 from flask import Flask
+from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from os import path
 from flask_login import LoginManager
@@ -18,6 +19,7 @@ scheduler = None
 
 
 def create_app():
+    global scheduler
     app = Flask(__name__, static_folder='static')
     
     # Configure CORS properly with credentials support
@@ -30,6 +32,8 @@ def create_app():
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "super_secret_key_for_twitter_auth")
     app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_NAME}"
     db.init_app(app)
+    
+    migrate = Migrate(app, db)  # Important: Initialize Flask-Migrate here
 
     from .views import views
     from .auth import auth

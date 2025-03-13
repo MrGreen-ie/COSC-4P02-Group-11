@@ -26,7 +26,10 @@ import time
 import hmac
 import hashlib
 from werkzeug.utils import secure_filename
-
+from flask import request, jsonify
+from .models import db, SavedContent
+from flask_login import login_required, current_user
+from datetime import datetime, timedelta
 
 
 # for environment variables
@@ -70,11 +73,13 @@ EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD')
 
 # Email/Newsletter API routes
 @views.route('/api/newsletter/subscribe', methods=['POST'])
+@login_required
 def send_email():
     data = request.json
     recipient = data['recipient']
     subject = data['subject']
     body = data['body']
+    newsletter_id = data['newsletter_id']
 
     msg = MIMEText(body)
     msg['Subject'] = subject
@@ -86,9 +91,137 @@ def send_email():
             server.starttls()
             server.login('cosc.4p02.summit@gmail.com', 'kght ejuo omgw oqru')
             server.sendmail('cosc.4p02.summit@gmail.com', recipient, msg.as_string())
+
+        # Update the sent_at field
+        newsletter = SavedSummary.query.get(newsletter_id)
+        newsletter.sent_at = datetime.utcnow()
+        db.session.commit()
+        print(f"Newsletter {newsletter_id} sent at {newsletter.sent_at}")
+
         return jsonify({'message': 'Email sent successfully'}), 200
     except Exception as e:
+        print(f"Error sending email: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+@views.route('/newsletter', methods=['GET'])
+@login_required
+def newsletter():
+    try:
+        # Fetch all saved summaries for the current user
+        summaries = SavedSummary.query.filter_by(user_id=current_user.id).order_by(SavedSummary.created_at.desc()).all()
+        
+        # Render the newsletter template with the summaries
+        return render_template('newsletter.html', summaries=summaries)
+    except Exception as e:
+        print(f"Error fetching summaries for newsletter: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred while fetching summaries.'}), 500
+
+@views.route('/api/newsletter', methods=['GET'])
+@login_required
+def get_newsletters():
+    try:
+        # Fetch all saved summaries for the current user
+        summaries = SavedSummary.query.filter_by(user_id=current_user.id).order_by(SavedSummary.created_at.desc()).all()
+        
+        # Convert summaries to a list of dictionaries
+        summaries_list = [{
+            'id': summary.id,
+            'headline': summary.headline,
+            'summary': summary.summary,
+            'tags': summary.tags,
+            'tone': summary.tone,
+            'length': summary.length,
+            'created_at': summary.created_at.isoformat()
+        } for summary in summaries]
+        
+        return jsonify({'summaries': summaries_list})
+    except Exception as e:
+        print(f"Error fetching summaries for newsletter: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred while fetching summaries.'}), 500
+    
+@views.route('/api/save-content', methods=['POST'])
+@login_required
+def save_content():
+    try:
+        data = request.get_json()
+        content = data.get('content')
+        
+        if not content:
+            return jsonify({'error': 'Content is required'}), 400
+        
+        new_content = SavedContent(
+            content=content,
+            user_id=current_user.id
+        )
+        
+        db.session.add(new_content)
+        db.session.commit()
+        
+        return jsonify({'success': 'Content saved successfully', 'content_id': new_content.id})
+    except Exception as e:
+        print(f"Error saving content: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred while saving the content.'}), 500
+
+@views.route('/api/newsletter/<int:id>', methods=['PUT'])
+@login_required
+def update_newsletter(id):
+    try:
+        data = request.get_json()
+        newsletter = SavedSummary.query.get_or_404(id)
+        if newsletter.user_id != current_user.id:
+            return jsonify({'error': 'Unauthorized access'}), 403
+
+        newsletter.headline = data.get('headline', newsletter.headline)
+        newsletter.summary = data.get('summary', newsletter.summary)
+        db.session.commit()
+        return jsonify({
+            'id': newsletter.id,
+            'headline': newsletter.headline,
+            'summary': newsletter.summary,
+            'tags': newsletter.tags,
+            'tone': newsletter.tone,
+            'length': newsletter.length,
+            'created_at': newsletter.created_at.isoformat()
+        })
+    except Exception as e:
+        print(f"Error updating newsletter: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred while updating the newsletter.'}), 500
+    
+@views.route('/api/newsletter/<int:id>', methods=['DELETE'])
+@login_required
+def delete_newsletter(id):
+    try:
+        newsletter = SavedSummary.query.get_or_404(id)
+        if newsletter.user_id != current_user.id:
+            return jsonify({'error': 'Unauthorized access'}), 403
+
+        db.session.delete(newsletter)
+        db.session.commit()
+        return jsonify({'success': 'Newsletter deleted successfully'})
+    except Exception as e:
+        print(f"Error deleting newsletter: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred while deleting the newsletter.'}), 500
+
+@views.route('/api/newsletter/sent-this-month', methods=['GET'])
+@login_required
+def get_newsletters_sent_this_month():
+    try:
+        now = datetime.utcnow()
+        start_of_month = datetime(now.year, now.month, 1)
+        end_of_month = datetime(now.year, now.month + 1, 1) if now.month < 12 else datetime(now.year + 1, 1, 1)
+
+        sent_count = SavedSummary.query.filter(
+            SavedSummary.user_id == current_user.id,
+            SavedSummary.sent_at >= start_of_month,
+            SavedSummary.sent_at < end_of_month
+        ).count()
+
+        print(f"Sent newsletters this month: {sent_count}")
+
+        return jsonify({'sent_this_month': sent_count})
+    except Exception as e:
+        print(f"Error fetching sent newsletters: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred while fetching sent newsletters.'}), 500
 
 # Twitter API routes
 @views.route('/api/twitter/auth', methods=['GET'])
@@ -1572,3 +1705,4 @@ def get_saved_summaries():
     except Exception as e:
         print(f"Error retrieving saved summaries: {str(e)}")
         return jsonify({'error': 'An unexpected error occurred while retrieving saved summaries.'}), 500
+

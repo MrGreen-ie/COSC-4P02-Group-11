@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Typography,
@@ -19,10 +19,78 @@ import {
   Send as SendIcon,
   Analytics as AnalyticsIcon,
 } from '@mui/icons-material';
+import axios from 'axios';
+import EditModal from '../components/EditModal';
+import SendModal from '../components/SendModal';
 
 const Newsletters = () => {
-  // Placeholder for newsletter data
-  const newsletters = [];
+  const [newsletters, setNewsletters] = useState([]);
+  const [sentThisMonth, setSentThisMonth] = useState(0);
+  const [selectedNewsletter, setSelectedNewsletter] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isSendModalOpen, setIsSendModalOpen] = useState(false);
+
+  useEffect(() => {
+    // Fetch summaries from the backend
+    const fetchSummaries = async () => {
+      try {
+        const response = await axios.get('/api/newsletter');
+        setNewsletters(response.data.summaries);
+      } catch (error) {
+        console.error('Error fetching summaries:', error);
+      }
+    };
+
+    // Fetch sent newsletters count for this month
+    const fetchSentThisMonth = async () => {
+      try {
+        const response = await axios.get('/api/newsletter/sent-this-month');
+        setSentThisMonth(response.data.sent_this_month);
+      } catch (error) {
+        console.error('Error fetching sent newsletters count:', error);
+      }
+    };
+
+    fetchSummaries();
+    fetchSentThisMonth();
+  }, []);
+
+  const handleEdit = (newsletter) => {
+    setSelectedNewsletter(newsletter);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSend = (newsletter) => {
+    setSelectedNewsletter(newsletter);
+    setIsSendModalOpen(true);
+  };
+
+  const handleSave = (updatedNewsletter) => {
+    setNewsletters((prevNewsletters) =>
+      prevNewsletters.map((newsletter) =>
+        newsletter.id === updatedNewsletter.id ? updatedNewsletter : newsletter
+      )
+    );
+    setIsEditModalOpen(false);
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`/api/newsletter/${id}`);
+      setNewsletters((prevNewsletters) => prevNewsletters.filter((newsletter) => newsletter.id !== id));
+    } catch (error) {
+      console.error('Error deleting newsletter:', error);
+    }
+  };
+
+  const handleSendComplete = async () => {
+    try {
+      const response = await axios.get('/api/newsletter/sent-this-month');
+      setSentThisMonth(response.data.sent_this_month);
+    } catch (error) {
+      console.error('Error fetching sent newsletters count:', error);
+    }
+  };
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
@@ -45,12 +113,12 @@ const Newsletters = () => {
           <Paper sx={{ p: 2, display: 'flex', gap: 2 }}>
             <Box flex={1} textAlign="center">
               <Typography variant="h6">Total Newsletters</Typography>
-              <Typography variant="h4">0</Typography>
+              <Typography variant="h4">{newsletters.length}</Typography>
             </Box>
             <Divider orientation="vertical" flexItem />
             <Box flex={1} textAlign="center">
               <Typography variant="h6">Sent This Month</Typography>
-              <Typography variant="h4">0</Typography>
+              <Typography variant="h4">{sentThisMonth}</Typography>
             </Box>
             <Divider orientation="vertical" flexItem />
             <Box flex={1} textAlign="center">
@@ -63,7 +131,7 @@ const Newsletters = () => {
         {/* Newsletter List */}
         {newsletters.length === 0 ? (
           <Grid item xs={12}>
-            <Paper sx={{ p: 4, textAlign: 'center' }}>
+            <Paper sx={{ p: 4, textAlign:"center" }}>
               <Typography variant="h6" color="textSecondary">
                 No newsletters created yet
               </Typography>
@@ -78,26 +146,26 @@ const Newsletters = () => {
               <Card>
                 <CardContent>
                   <Typography variant="h6" component="h2" noWrap>
-                    {newsletter.title}
+                    {newsletter.headline}
                   </Typography>
                   <Typography variant="body2" color="textSecondary" gutterBottom>
-                    Last modified: {newsletter.lastModified}
+                    Created At: {new Date(newsletter.created_at).toLocaleString()}
                   </Typography>
                   <Typography variant="body2" noWrap>
-                    {newsletter.description}
+                    {newsletter.summary}
                   </Typography>
                 </CardContent>
                 <CardActions>
-                  <IconButton size="small" title="Edit">
+                  <IconButton size="small" title="Edit" onClick={() => handleEdit(newsletter)}>
                     <EditIcon />
                   </IconButton>
-                  <IconButton size="small" title="Send">
+                  <IconButton size="small" title="Send" onClick={() => handleSend(newsletter)}>
                     <SendIcon />
                   </IconButton>
                   <IconButton size="small" title="View Stats">
                     <AnalyticsIcon />
                   </IconButton>
-                  <IconButton size="small" title="Delete">
+                  <IconButton size="small" title="Delete" onClick={() => handleDelete(newsletter.id)}>
                     <DeleteIcon />
                   </IconButton>
                 </CardActions>
@@ -106,6 +174,24 @@ const Newsletters = () => {
           ))
         )}
       </Grid>
+
+      {selectedNewsletter && (
+        <EditModal
+          open={isEditModalOpen}
+          handleClose={() => setIsEditModalOpen(false)}
+          newsletter={selectedNewsletter}
+          onSave={handleSave}
+        />
+      )}
+
+      {selectedNewsletter && (
+        <SendModal
+          open={isSendModalOpen}
+          handleClose={() => setIsSendModalOpen(false)}
+          newsletter={selectedNewsletter}
+          onSend={handleSendComplete}
+        />
+      )}
     </Container>
   );
 };

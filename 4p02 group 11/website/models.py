@@ -1,6 +1,7 @@
 # set up db models, for user and note, db model -> blueprint for objects that is stored in db
 # import db from __init__py.
 from . import db
+from datetime import datetime
 
 # Usermixin for inheret user object
 from flask_login import UserMixin
@@ -58,4 +59,13 @@ class SavedSummary(db.Model):
     tone = db.Column(db.String(50))
     length = db.Column(db.Integer)
     created_at = db.Column(db.DateTime(timezone=True), default=func.now())
+    sent_at = db.Column(db.DateTime(timezone=True), nullable=True)  # Add this line
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+
+
+# Saved Content model
+class SavedContent(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.Text, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

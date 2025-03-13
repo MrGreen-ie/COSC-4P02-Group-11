@@ -132,3 +132,26 @@ In a production environment, you would need to:
 4. Store encrypted API keys securely
 
 The current implementation includes simulation of these APIs for demonstration purposes.
+
+
+## Updating Database:
+
+- Run this command to make sure you have the necessary dependencies:
+,,  pip install flask-migrate flask-sqlalchemy
+
+- If it's already installed, you can upgrade it:
+,,  pip install --upgrade flask-migrate flask-sqlalchemy
+
+- Make sure you're in the correct directory
+,, ..\COSC-4P02-Group-11\4p02 group 11
+
+- Run
+,, $env:FLASK_APP="website:create_app"
+
+,, flask db init
+
+,, flask db migrate -m "WHAT YOU UPDATE"
+
+,, flask db upgrade
+
+

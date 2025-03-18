@@ -55,6 +55,7 @@ import {
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import '../styles/theme.css';
 
 import TwitterAuth from '../components/TwitterAuth';
 
@@ -259,19 +260,19 @@ const PostSystem = () => {
         key={post.id}
         elevation={2}
         sx={{
-          background: 'rgba(255, 255, 255, 0.05)',
-          borderRadius: '8px',
-          p: { xs: 0.75, sm: 1 }
+          background: 'var(--bg-secondary)',
+          borderRadius: 'var(--border-radius-md)',
+          p: { xs: 'var(--spacing-sm)', sm: 'var(--spacing-md)' }
         }}
       >
         <Box sx={{ 
           display: 'flex', 
           flexDirection: 'column',
-          gap: 0.5
+          gap: 'var(--spacing-xs)'
         }}>
           {/* Post Content */}
           <Typography variant="body2" sx={{ 
-            color: 'white',
+            color: 'var(--text-primary)',
             fontSize: { xs: '0.75rem', sm: '0.875rem' },
             lineHeight: 1.3,
             wordBreak: 'break-word'
@@ -285,21 +286,21 @@ const PostSystem = () => {
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
-            gap: 0.5
+            gap: 'var(--spacing-xs)'
           }}>
             {/* Time and Platform */}
             <Box sx={{ 
               display: 'flex', 
               alignItems: 'center',
-              gap: 0.5,
+              gap: 'var(--spacing-xs)',
               flexGrow: 1
             }}>
               <Box sx={{ 
                 display: 'flex', 
                 alignItems: 'center',
-                gap: 0.25,
+                gap: 'var(--spacing-xxs)',
                 fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                color: isPastDue ? '#ff4444' : 'rgba(255, 255, 255, 0.7)'
+                color: isPastDue ? 'var(--error)' : 'var(--text-secondary)'
               }}>
                 <AccessTimeIcon sx={{ fontSize: 'inherit' }} />
                 {new Date(post.scheduled_time).toLocaleString()}
@@ -311,7 +312,7 @@ const PostSystem = () => {
               }}>
                 <TwitterIcon sx={{ 
                   fontSize: { xs: '0.8rem', sm: '0.875rem' },
-                  color: '#ffdd57'
+                  color: 'var(--secondary)'
                 }} />
               </Box>
             </Box>
@@ -320,43 +321,47 @@ const PostSystem = () => {
             <Box sx={{ 
               display: 'flex', 
               alignItems: 'center',
-              gap: 0.5
+              gap: 'var(--spacing-xs)'
             }}>
               <Typography variant="caption" sx={{ 
-                color: 'rgba(255, 255, 255, 0.7)',
+                color: 'var(--text-secondary)',
                 fontSize: { xs: '0.7rem', sm: '0.75rem' }
               }}>
-                {post.status}
+                {post.status === 'scheduled' ? 'Scheduled' : post.status}
               </Typography>
-              <Button
-                variant="contained"
-                size="small"
-                onClick={() => handleExecuteScheduledPost(post.id)}
-                disabled={isLoading}
-                sx={{
-                  background: '#ffdd57',
-                  color: '#8B0000',
-                  minWidth: 0,
-                  p: '2px 6px',
-                  fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                  minHeight: 0,
-                  '&:hover': { background: '#fff' }
-                }}
-              >
-                Post
-              </Button>
-              <IconButton
-                size="small"
-                onClick={() => handleDeleteScheduledPost(post.id)}
-                disabled={isLoading}
-                sx={{
-                  color: 'rgba(255, 255, 255, 0.7)',
-                  p: '2px',
-                  '&:hover': { color: '#ff4444' }
-                }}
-              >
-                <DeleteIcon sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }} />
-              </IconButton>
+              {post.status === 'scheduled' && (
+                <>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={() => handleExecuteScheduledPost(post.id)}
+                    disabled={isLoading}
+                    sx={{
+                      background: 'var(--primary)',
+                      color: 'var(--text-primary)',
+                      minWidth: 0,
+                      p: '2px 6px',
+                      fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                      minHeight: 0,
+                      '&:hover': { background: 'var(--primary-light)' }
+                    }}
+                  >
+                    Post
+                  </Button>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleDeleteScheduledPost(post.id)}
+                    disabled={isLoading}
+                    sx={{
+                      color: 'var(--text-secondary)',
+                      p: '2px',
+                      '&:hover': { color: 'var(--error)' }
+                    }}
+                  >
+                    <DeleteIcon sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }} />
+                  </IconButton>
+                </>
+              )}
             </Box>
           </Box>
         </Box>
@@ -750,56 +755,51 @@ const PostSystem = () => {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        background: 'linear-gradient(135deg, #8B0000, #FF4C4C)',
+        background: 'var(--bg-primary)',
         position: 'relative',
         boxSizing: 'border-box',
-        pt: { xs: '72px', sm: '80px' },
-        pb: { xs: 3, sm: 4 },
-        px: { xs: 2, sm: 3 }
+        pt: { xs: 'var(--spacing-xl)', sm: 'calc(var(--spacing-xl) + var(--spacing-md))' },
+        pb: { xs: 'var(--spacing-lg)', sm: 'var(--spacing-xl)' },
+        px: { xs: 'var(--spacing-md)', sm: 'var(--spacing-lg)' }
       }}>
         <Box sx={{ 
           width: '100%',
           maxWidth: '800px',
           display: 'flex',
           flexDirection: 'column',
-          gap: { xs: 2, sm: 3 }
+          gap: { xs: 'var(--spacing-md)', sm: 'var(--spacing-lg)' }
         }}>
           {/* Twitter Authentication Section */}
           <Paper elevation={6} sx={{
-            borderRadius: '15px',
-            background: 'rgba(255, 255, 255, 0.1)',
-            backdropFilter: 'blur(10px)',
-            color: 'white',
+            borderRadius: 'var(--border-radius-lg)',
+            background: 'var(--bg-primary)',
+            color: 'var(--text-primary)',
             overflow: 'hidden',
-            mt: { xs: 1, sm: 2 }
+            mt: { xs: 'var(--spacing-sm)', sm: 'var(--spacing-md)' }
           }}>
-            <Box sx={{ p: { xs: 1.5, sm: 2 } }}>
+            <Box sx={{ p: { xs: 'var(--spacing-sm)', sm: 'var(--spacing-md)' } }}>
               <TwitterAuth onAuthStatusChange={handleTwitterAuthStatusChange} />
             </Box>
           </Paper>
           
           {/* Main Content Section */}
           <Paper elevation={6} sx={{
-            p: { xs: 2, sm: 3 },
-            borderRadius: '15px',
-            background: 'rgba(255, 255, 255, 0.1)',
-            backdropFilter: 'blur(10px)',
-            color: 'white',
+            p: { xs: 'var(--spacing-md)', sm: 'var(--spacing-lg)' },
+            borderRadius: 'var(--border-radius-lg)',
+            background: 'var(--bg-primary)',
+            color: 'var(--text-primary)',
             display: 'flex',
             flexDirection: 'column'
           }}>
-            <Typography variant="h4" gutterBottom sx={{ 
-              color: 'white', 
-              fontWeight: 'bold', 
+            <Typography variant="h4" gutterBottom className="heading-primary" sx={{ 
               textAlign: 'center',
               fontSize: { xs: '1.5rem', sm: '2rem' }
             }}>
               Social Media Post System
             </Typography>
-            <Typography variant="body1" gutterBottom sx={{ 
-              color: 'white', 
+            <Typography variant="body1" gutterBottom className="text-secondary" sx={{ 
               textAlign: 'center', 
-              mb: 4,
+              mb: 'var(--spacing-xl)',
               fontSize: { xs: '0.875rem', sm: '1rem' }
             }}>
               Create, schedule, and manage your social media posts across multiple platforms.
@@ -815,41 +815,41 @@ const PostSystem = () => {
           onChange={handleContentChange}
           fullWidth
           sx={{
-            mb: 2,
+            mb: 'var(--spacing-md)',
             '& .MuiInputBase-root': {
-              color: 'white',
-              '& fieldset': { borderColor: 'white' },
-              '&:hover fieldset': { borderColor: '#ffdd57' },
-              '&.Mui-focused fieldset': { borderColor: '#ffdd57' }
+              color: 'var(--text-primary)',
+              '& fieldset': { borderColor: 'var(--border-color)' },
+              '&:hover fieldset': { borderColor: 'var(--primary)' },
+              '&.Mui-focused fieldset': { borderColor: 'var(--primary)' }
             },
             '& .MuiInputLabel-root': {
-              color: 'white',
-              '&.Mui-focused': { color: '#ffdd57' }
+              color: 'var(--text-secondary)',
+              '&.Mui-focused': { color: 'var(--primary)' }
             }
           }}
         />
         
         {/* Media attachments section */}
-        <Box sx={{ mt: 2, mb: 2 }}>
-          <Typography variant="subtitle1" gutterBottom sx={{ color: 'white' }}>
+        <Box sx={{ mt: 'var(--spacing-md)', mb: 'var(--spacing-md)' }}>
+          <Typography variant="subtitle1" gutterBottom sx={{ color: 'var(--text-primary)' }}>
             Media Attachments
           </Typography>
           
           {mediaError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert severity="error" sx={{ mb: 'var(--spacing-md)' }}>
               {mediaError}
             </Alert>
           )}
           
           {/* Media files preview */}
           {mediaFiles.length > 0 && (
-            <Stack direction="row" spacing={2} sx={{ mb: 2, flexWrap: 'wrap', gap: 2 }}>
+            <Stack direction="row" spacing={2} sx={{ mb: 'var(--spacing-md)', flexWrap: 'wrap', gap: 'var(--spacing-md)' }}>
               {mediaFiles.map((file, index) => (
                 <Card key={index} sx={{ 
                   width: 150, 
                   position: 'relative',
-                  background: 'rgba(255, 255, 255, 0.2)',
-                  color: 'white'
+                  background: 'var(--bg-secondary)',
+                  color: 'var(--text-primary)'
                 }}>
                   {file.preview ? (
                     <CardMedia
@@ -860,11 +860,11 @@ const PostSystem = () => {
                     />
                   ) : (
                     <Box sx={{ height: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <DocumentIcon sx={{ fontSize: 40, color: 'white' }} />
+                      <DocumentIcon sx={{ fontSize: 40, color: 'var(--text-primary)' }} />
                     </Box>
                   )}
-                  <CardContent sx={{ p: 1 }}>
-                    <Typography variant="caption" noWrap sx={{ color: 'white' }}>
+                  <CardContent sx={{ p: 'var(--spacing-sm)' }}>
+                    <Typography variant="caption" noWrap sx={{ color: 'var(--text-primary)' }}>
                       {file.name}
                     </Typography>
                   </CardContent>
@@ -875,10 +875,10 @@ const PostSystem = () => {
                       position: 'absolute', 
                       top: 5, 
                       right: 5, 
-                      bgcolor: 'rgba(255,255,255,0.2)',
-                      color: 'white',
+                      bgcolor: 'var(--bg-secondary)',
+                      color: 'var(--text-primary)',
                       '&:hover': {
-                        bgcolor: 'rgba(255,255,255,0.3)'
+                        bgcolor: 'var(--bg-secondary-hover)'
                       }
                     }}
                   >
@@ -904,11 +904,11 @@ const PostSystem = () => {
               variant="outlined"
               startIcon={<AttachFileIcon />}
               sx={{
-                color: 'white',
-                borderColor: 'white',
+                color: 'var(--text-primary)',
+                borderColor: 'var(--border-color)',
                 '&:hover': {
-                  borderColor: '#ffdd57',
-                  color: '#ffdd57'
+                  borderColor: 'var(--primary)',
+                  color: 'var(--primary)'
                 }
               }}
             >
@@ -916,8 +916,8 @@ const PostSystem = () => {
             </Button>
           </label>
           {mediaFiles.length > 0 && (
-            <Box sx={{ mt: 1 }}>
-              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+            <Box sx={{ mt: 'var(--spacing-sm)' }}>
+              <Typography variant="body2" sx={{ color: 'var(--text-secondary)' }}>
                 Selected files: {mediaFiles.map(file => file.name).join(', ')}
               </Typography>
             </Box>
@@ -925,8 +925,8 @@ const PostSystem = () => {
         </Box>
         
         {/* Platform selection */}
-        <FormControl component="fieldset" sx={{ mb: 3 }}>
-          <Typography variant="subtitle1" gutterBottom sx={{ color: 'white' }}>
+        <FormControl component="fieldset" sx={{ mb: 'var(--spacing-lg)' }}>
+          <Typography variant="subtitle1" gutterBottom sx={{ color: 'var(--text-primary)' }}>
             Select Platforms
           </Typography>
           <FormGroup row>
@@ -937,8 +937,8 @@ const PostSystem = () => {
                   onChange={handlePlatformChange}
                   name="twitter"
                   sx={{
-                    color: 'white',
-                    '&.Mui-checked': { color: '#ffdd57' }
+                    color: 'var(--text-secondary)',
+                    '&.Mui-checked': { color: 'var(--primary)' }
                   }}
                   icon={<TwitterIcon />}
                   checkedIcon={<TwitterIcon />}
@@ -946,10 +946,10 @@ const PostSystem = () => {
                 />
               }
               label={
-                <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'white' }}>
+                <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'var(--text-primary)' }}>
                   Twitter
                   {!isTwitterAuthenticated && (
-                    <Typography variant="caption" color="error" sx={{ ml: 1 }}>
+                    <Typography variant="caption" color="error" sx={{ ml: 'var(--spacing-sm)' }}>
                       (Authentication required)
                     </Typography>
                   )}
@@ -961,9 +961,9 @@ const PostSystem = () => {
         
         {/* Action buttons */}
         <Box sx={{ 
-          mt: 3, 
+          mt: 'var(--spacing-lg)', 
           display: 'flex', 
-          gap: 2,
+          gap: 'var(--spacing-md)',
           flexDirection: { xs: 'column', sm: 'row' },
           width: '100%'
         }}>
@@ -973,18 +973,18 @@ const PostSystem = () => {
             onClick={handlePost}
             disabled={isLoading || (platforms.twitter && !isTwitterAuthenticated)}
             sx={{
-              background: 'linear-gradient(135deg, #ffdd57, #FFD700)',
-              color: '#8B0000',
-              fontWeight: 'bold',
-              borderRadius: '30px',
+              background: 'var(--gradient-secondary)',
+              color: 'var(--text-primary)',
+              fontWeight: 'var(--font-weight-bold)',
+              borderRadius: 'var(--border-radius-full)',
               width: { xs: '100%', sm: 'auto' },
               '&:hover': { 
-                background: '#fff',
-                color: '#8B0000'
+                background: 'var(--bg-accent)',
+                color: 'var(--text-primary)'
               },
               '&.Mui-disabled': {
-                background: 'rgba(255,255,255,0.3)',
-                color: 'rgba(255,255,255,0.5)'
+                background: 'var(--bg-disabled)',
+                color: 'var(--text-disabled)'
               }
             }}
           >
@@ -996,7 +996,7 @@ const PostSystem = () => {
               <Box sx={{ 
                 display: 'flex', 
                 flexDirection: 'column',
-                gap: 2,
+                gap: 'var(--spacing-md)',
                 width: '100%'
               }}>
                 <DateTimePicker
@@ -1006,23 +1006,24 @@ const PostSystem = () => {
                   minDateTime={new Date()}
                   sx={{
                     '& .MuiInputBase-root': {
-                      color: 'white',
-                      '& fieldset': { borderColor: 'white' },
-                      '&:hover fieldset': { borderColor: '#ffdd57' },
-                      '&.Mui-focused fieldset': { borderColor: '#ffdd57' }
+                      color: 'var(--text-primary)',
+                      '& fieldset': { borderColor: 'var(--border-color)' },
+                      '&:hover fieldset': { borderColor: 'var(--primary)' },
+                      '&.Mui-focused fieldset': { borderColor: 'var(--primary)' }
                     },
                     '& .MuiInputLabel-root': {
-                      color: 'white',
-                      '&.Mui-focused': { color: '#ffdd57' }
+                      color: 'var(--text-secondary)',
+                      color: 'var(--text-light)',
+                      '&.Mui-focused': { color: 'var(--secondary)' }
                     },
                     '& .MuiIconButton-root': {
-                      color: 'white'
+                      color: 'var(--text-light)'
                     }
                   }}
                 />
                 <Box sx={{ 
                   display: 'flex', 
-                  gap: 2,
+                  gap: 'var(--spacing-md)',
                   justifyContent: 'center'
                 }}>
                   <Button
@@ -1030,19 +1031,19 @@ const PostSystem = () => {
                     onClick={handleSchedulePost}
                     disabled={isLoading || (platforms.twitter && !isTwitterAuthenticated)}
                     sx={{
-                      background: 'linear-gradient(135deg, #ffdd57, #FFD700)',
-                      color: '#8B0000',
-                      fontWeight: 'bold',
-                      borderRadius: '30px',
+                      background: 'var(--gradient-secondary)',
+                      color: 'var(--primary)',
+                      fontWeight: 'var(--font-weight-bold)',
+                      borderRadius: 'var(--border-radius-full)',
                       flex: 1,
                       maxWidth: '200px',
                       '&:hover': { 
-                        background: '#fff',
-                        color: '#8B0000'
+                        background: 'var(--bg-light)',
+                        color: 'var(--primary)'
                       },
                       '&.Mui-disabled': {
-                        background: 'rgba(255,255,255,0.3)',
-                        color: 'rgba(255,255,255,0.5)'
+                        background: 'var(--bg-disabled)',
+                        color: 'var(--text-disabled)'
                       }
                     }}
                   >
@@ -1052,13 +1053,13 @@ const PostSystem = () => {
                     variant="outlined"
                     onClick={() => setIsScheduling(false)}
                     sx={{
-                      color: 'white',
-                      borderColor: 'white',
+                      color: 'var(--text-light)',
+                      borderColor: 'var(--text-light)',
                       flex: 1,
                       maxWidth: '200px',
                       '&:hover': {
-                        borderColor: '#ffdd57',
-                        color: '#ffdd57'
+                        borderColor: 'var(--secondary)',
+                        color: 'var(--secondary)'
                       }
                     }}
                   >
@@ -1074,18 +1075,18 @@ const PostSystem = () => {
               onClick={() => setIsScheduling(true)}
               disabled={isLoading || (platforms.twitter && !isTwitterAuthenticated)}
               sx={{
-                background: 'linear-gradient(135deg, #ffdd57, #FFD700)',
-                color: '#8B0000',
-                fontWeight: 'bold',
-                borderRadius: '30px',
+                background: 'var(--gradient-secondary)',
+                color: 'var(--primary)',
+                fontWeight: 'var(--font-weight-bold)',
+                borderRadius: 'var(--border-radius-full)',
                 width: { xs: '100%', sm: 'auto' },
                 '&:hover': { 
-                  background: '#fff',
-                  color: '#8B0000'
+                  background: 'var(--bg-light)',
+                  color: 'var(--primary)'
                 },
                 '&.Mui-disabled': {
-                  background: 'rgba(255,255,255,0.3)',
-                  color: 'rgba(255,255,255,0.5)'
+                  background: 'var(--bg-disabled)',
+                  color: 'var(--text-disabled)'
                 }
               }}
             >
@@ -1097,27 +1098,27 @@ const PostSystem = () => {
 
       {/* Scheduled Posts Section */}
       <Paper elevation={6} sx={{
-        borderRadius: '15px',
-        background: 'rgba(255, 255, 255, 0.1)',
+        borderRadius: 'var(--border-radius-lg)',
+        background: 'var(--bg-translucent)',
         backdropFilter: 'blur(10px)',
-        color: 'white',
+        color: 'var(--text-light)',
         overflow: 'hidden'
       }}>
-        <Box sx={{ p: { xs: 1, sm: 1.5 } }}>
+        <Box sx={{ p: { xs: 'var(--spacing-sm)', sm: 'var(--spacing-md)' } }}>
           <Typography variant="subtitle1" sx={{ 
-            color: 'white',
-            fontWeight: 'bold',
-            mb: 0.5,
+            color: 'var(--text-light)',
+            fontWeight: 'var(--font-weight-bold)',
+            mb: 'var(--spacing-xs)',
             textAlign: 'center',
             fontSize: { xs: '0.875rem', sm: '1rem' }
           }}>
             Scheduled Posts
           </Typography>
           
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)' }}>
             {isLoading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-                <CircularProgress size={24} sx={{ color: '#ffdd57' }} />
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 'var(--spacing-md)' }}>
+                <CircularProgress size={24} sx={{ color: 'var(--secondary)' }} />
               </Box>
             ) : scheduledPosts.length > 0 ? (
               scheduledPosts.map((post) => (
@@ -1125,19 +1126,19 @@ const PostSystem = () => {
                   key={post.id}
                   elevation={2}
                   sx={{
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    borderRadius: '8px',
-                    p: { xs: 0.75, sm: 1 }
+                    background: 'var(--bg-translucent-light)',
+                    borderRadius: 'var(--border-radius-md)',
+                    p: { xs: 'var(--spacing-sm)', sm: 'var(--spacing-md)' }
                   }}
                 >
                   <Box sx={{ 
                     display: 'flex', 
                     flexDirection: 'column',
-                    gap: 0.5
+                    gap: 'var(--spacing-xs)'
                   }}>
                     {/* Post Content */}
                     <Typography variant="body2" sx={{ 
-                      color: 'white',
+                      color: 'var(--text-light)',
                       fontSize: { xs: '0.75rem', sm: '0.875rem' },
                       lineHeight: 1.3,
                       wordBreak: 'break-word'
@@ -1151,21 +1152,21 @@ const PostSystem = () => {
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       flexWrap: 'wrap',
-                      gap: 0.5
+                      gap: 'var(--spacing-xs)'
                     }}>
                       {/* Time and Platform */}
                       <Box sx={{ 
                         display: 'flex', 
                         alignItems: 'center',
-                        gap: 0.5,
+                        gap: 'var(--spacing-xs)',
                         flexGrow: 1
                       }}>
                         <Box sx={{ 
                           display: 'flex', 
                           alignItems: 'center',
-                          gap: 0.25,
+                          gap: 'var(--spacing-xxs)',
                           fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                          color: new Date(post.scheduled_time) < new Date() ? '#ff4444' : 'rgba(255, 255, 255, 0.7)'
+                          color: new Date(post.scheduled_time) < new Date() ? 'var(--error)' : 'var(--text-secondary)'
                         }}>
                           <AccessTimeIcon sx={{ fontSize: 'inherit' }} />
                           {new Date(post.scheduled_time).toLocaleString()}
@@ -1177,7 +1178,7 @@ const PostSystem = () => {
                         }}>
                           <TwitterIcon sx={{ 
                             fontSize: { xs: '0.8rem', sm: '0.875rem' },
-                            color: '#ffdd57'
+                            color: 'var(--secondary)'
                           }} />
                         </Box>
                       </Box>
@@ -1186,10 +1187,10 @@ const PostSystem = () => {
                       <Box sx={{ 
                         display: 'flex', 
                         alignItems: 'center',
-                        gap: 0.5
+                        gap: 'var(--spacing-xs)'
                       }}>
                         <Typography variant="caption" sx={{ 
-                          color: 'rgba(255, 255, 255, 0.7)',
+                          color: 'var(--text-secondary)',
                           fontSize: { xs: '0.7rem', sm: '0.75rem' }
                         }}>
                           {post.status === 'scheduled' ? 'Scheduled' : post.status}
@@ -1202,13 +1203,13 @@ const PostSystem = () => {
                               onClick={() => handleExecuteScheduledPost(post.id)}
                               disabled={isLoading}
                               sx={{
-                                background: '#ffdd57',
-                                color: '#8B0000',
+                                background: 'var(--secondary)',
+                                color: 'var(--primary)',
                                 minWidth: 0,
                                 p: '2px 6px',
                                 fontSize: { xs: '0.7rem', sm: '0.75rem' },
                                 minHeight: 0,
-                                '&:hover': { background: '#fff' }
+                                '&:hover': { background: 'var(--bg-light)' }
                               }}
                             >
                               Post
@@ -1218,9 +1219,9 @@ const PostSystem = () => {
                               onClick={() => handleDeleteScheduledPost(post.id)}
                               disabled={isLoading}
                               sx={{
-                                color: 'rgba(255, 255, 255, 0.7)',
+                                color: 'var(--text-secondary)',
                                 p: '2px',
-                                '&:hover': { color: '#ff4444' }
+                                '&:hover': { color: 'var(--error)' }
                               }}
                             >
                               <DeleteIcon sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }} />
@@ -1234,9 +1235,9 @@ const PostSystem = () => {
               ))
             ) : (
               <Typography variant="body2" sx={{ 
-                color: 'rgba(255, 255, 255, 0.7)',
+                color: 'var(--text-secondary)',
                 textAlign: 'center',
-                py: 1,
+                py: 'var(--spacing-sm)',
                 fontSize: { xs: '0.75rem', sm: '0.875rem' }
               }}>
                 No scheduled posts yet
@@ -1271,9 +1272,9 @@ const PostSystem = () => {
         fullWidth
         PaperProps={{
           sx: {
-            background: 'rgba(255, 255, 255, 0.95)',
+            background: 'var(--bg-translucent)',
             backdropFilter: 'blur(10px)',
-            borderRadius: '15px'
+            borderRadius: 'var(--border-radius-lg)'
           }
         }}
       >
@@ -1301,7 +1302,7 @@ const PostSystem = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseStatusDialog} sx={{ color: '#8B0000' }}>
+          <Button onClick={handleCloseStatusDialog} sx={{ color: 'var(--primary)' }}>
             Close
           </Button>
         </DialogActions>

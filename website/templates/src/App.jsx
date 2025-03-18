@@ -1,0 +1,124 @@
+import React, { useState } from 'react';
+import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Home from './pages/Home';
+import Dashboard from './pages/Dashboard';
+import Editor from './pages/Editor';
+import Template from './pages/Template';
+import AISummary from './pages/AISummary';
+import PostSystem from './pages/PostSystem';
+import Favourites from './pages/Favourites';
+import Newsletters from './pages/Newsletters';
+import History from './pages/History';
+import { Box } from '@mui/material';
+import NavBar from './components/NavBar';
+import AboutUs from './pages/AboutUs';  
+import Contact from './pages/Contact';  
+import Pricing from './pages/Pricing';
+import './styles/theme.css';
+
+const App = () => {
+  const navigate = useNavigate();
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
+
+  const handleLogin = (userData) => {
+    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
+  };
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/logout', {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Logout failed');
+      }
+
+      setUser(null);
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      navigate('/home');
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
+  };
+
+  return (
+    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+      <NavBar user={user} onLogout={handleLogout} />
+      <Box 
+        component="main"
+        sx={{
+          flexGrow: 1,
+          minHeight: '100vh',
+          width: '100%',
+          paddingTop: { 
+            xs: 'var(--nav-height-mobile)',
+            sm: 'var(--nav-height)'
+          },
+          background: 'var(--bg-secondary)',
+          overflowX: 'hidden'
+        }}
+      >
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/home" element={user ? <Navigate to="/dashboard" replace /> : <Home />} />
+          <Route path="/login" element={<Login onLogin={handleLogin} />} />
+          <Route path="/register" element={<Register onLogin={handleLogin} />} />
+          <Route path="/aboutus" element={<AboutUs />} />  
+          <Route path="/contact" element={<Contact />} />  
+          <Route path="/pricing" element={<Pricing />} />
+
+          {/* Protected Routes */}
+          <Route
+            path="/dashboard"
+            element={user ? <Dashboard /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/editor"
+            element={user ? <Editor /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/templates"
+            element={user ? <Template /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/ai-summary"
+            element={user ? <AISummary /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/post-system"
+            element={user ? <PostSystem /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/favourites"
+            element={user ? <Favourites /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/newsletters"
+            element={user ? <Newsletters /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/history"
+            element={user ? <History /> : <Navigate to="/login" replace />}
+          />
+
+          {/* Default redirect */}
+          <Route path="/" element={<Navigate to={user ? "/dashboard" : "/home"} replace />} />
+        </Routes>
+      </Box>
+    </Box>
+  );
+};
+
+export default App;

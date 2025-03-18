@@ -286,13 +286,18 @@ const AISummary = () => {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
+    <Box sx={{ p: 'var(--spacing-xl)' }}>
+      <Typography variant="h4" gutterBottom className="heading-primary">
         AI Content Summary
       </Typography>
       
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h6" gutterBottom>
+      <Paper sx={{ 
+        p: 'var(--spacing-xl)', 
+        mb: 'var(--spacing-xl)',
+        boxShadow: 'var(--shadow-md)',
+        borderRadius: 'var(--border-radius-lg)'
+      }}>
+        <Typography variant="h6" gutterBottom className="heading-secondary">
           Configuration
         </Typography>
         
@@ -309,6 +314,17 @@ const AISummary = () => {
               min={10}
               max={90}
               disabled={loading}
+              sx={{
+                color: 'var(--primary)',
+                '& .MuiSlider-thumb': {
+                  '&:hover, &.Mui-focusVisible': {
+                    boxShadow: '0 0 0 8px var(--bg-accent)',
+                  },
+                },
+                '& .MuiSlider-rail': {
+                  opacity: 0.5,
+                },
+              }}
             />
           </Grid>
           
@@ -335,7 +351,22 @@ const AISummary = () => {
         </Grid>
         
         <Box sx={{ mt: 3 }}>
-          <Tabs value={inputTab} onChange={handleTabChange} aria-label="input tabs">
+          <Tabs 
+            value={inputTab} 
+            onChange={handleTabChange} 
+            aria-label="input tabs"
+            sx={{
+              '& .MuiTabs-indicator': {
+                backgroundColor: 'var(--primary)',
+              },
+              '& .MuiTab-root': {
+                color: 'var(--text-secondary)',
+                '&.Mui-selected': {
+                  color: 'var(--primary)',
+                },
+              },
+            }}
+          >
             <Tab icon={<TextFieldsIcon />} label="Text" />
             <Tab icon={<LinkIcon />} label="URL" />
           </Tabs>
@@ -394,7 +425,13 @@ const AISummary = () => {
             color="primary"
             onClick={handleGenerateSummary}
             disabled={loading || (inputTab === 0 && !originalContent) || (inputTab === 1 && !url)}
-            sx={{ minWidth: 200 }}
+            sx={{ 
+              minWidth: 200,
+              background: 'var(--primary)',
+              '&:hover': {
+                background: 'var(--primary-light)'
+              }
+            }}
           >
             {loading ? (
               <CircularProgress size={24} color="inherit" />
@@ -446,7 +483,11 @@ const AISummary = () => {
       )}
       
       {summary && (
-        <Paper sx={{ p: 3 }}>
+        <Paper sx={{ 
+          p: 'var(--spacing-xl)',
+          boxShadow: 'var(--shadow-md)',
+          borderRadius: 'var(--border-radius-lg)'
+        }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h6">
               Generated Summary

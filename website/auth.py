@@ -54,8 +54,12 @@ def login():
 # route to sign up page
 @auth.route("/sign-up", methods=["GET", "POST"])
 def sign_up():
+    print("Sign-up request received")  # Debug log
+    print("Request method:", request.method)  # Debug log
     if request.method == "POST":
+        print("Processing POST request")  # Debug log
         data = request.get_json()
+        print("Received data:", data)  # Debug log
         email = data.get("email")
         first_name = data.get("firstName")
         password = data.get("password")

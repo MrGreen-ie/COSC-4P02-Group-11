@@ -39,24 +39,43 @@ const Register = ({ onLogin }) => {
     e.preventDefault();
     if (!validateForm()) return;
     try {
+      console.log('Starting registration process...');
+      console.log('Form data:', formData);
       setServerError('');
       setErrors({});
       
+      console.log('Calling register API...');
       const registerResponse = await register(
         formData.email,
         formData.password,
         formData.firstName,
         formData.lastName
       );
+      console.log('Register API response:', registerResponse);
 
       if (registerResponse.message) {
         try {
+          console.log('Registration successful, attempting login...');
           const loginResponse = await login(formData.email, formData.password);
+          console.log('Login response:', loginResponse);
+          
           if (loginResponse.user) {
-            onLogin(loginResponse.user);
+            // Store user data in localStorage
+            localStorage.setItem('user', JSON.stringify(loginResponse.user));
+            if (loginResponse.token) {
+              localStorage.setItem('token', loginResponse.token);
+            }
+            
+            // Update parent component's user state
+            if (onLogin) {
+              onLogin(loginResponse.user);
+            }
+            
+            // Navigate to home page
             navigate('/', { replace: true });
           }
-        } catch {
+        } catch (loginError) {
+          console.error('Login after registration failed:', loginError);
           setServerError('Registration successful! Redirecting to login...');
           setTimeout(() => navigate('/login', { replace: true }), 2000);
         }
@@ -191,6 +210,30 @@ const Register = ({ onLogin }) => {
                 onChange={handleChange}
                 error={!!errors.password}
                 helperText={errors.password}
+                sx={{
+                  input: { color: 'white' },
+                  '& label': { color: 'white' },
+                  '& label.Mui-focused': { color: 'white' },
+                  '& .MuiOutlinedInput-root': {
+                    '& fieldset': { borderColor: 'white' },
+                    '&:hover fieldset': { borderColor: '#ffdd57' },
+                    '&.Mui-focused fieldset': { borderColor: '#ffdd57' },
+                  },
+                }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                required
+                name="confirmPassword"
+                label="Confirm Password"
+                type="password"
+                id="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                error={!!errors.confirmPassword}
+                helperText={errors.confirmPassword}
                 sx={{
                   input: { color: 'white' },
                   '& label': { color: 'white' },

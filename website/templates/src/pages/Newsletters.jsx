@@ -93,15 +93,24 @@ const Newsletters = () => {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component="h1">
+    <Container maxWidth="lg" sx={{ 
+      mt: 'var(--spacing-xl)', 
+      mb: 'var(--spacing-xl)' 
+    }}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb="var(--spacing-xl)">
+        <Typography variant="h4" component="h1" className="heading-primary">
           Newsletters
         </Typography>
         <Button
           variant="contained"
           color="primary"
           startIcon={<AddIcon />}
+          sx={{
+            background: 'var(--primary)',
+            '&:hover': {
+              background: 'var(--primary-light)'
+            }
+          }}
         >
           Create Newsletter
         </Button>
@@ -110,7 +119,13 @@ const Newsletters = () => {
       <Grid container spacing={3}>
         {/* Stats Overview */}
         <Grid item xs={12}>
-          <Paper sx={{ p: 2, display: 'flex', gap: 2 }}>
+          <Paper sx={{ 
+            p: 'var(--spacing-md)', 
+            display: 'flex', 
+            gap: 'var(--spacing-md)',
+            boxShadow: 'var(--shadow-md)',
+            borderRadius: 'var(--border-radius-lg)'
+          }}>
             <Box flex={1} textAlign="center">
               <Typography variant="h6">Total Newsletters</Typography>
               <Typography variant="h4">{newsletters.length}</Typography>
@@ -143,15 +158,15 @@ const Newsletters = () => {
         ) : (
           newsletters.map((newsletter) => (
             <Grid item xs={12} md={6} lg={4} key={newsletter.id}>
-              <Card>
+              <Card className="card">
                 <CardContent>
-                  <Typography variant="h6" component="h2" noWrap>
+                  <Typography variant="h6" component="h2" noWrap className="heading-secondary">
                     {newsletter.headline}
                   </Typography>
-                  <Typography variant="body2" color="textSecondary" gutterBottom>
+                  <Typography variant="body2" color="textSecondary" gutterBottom className="text-secondary">
                     Created At: {new Date(newsletter.created_at).toLocaleString()}
                   </Typography>
-                  <Typography variant="body2" noWrap>
+                  <Typography variant="body2" noWrap className="text-primary">
                     {newsletter.summary}
                   </Typography>
                 </CardContent>

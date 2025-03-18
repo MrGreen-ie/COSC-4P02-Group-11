@@ -6,7 +6,7 @@ import smtplib
 import uuid
 from flask import Blueprint, current_app, render_template, request, flash, jsonify, redirect, session, url_for
 from flask_login import login_required, current_user
-from .models import Note, User, ScheduledPost, SavedSummary
+from .models import Note, User, ScheduledPost, SavedSummary, FavoriteSummary
 from . import db
 from .cache import redis_cache
 from .content_processor import process_content, preprocess_for_gemini
@@ -1705,4 +1705,134 @@ def get_saved_summaries():
     except Exception as e:
         print(f"Error retrieving saved summaries: {str(e)}")
         return jsonify({'error': 'An unexpected error occurred while retrieving saved summaries.'}), 500
+
+@views.route('/api/summary/toggle-favorite', methods=['POST'])
+@login_required
+def toggle_favorite():
+    """
+    Toggle favorite status for a summary
+    
+    Request body:
+    {
+        "summary_id": 123  // ID of the summary to toggle favorite status
+    }
+    
+    Returns:
+        JSON response with updated favorite status
+    """
+    try:
+        data = request.get_json()
+        
+        # Validate request data
+        if not data or 'summary_id' not in data:
+            return jsonify({'error': 'Missing summary_id in request'}), 400
+        
+        summary_id = data['summary_id']
+        
+        # Check if summary exists
+        summary = SavedSummary.query.get(summary_id)
+        if not summary:
+            return jsonify({'error': 'Summary not found'}), 404
+        
+        # Check if already favorited
+        existing_favorite = FavoriteSummary.query.filter_by(
+            user_id=current_user.id,
+            summary_id=summary_id
+        ).first()
+        
+        if existing_favorite:
+            # Remove from favorites
+            db.session.delete(existing_favorite)
+            db.session.commit()
+            return jsonify({
+                'success': True,
+                'is_favorite': False,
+                'message': 'Summary removed from favorites'
+            })
+        else:
+            # Add to favorites
+            new_favorite = FavoriteSummary(
+                user_id=current_user.id,
+                summary_id=summary_id
+            )
+            db.session.add(new_favorite)
+            db.session.commit()
+            return jsonify({
+                'success': True,
+                'is_favorite': True,
+                'message': 'Summary added to favorites'
+            })
+            
+    except Exception as e:
+        print(f"Error toggling favorite: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': 'An unexpected error occurred while toggling favorite status.'}), 500
+
+@views.route('/api/summary/favorites', methods=['GET'])
+@login_required
+def get_favorite_summaries():
+    """
+    Get all favorite summaries for the current user
+    
+    Returns:
+        JSON response with list of favorite summaries
+    """
+    try:
+        # Get all favorite summary IDs for current user
+        favorites = FavoriteSummary.query.filter_by(user_id=current_user.id).all()
+        favorite_ids = [fav.summary_id for fav in favorites]
+        
+        # Get the actual summary objects
+        summaries = SavedSummary.query.filter(SavedSummary.id.in_(favorite_ids)).all()
+        
+        # Convert to JSON
+        summaries_list = []
+        for summary in summaries:
+            summaries_list.append({
+                'id': summary.id,
+                'headline': summary.headline,
+                'summary': summary.summary,
+                'tags': summary.tags,
+                'tone': summary.tone,
+                'length': summary.length,
+                'created_at': summary.created_at.isoformat(),
+                'is_favorite': True
+            })
+        
+        return jsonify({
+            'success': True,
+            'favorites': summaries_list
+        })
+        
+    except Exception as e:
+        print(f"Error retrieving favorite summaries: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred while retrieving favorite summaries.'}), 500
+
+@views.route('/api/summary/check-favorite/<int:summary_id>', methods=['GET'])
+@login_required
+def check_favorite_status(summary_id):
+    """
+    Check if a summary is favorited by the current user
+    
+    Parameters:
+        summary_id (int): ID of the summary to check
+    
+    Returns:
+        JSON response with favorite status
+    """
+    try:
+        # Check if the summary is favorited
+        is_favorite = FavoriteSummary.query.filter_by(
+            user_id=current_user.id,
+            summary_id=summary_id
+        ).first() is not None
+        
+        return jsonify({
+            'success': True,
+            'is_favorite': is_favorite
+        })
+        
+    except Exception as e:
+        print(f"Error checking favorite status: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred while checking favorite status.'}), 500
 

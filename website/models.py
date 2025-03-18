@@ -63,6 +63,17 @@ class SavedSummary(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
 
 
+# Favorite Summary model
+class FavoriteSummary(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    summary_id = db.Column(db.Integer, db.ForeignKey("saved_summary.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=func.now())
+    
+    # Add unique constraint to prevent duplicate favorites
+    __table_args__ = (db.UniqueConstraint('user_id', 'summary_id', name='unique_user_summary'),)
+
+
 # Saved Content model
 class SavedContent(db.Model):
     id = db.Column(db.Integer, primary_key=True)

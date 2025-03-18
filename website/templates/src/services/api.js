@@ -400,3 +400,49 @@ export const getSavedSummaries = async () => {
     throw error.response?.data || { error: error.message };
   }
 };
+
+/**
+ * Toggle favorite status for a summary
+ * @param {number} summaryId - The ID of the summary to toggle favorite status
+ * @returns {Promise<Object>} - The response with the updated favorite status
+ */
+export const toggleFavorite = async (summaryId) => {
+  try {
+    const response = await api.post('/api/summary/toggle-favorite', {
+      summary_id: summaryId
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Failed to toggle favorite status:', error);
+    throw error.response?.data || { error: error.message };
+  }
+};
+
+/**
+ * Get all favorite summaries for the current user
+ * @returns {Promise<Object>} - The response with the list of favorite summaries
+ */
+export const getFavoriteSummaries = async () => {
+  try {
+    const response = await api.get('/api/summary/favorites');
+    return response.data;
+  } catch (error) {
+    console.error('Failed to get favorite summaries:', error);
+    throw error.response?.data || { error: error.message };
+  }
+};
+
+/**
+ * Check if a summary is favorited by the current user
+ * @param {number} summaryId - The ID of the summary to check
+ * @returns {Promise<Object>} - The response with the favorite status
+ */
+export const checkFavoriteStatus = async (summaryId) => {
+  try {
+    const response = await api.get(`/api/summary/check-favorite/${summaryId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to check favorite status:', error);
+    throw error.response?.data || { error: error.message };
+  }
+};

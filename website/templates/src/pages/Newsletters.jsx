@@ -29,31 +29,57 @@ const Newsletters = () => {
   const [selectedNewsletter, setSelectedNewsletter] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSendModalOpen, setIsSendModalOpen] = useState(false);
+  const [plan, setPlan] = useState('Free'); // Default to 'Free', update based on user session
 
   useEffect(() => {
-    // Fetch summaries from the backend
-    const fetchSummaries = async () => {
-      try {
-        const response = await axios.get('/api/newsletter');
-        setNewsletters(response.data.summaries);
-      } catch (error) {
-        console.error('Error fetching summaries:', error);
-      }
-    };
-
-    // Fetch sent newsletters count for this month
-    const fetchSentThisMonth = async () => {
-      try {
-        const response = await axios.get('/api/newsletter/sent-this-month');
-        setSentThisMonth(response.data.sent_this_month);
-      } catch (error) {
-        console.error('Error fetching sent newsletters count:', error);
-      }
-    };
-
-    fetchSummaries();
+    // Fetch newsletters and sent count when the component mounts
+    fetchNewsletters();
     fetchSentThisMonth();
   }, []);
+
+  const fetchNewsletters = async () => {
+    try {
+      const response = await axios.get('/api/newsletter');
+      setNewsletters(response.data.summaries);
+    } catch (error) {
+      console.error('Error fetching newsletters:', error);
+    }
+  };
+
+  const fetchSentThisMonth = async () => {
+    try {
+      const response = await axios.get('/api/newsletter/sent-this-month');
+      setSentThisMonth(response.data.sent_this_month);
+    } catch (error) {
+      console.error('Error fetching sent newsletters count:', error);
+    }
+  };
+
+  const handleAddNewsletter = async () => {
+    try {
+      // Check if the user is on the Free plan and already has 5 newsletters
+      if (plan === 'Free' && newsletters.length >= 5) {
+        // Remove the oldest newsletter (FIFO)
+        const oldestNewsletter = newsletters[0];
+        await axios.delete(`/api/newsletter/${oldestNewsletter.id}`);
+        setNewsletters((prevNewsletters) => prevNewsletters.slice(1));
+      }
+
+      // Add a new newsletter (this is just a placeholder, replace with actual logic)
+      const newNewsletter = {
+        id: Date.now(), // Temporary ID for demonstration
+        headline: 'New Newsletter',
+        summary: 'This is a new newsletter summary.',
+        created_at: new Date().toISOString(),
+      };
+
+      // Save the new newsletter to the backend
+      const response = await axios.post('/api/newsletter', newNewsletter);
+      setNewsletters((prevNewsletters) => [...prevNewsletters, response.data]);
+    } catch (error) {
+      console.error('Error adding newsletter:', error);
+    }
+  };
 
   const handleEdit = (newsletter) => {
     setSelectedNewsletter(newsletter);
@@ -93,10 +119,7 @@ const Newsletters = () => {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ 
-      mt: 'var(--spacing-xl)', 
-      mb: 'var(--spacing-xl)' 
-    }}>
+    <Container maxWidth="lg" sx={{ mt: 'var(--spacing-xl)', mb: 'var(--spacing-xl)' }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb="var(--spacing-xl)">
         <Typography variant="h4" component="h1" className="heading-primary">
           Newsletters
@@ -105,11 +128,12 @@ const Newsletters = () => {
           variant="contained"
           color="primary"
           startIcon={<AddIcon />}
+          onClick={handleAddNewsletter}
           sx={{
             background: 'var(--primary)',
             '&:hover': {
-              background: 'var(--primary-light)'
-            }
+              background: 'var(--primary-light)',
+            },
           }}
         >
           Create Newsletter
@@ -119,13 +143,15 @@ const Newsletters = () => {
       <Grid container spacing={3}>
         {/* Stats Overview */}
         <Grid item xs={12}>
-          <Paper sx={{ 
-            p: 'var(--spacing-md)', 
-            display: 'flex', 
-            gap: 'var(--spacing-md)',
-            boxShadow: 'var(--shadow-md)',
-            borderRadius: 'var(--border-radius-lg)'
-          }}>
+          <Paper
+            sx={{
+              p: 'var(--spacing-md)',
+              display: 'flex',
+              gap: 'var(--spacing-md)',
+              boxShadow: 'var(--shadow-md)',
+              borderRadius: 'var(--border-radius-lg)',
+            }}
+          >
             <Box flex={1} textAlign="center">
               <Typography variant="h6">Total Newsletters</Typography>
               <Typography variant="h4">{newsletters.length}</Typography>
@@ -146,7 +172,7 @@ const Newsletters = () => {
         {/* Newsletter List */}
         {newsletters.length === 0 ? (
           <Grid item xs={12}>
-            <Paper sx={{ p: 4, textAlign:"center" }}>
+            <Paper sx={{ p: 4, textAlign: 'center' }}>
               <Typography variant="h6" color="textSecondary">
                 No newsletters created yet
               </Typography>

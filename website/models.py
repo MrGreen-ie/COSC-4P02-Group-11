@@ -30,6 +30,7 @@ class User(db.Model, UserMixin):
     notes = db.relationship("Note")
     # Relationship with scheduled posts
     scheduled_posts = db.relationship("ScheduledPost")
+    role = db.Column(db.String(50), default='free')  # Add role field with default value 'user'
 
 
 # Social media post scheduling model

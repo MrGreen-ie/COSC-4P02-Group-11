@@ -16,6 +16,7 @@ const Favourites = () => {
   const [error, setError] = useState(null);
   const [expandedSummary, setExpandedSummary] = useState(null);
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
+  const [plan, setPlan] = useState('Free'); // Default to 'Free', update based on user session
 
   useEffect(() => {
     // Fetch data when component mounts
@@ -50,6 +51,15 @@ const Favourites = () => {
   };
 
   const handleFavouriteToggle = async (summaryId) => {
+    if (plan === 'Free') {
+      setNotification({
+        open: true,
+        message: 'Limited Access, for Pro only',
+        severity: 'error',
+      });
+      return;
+    }
+
     try {
       const response = await toggleFavorite(summaryId);
       
@@ -202,7 +212,23 @@ const Favourites = () => {
             </Alert>
           )}
           
-          {!error && favourites.length === 0 && (
+          {!error && favourites.length === 0 && plan === 'Free' && (
+            <Paper
+              elevation={2}
+              sx={{
+                padding: 'var(--spacing-lg)',
+                mb: 'var(--spacing-md)',
+                backgroundColor: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
+                borderRadius: 'var(--border-radius-lg)',
+                textAlign: 'center'
+              }}
+            >
+              <Typography variant="h6">Limited Access, for Pro only</Typography>
+            </Paper>
+          )}
+
+          {!error && favourites.length === 0 && plan === 'Pro' && (
             <Paper
               elevation={2}
               sx={{

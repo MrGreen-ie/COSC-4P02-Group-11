@@ -30,6 +30,7 @@ from flask import request, jsonify
 from .models import db, SavedContent
 from flask_login import login_required, current_user
 from datetime import datetime, timedelta
+from functools import wraps
 
 
 # for environment variables
@@ -222,6 +223,46 @@ def get_newsletters_sent_this_month():
     except Exception as e:
         print(f"Error fetching sent newsletters: {str(e)}")
         return jsonify({'error': 'An unexpected error occurred while fetching sent newsletters.'}), 500
+
+@views.route('/api/newsletter', methods=['POST'])
+@login_required
+def add_to_newsletter():
+    try:
+        user_plan = session.get('plan', 'Free')  # Default to 'Free' if not set
+        data = request.get_json()
+        headline = data.get('headline')
+        summary = data.get('summary')
+
+        if not headline or not summary:
+            return jsonify({'error': 'Headline and summary are required'}), 400
+
+        # Check if the user is on the Free plan and already has 5 newsletters
+        if user_plan == 'Free':
+            newsletters = SavedSummary.query.filter_by(user_id=current_user.id).order_by(SavedSummary.created_at).all()
+            if len(newsletters) >= 5:
+                # Remove the oldest newsletter (FIFO)
+                oldest_newsletter = newsletters[0]
+                db.session.delete(oldest_newsletter)
+
+        # Add the new newsletter
+        new_newsletter = SavedSummary(
+            user_id=current_user.id,
+            headline=headline,
+            summary=summary,
+            created_at=datetime.utcnow()
+        )
+        db.session.add(new_newsletter)
+        db.session.commit()
+
+        return jsonify({'success': 'Newsletter added successfully', 'newsletter': {
+            'id': new_newsletter.id,
+            'headline': new_newsletter.headline,
+            'summary': new_newsletter.summary,
+            'created_at': new_newsletter.created_at.isoformat()
+        }}), 201
+    except Exception as e:
+        print(f"Error adding to newsletter: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred while adding to the newsletter.'}), 500
 
 # Twitter API routes
 @views.route('/api/twitter/auth', methods=['GET'])
@@ -1836,3 +1877,54 @@ def check_favorite_status(summary_id):
         print(f"Error checking favorite status: {str(e)}")
         return jsonify({'error': 'An unexpected error occurred while checking favorite status.'}), 500
 
+
+from flask import render_template, session
+
+@views.route('/dashboard')
+@login_required
+def dashboard():
+    user_plan = session.get('plan', 'Free')  # Default to 'Free' if not set
+    user_role = current_user.role  # Get the user's role
+    return render_template('dashboard.html', plan=user_plan, role=user_role)
+
+from flask import request, jsonify, session
+
+@views.route('/ai-summary', methods=['POST'])
+def ai_summary():
+    user_plan = session.get('plan', 'Free')
+    text = request.json.get('text', '')
+    length = request.json.get('length', 50)
+    tone = request.json.get('tone', 'Professional')
+
+    if user_plan == 'Free':
+        # Restrict text length
+        if len(text.split()) > 500:
+            return jsonify({'error':    'Access limited, FREE user can summarize text up to 500 words long. '
+                                        'Upgrade to Pro for longer text.'}), 403
+
+        # Restrict length adjustment
+        if length != 50:
+            return jsonify({'error':    'Access limited, FREE user can summarize text up to 500 words long. '
+            '                           Length adjustment is Pro only.'}), 403
+
+        # Restrict tones
+        if tone != 'Professional':
+            return jsonify({'error': 'Access limited. This tone is Pro only.'}), 403
+
+    # Process AI summary (existing logic)
+    summary = process_ai_summary(text, length, tone)
+    return jsonify({'summary': summary})
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if current_user.role != 'admin':
+            return jsonify({'error': 'Access denied. Admins only.'}), 403
+        return f(*args, **kwargs)
+    return decorated_function
+
+@views.route('/admin', methods=['GET'])
+@login_required
+@admin_required
+def admin_dashboard():
+    return jsonify({'message': 'Welcome to the admin dashboard!'})

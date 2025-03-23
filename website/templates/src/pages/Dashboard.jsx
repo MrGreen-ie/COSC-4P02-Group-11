@@ -134,8 +134,10 @@ const FeatureCard = ({ title, icon, description, path }) => {
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem('user'));
-  
+  const user = JSON.parse(localStorage.getItem('user')); // Retrieve user info from local storage
+  const plan = user?.plan || 'Free'; // Default to 'Free' if no plan is found
+  const isAdmin = user?.role === 'admin'; // Check if the user is an admin
+
   const analytics = [
     {
       title: 'Total Posts',
@@ -204,21 +206,54 @@ const Dashboard = () => {
       icon: <HistoryIcon />,
       description: 'View your content history and analytics',
       path: '/history'
-    }
+    },
+    // Add Admin Tab if the user is an admin
+    ...(isAdmin
+      ? [
+          {
+            title: 'Admin Panel',
+            icon: <TrendingUpIcon />,
+            description: 'Manage users and system settings',
+            path: '/admin'
+          }
+        ]
+      : [])
   ];
 
   return (
-    <Box sx={{ 
-      p: 'var(--spacing-xl)',
-      minHeight: '100vh',
-      background: 'var(--bg-secondary)',
-      backgroundAttachment: 'fixed'
-    }}>
+    <Box
+      sx={{
+        p: 'var(--spacing-xl)',
+        minHeight: '100vh',
+        background: 'var(--bg-secondary)',
+        backgroundAttachment: 'fixed',
+        position: 'relative'
+      }}
+    >
+      {/* Plan Box */}
+      <Box
+        sx={{
+          position: 'absolute',
+          top: '20px',
+          right: '20px',
+          background: 'var(--bg-primary)',
+          color: 'var(--text-primary)',
+          padding: 'var(--spacing-md)',
+          borderRadius: 'var(--border-radius-md)',
+          boxShadow: 'var(--shadow-md)',
+          border: '1px solid rgba(var(--primary), 0.1)'
+        }}
+      >
+        <Typography variant="body2" sx={{ fontWeight: 'var(--font-weight-bold)' }}>
+          Current Plan: <span style={{ color: 'var(--primary)' }}>{plan}</span>
+        </Typography>
+      </Box>
+
       {/* Welcome Section */}
-      <Typography 
-        variant="h3" 
-        gutterBottom 
-        sx={{ 
+      <Typography
+        variant="h3"
+        gutterBottom
+        sx={{
           color: 'var(--text-primary)',
           mb: 'var(--spacing-xs)',
           fontWeight: 'var(--font-weight-bold)'
@@ -226,9 +261,9 @@ const Dashboard = () => {
       >
         Welcome back, {user?.firstName || 'User'}
       </Typography>
-      <Typography 
-        variant="subtitle1" 
-        sx={{ 
+      <Typography
+        variant="subtitle1"
+        sx={{
           color: 'var(--text-secondary)',
           mb: 'var(--spacing-xl)'
         }}
@@ -246,10 +281,10 @@ const Dashboard = () => {
       </Grid>
 
       {/* Quick Actions Section */}
-      <Typography 
-        variant="h5" 
-        gutterBottom 
-        sx={{ 
+      <Typography
+        variant="h5"
+        gutterBottom
+        sx={{
           color: 'var(--text-primary)',
           mb: 'var(--spacing-lg)',
           fontWeight: 'var(--font-weight-bold)'
@@ -266,10 +301,10 @@ const Dashboard = () => {
       </Grid>
 
       {/* Features Section */}
-      <Typography 
-        variant="h5" 
-        gutterBottom 
-        sx={{ 
+      <Typography
+        variant="h5"
+        gutterBottom
+        sx={{
           color: 'var(--text-primary)',
           mb: 'var(--spacing-lg)',
           fontWeight: 'var(--font-weight-bold)'
@@ -288,4 +323,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard; 
+export default Dashboard;

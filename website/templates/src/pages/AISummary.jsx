@@ -37,6 +37,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import SaveIcon from '@mui/icons-material/Save';
 import { generateSummary, saveSummary } from '../services/api';
+import axios from 'axios';
 
 // Tab panel component
 function TabPanel(props) {
@@ -83,6 +84,7 @@ const AISummary = () => {
     severity: 'success'
   });
   const [saving, setSaving] = useState(false);
+  const [plan, setPlan] = useState('Free'); // Default to 'Free', update based on user session
 
   // Handlers
   const handleLengthChange = (event, newValue) => {
@@ -90,11 +92,20 @@ const AISummary = () => {
   };
 
   const handleToneChange = (event) => {
+    if (plan === 'Free' && event.target.value !== 'professional') {
+      alert('Access limited. This tone is Pro only.');
+      return;
+    }
     setTone(event.target.value);
   };
 
   const handleContentChange = (event) => {
-    setOriginalContent(event.target.value);
+    const text = event.target.value;
+    if (plan === 'Free' && text.split(' ').length > 500) {
+      alert('Access limited. Upgrade to Pro for longer text.');
+      return;
+    }
+    setOriginalContent(text);
   };
 
   const handleUrlChange = (event) => {
@@ -219,44 +230,30 @@ const AISummary = () => {
       });
       return;
     }
-    
+  
     setSaving(true);
-    
+  
     try {
-      // Get tags from categories if available
-      let tags = '';
-      if (metadata && metadata.categories) {
-        const categories = [];
-        if (metadata.categories.primary_category) {
-          categories.push(metadata.categories.primary_category);
-        }
-        if (metadata.categories.secondary_category) {
-          categories.push(metadata.categories.secondary_category);
-        }
-        tags = categories.join(',');
-      }
-      
-      // Save the summary
-      const result = await saveSummary(
+      // Save the summary to newsletters
+      const response = await axios.post('/api/newsletter', {
         headline,
-        summary,
-        tags,
-        tone,
-        length
-      );
-      
-      setSnackbar({
-        open: true,
-        message: 'Summary saved successfully',
-        severity: 'success'
+        summary
       });
-      
-      console.log('Summary saved:', result);
+  
+      if (response.data.success) {
+        setSnackbar({
+          open: true,
+          message: 'Summary added to newsletters successfully',
+          severity: 'success'
+        });
+      } else {
+        throw new Error(response.data.error || 'Failed to add summary to newsletters');
+      }
     } catch (err) {
-      console.error('Error saving summary:', err);
+      console.error('Error saving summary to newsletters:', err);
       setSnackbar({
         open: true,
-        message: err.error || 'Failed to save summary',
+        message: err.message || 'Failed to save summary to newsletters',
         severity: 'error'
       });
     } finally {
@@ -340,11 +337,21 @@ const AISummary = () => {
                 disabled={loading}
               >
                 <MenuItem value="professional">Professional</MenuItem>
-                <MenuItem value="casual">Casual</MenuItem>
-                <MenuItem value="academic">Academic</MenuItem>
-                <MenuItem value="friendly">Friendly</MenuItem>
-                <MenuItem value="promotional">Promotional</MenuItem>
-                <MenuItem value="informative">Informative</MenuItem>
+                <MenuItem value="casual" disabled={plan === 'Free'} title="Limited Access, for Pro only">
+                  Casual
+                </MenuItem>
+                <MenuItem value="academic" disabled={plan === 'Free'} title="Limited Access, for Pro only">
+                  Academic
+                </MenuItem>
+                <MenuItem value="friendly" disabled={plan === 'Free'} title="Limited Access, for Pro only">
+                  Friendly
+                </MenuItem>
+                <MenuItem value="promotional" disabled={plan === 'Free'} title="Limited Access, for Pro only">
+                  Promotional
+                </MenuItem>
+                <MenuItem value="informative" disabled={plan === 'Free'} title="Limited Access, for Pro only">
+                  Informative
+                </MenuItem>
               </Select>
             </FormControl>
           </Grid>

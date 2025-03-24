@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Typography, Grid, Paper, Button, Stack } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -135,8 +135,28 @@ const FeatureCard = ({ title, icon, description, path }) => {
 const Dashboard = () => {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user')); // Retrieve user info from local storage
-  const plan = user?.plan || 'Free'; // Default to 'Free' if no plan is found
-  const isAdmin = user?.role === 'admin'; // Check if the user is an admin
+  const [plan, setPlan] = useState('Free'); // Default to 'Free'
+  const [isAdmin, setIsAdmin] = useState(false); // Default to non-admin
+
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        const response = await fetch('/api/user-info'); // Call the backend API
+        const data = await response.json();
+
+        if (response.ok) {
+          setPlan(data.role); // Update the plan state
+          setIsAdmin(data.role === 'admin'); // Update the admin state
+        } else {
+          console.error('Failed to fetch user info:', data.error);
+        }
+      } catch (error) {
+        console.error('Error fetching user info:', error);
+      }
+    };
+
+    fetchUserInfo();
+  }, []);
 
   const analytics = [
     {

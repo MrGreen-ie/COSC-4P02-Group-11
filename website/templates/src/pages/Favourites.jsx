@@ -8,6 +8,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import '../styles/theme.css';
 import { getFavoriteSummaries, getSavedSummaries, toggleFavorite } from '../services/api';
+import axios from 'axios';
 
 const Favourites = () => {
   const [favourites, setFavourites] = useState([]);
@@ -16,10 +17,22 @@ const Favourites = () => {
   const [error, setError] = useState(null);
   const [expandedSummary, setExpandedSummary] = useState(null);
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
-  const [plan, setPlan] = useState('Free'); // Default to 'Free', update based on user session
+  const [plan, setPlan] = useState('Free'); // Default to 'Free'
 
+  // Fetch user info to update the plan from the database
   useEffect(() => {
-    // Fetch data when component mounts
+    const fetchUserInfo = async () => {
+      try {
+        const response = await axios.get('/api/user-info');
+        if (response.status === 200) {
+          setPlan(response.data.role);
+        }
+      } catch (error) {
+        console.error('Error fetching user info:', error);
+      }
+    };
+
+    fetchUserInfo();
     fetchData();
   }, []);
 
@@ -51,7 +64,8 @@ const Favourites = () => {
   };
 
   const handleFavouriteToggle = async (summaryId) => {
-    if (plan === 'Free') {
+    // Only restrict Free users; lift restrictions for Pro or Admin
+    if (String(plan).toLowerCase() === 'free') {
       setNotification({
         open: true,
         message: 'Limited Access, for Pro only',
@@ -66,38 +80,37 @@ const Favourites = () => {
       if (response.success) {
         // Update the UI based on the new favorite status
         if (response.is_favorite) {
-          // If it's now a favorite, move it from recent to favorites
+          // If newly favorited, move it from recent to favourites
           const summaryToMove = recentSummaries.find(s => s.id === summaryId);
           if (summaryToMove) {
             setRecentSummaries(recentSummaries.filter(s => s.id !== summaryId));
-            setFavourites([...favourites, {...summaryToMove, is_favorite: true}]);
+            setFavourites([...favourites, { ...summaryToMove, is_favorite: true }]);
           }
           setNotification({ 
             open: true, 
-            message: 'Added to favorites!', 
+            message: 'Added to favourites!', 
             severity: 'success' 
           });
         } else {
-          // If it's no longer a favorite, remove from favorites
+          // If unfavorited, remove from favourites, then add back to recent if needed
           const removedSummary = favourites.find(s => s.id === summaryId);
           setFavourites(favourites.filter(s => s.id !== summaryId));
           
-          // Only add to recent if we have less than 3
           if (recentSummaries.length < 3 && removedSummary) {
-            setRecentSummaries([...recentSummaries, {...removedSummary, is_favorite: false}]);
+            setRecentSummaries([...recentSummaries, { ...removedSummary, is_favorite: false }]);
           }
           setNotification({ 
             open: true, 
-            message: 'Removed from favorites!', 
+            message: 'Removed from favourites!', 
             severity: 'info' 
           });
         }
       }
     } catch (err) {
-      console.error('Error toggling favorite:', err);
+      console.error('Error toggling favourite:', err);
       setNotification({ 
         open: true, 
-        message: 'Failed to update favorite status.', 
+        message: 'Failed to update favourite status.', 
         severity: 'error' 
       });
     }
@@ -154,7 +167,6 @@ const Favourites = () => {
         textAlign: 'center',
         padding: 'var(--spacing-xl)',
         overflowY: 'auto',
-        position: 'sticky',        
       }}
     >
       <Snackbar 
@@ -212,7 +224,8 @@ const Favourites = () => {
             </Alert>
           )}
           
-          {!error && favourites.length === 0 && plan === 'Free' && (
+          {/* Empty State Messaging */}
+          {!error && favourites.length === 0 && (
             <Paper
               elevation={2}
               sx={{
@@ -224,26 +237,16 @@ const Favourites = () => {
                 textAlign: 'center'
               }}
             >
-              <Typography variant="h6">Limited Access, for Pro only</Typography>
-            </Paper>
-          )}
-
-          {!error && favourites.length === 0 && plan === 'Pro' && (
-            <Paper
-              elevation={2}
-              sx={{
-                padding: 'var(--spacing-lg)',
-                mb: 'var(--spacing-md)',
-                backgroundColor: 'var(--bg-secondary)',
-                color: 'var(--text-primary)',
-                borderRadius: 'var(--border-radius-lg)',
-                textAlign: 'center'
-              }}
-            >
-              <Typography variant="h6">No favourites yet</Typography>
-              <Typography variant="body2" className="text-secondary" sx={{ mt: 'var(--spacing-sm)' }}>
-                Star your favorite summaries to see them here
+              <Typography variant="h6">
+                {String(plan).toLowerCase() === 'free'
+                  ? 'Limited Access, for Pro only'
+                  : 'No favourites yet'}
               </Typography>
+              {String(plan).toLowerCase() !== 'free' && (
+                <Typography variant="body2" className="text-secondary" sx={{ mt: 'var(--spacing-sm)' }}>
+                  Star your favourite summaries to see them here
+                </Typography>
+              )}
             </Paper>
           )}
           
@@ -311,7 +314,7 @@ const Favourites = () => {
                     }} 
                     onClick={() => handleFavouriteToggle(summary.id)}
                   >
-                    <StarIcon />
+                    {favourites.some(f => f.id === summary.id) ? <StarIcon /> : <StarBorderIcon />}
                   </IconButton>
                 </Box>
               </Box>

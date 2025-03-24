@@ -13,7 +13,7 @@ def set_admin_role(email):
         print(f"User {email} not found.")
 
 if __name__ == "__main__":
-    set_admin_role("admin1@gmail.com")
+    set_admin_role("test-02-20@gmail.com")
 
 
 # $env:FLASK_APP = "main.py"    # Only needed if Flask context is required

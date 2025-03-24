@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -42,7 +42,6 @@ import axios from 'axios';
 // Tab panel component
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
-
   return (
     <div
       role="tabpanel"
@@ -86,13 +85,31 @@ const AISummary = () => {
   const [saving, setSaving] = useState(false);
   const [plan, setPlan] = useState('Free'); // Default to 'Free', update based on user session
 
+  useEffect(() => {
+    const fetchUserPlan = async () => {
+      try {
+        const response = await fetch('/api/user-info'); // Backend API to fetch user info
+        const data = await response.json();
+        if (response.ok) {
+          setPlan(data.role); // Update the plan state (e.g., 'Free', 'Pro', 'Admin')
+        } else {
+          console.error('Failed to fetch user plan:', data.error);
+        }
+      } catch (error) {
+        console.error('Error fetching user plan:', error);
+      }
+    };
+    fetchUserPlan();
+  }, []);
+
   // Handlers
   const handleLengthChange = (event, newValue) => {
     setLength(newValue);
   };
 
   const handleToneChange = (event) => {
-    if (plan === 'Free' && event.target.value !== 'professional') {
+    // If the user is Free, ignore unwanted tone selections.
+    if (String(plan).toLowerCase() === 'free' && event.target.value !== 'professional') {
       alert('Access limited. This tone is Pro only.');
       return;
     }
@@ -101,8 +118,12 @@ const AISummary = () => {
 
   const handleContentChange = (event) => {
     const text = event.target.value;
-    if (plan === 'Free' && text.split(' ').length > 500) {
-      alert('Access limited. Upgrade to Pro for longer text.');
+    // Count words (filtering out any empty strings)
+    const wordCount = text.split(/\s+/).filter(word => word !== "").length;
+    
+    // For Free users, limit summarized content to 7 words
+    if (String(plan).toLowerCase() === 'free' && wordCount > 7) {
+      alert('Please upgrade to Pro version to have full access.');
       return;
     }
     setOriginalContent(text);
@@ -184,7 +205,8 @@ const AISummary = () => {
         setShowWarnings(true);
       }
       
-      // Log success
+// Log success
+// Log success
       console.log('Summary generated successfully:', result);
       
     } catch (err) {
@@ -199,10 +221,10 @@ const AISummary = () => {
     handleGenerateSummary();
   };
 
-  const handleCopyToClipboard = () => {
-    // Copy both headline and summary if headline exists
+  const handleCopyToClipboard = () => {// Copy both headline and summary if headline exists
+
+// Copy both headline and summary if headline exists
     const textToCopy = headline ? `${headline}\n\n${summary}` : summary;
-    
     navigator.clipboard.writeText(textToCopy)
       .then(() => {
         setSnackbar({
@@ -233,8 +255,9 @@ const AISummary = () => {
   
     setSaving(true);
   
+// Save the summary to newsletters
     try {
-      // Save the summary to newsletters
+// Save the summary to newsletters
       const response = await axios.post('/api/newsletter', {
         headline,
         summary
@@ -265,7 +288,7 @@ const AISummary = () => {
     setSnackbar({ ...snackbar, open: false });
   };
 
-  // Helper function to get category color
+// Helper function to get category color
   const getCategoryColor = (category) => {
     const categoryColors = {
       'technology': 'primary',
@@ -278,7 +301,7 @@ const AISummary = () => {
       'sports': 'success',
       'general': 'default'
     };
-    
+
     return categoryColors[category] || 'default';
   };
 
@@ -328,31 +351,33 @@ const AISummary = () => {
           <Grid item xs={12} md={6}>
             <FormControl fullWidth>
               <InputLabel id="tone-select-label">Tone</InputLabel>
-              <Select
-                labelId="tone-select-label"
-                id="tone-select"
-                value={tone}
-                label="Tone"
-                onChange={handleToneChange}
-                disabled={loading}
-              >
-                <MenuItem value="professional">Professional</MenuItem>
-                <MenuItem value="casual" disabled={plan === 'Free'} title="Limited Access, for Pro only">
-                  Casual
-                </MenuItem>
-                <MenuItem value="academic" disabled={plan === 'Free'} title="Limited Access, for Pro only">
-                  Academic
-                </MenuItem>
-                <MenuItem value="friendly" disabled={plan === 'Free'} title="Limited Access, for Pro only">
-                  Friendly
-                </MenuItem>
-                <MenuItem value="promotional" disabled={plan === 'Free'} title="Limited Access, for Pro only">
-                  Promotional
-                </MenuItem>
-                <MenuItem value="informative" disabled={plan === 'Free'} title="Limited Access, for Pro only">
-                  Informative
-                </MenuItem>
-              </Select>
+              {String(plan).toLowerCase() === 'free' ? (
+                <Select
+                  labelId="tone-select-label"
+                  id="tone-select"
+                  value="professional"
+                  label="Tone"
+                  disabled
+                >
+                  <MenuItem value="professional">Professional</MenuItem>
+                </Select>
+              ) : (
+                <Select
+                  labelId="tone-select-label"
+                  id="tone-select"
+                  value={tone}
+                  label="Tone"
+                  onChange={handleToneChange}
+                  disabled={loading}
+                >
+                  <MenuItem value="professional">Professional</MenuItem>
+                  <MenuItem value="casual">Casual</MenuItem>
+                  <MenuItem value="academic">Academic</MenuItem>
+                  <MenuItem value="friendly">Friendly</MenuItem>
+                  <MenuItem value="promotional">Promotional</MenuItem>
+                  <MenuItem value="informative">Informative</MenuItem>
+                </Select>
+              )}
             </FormControl>
           </Grid>
         </Grid>

@@ -31,6 +31,7 @@ class User(db.Model, UserMixin):
     # Relationship with scheduled posts
     scheduled_posts = db.relationship("ScheduledPost")
     role = db.Column(db.String(50), default='free')  # Add role field with default value 'user'
+    ai_summary_count = db.Column(db.Integer, default=0)
 
 
 # Social media post scheduling model

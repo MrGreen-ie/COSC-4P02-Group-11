@@ -32,10 +32,27 @@ const Newsletters = () => {
   const [plan, setPlan] = useState('Free'); // Default to 'Free', update based on user session
 
   useEffect(() => {
-    // Fetch newsletters and sent count when the component mounts
+    const fetchUserInfo = async () => {
+      try {
+        const response = await fetch('/api/user-info'); // Backend API to fetch user info
+        const data = await response.json();
+        if (response.ok) {
+          setPlan(data.role); // Update the plan state (e.g., 'Free', 'Pro', 'Admin')
+        } else {
+          console.error('Failed to fetch user plan:', data.error);
+        }
+      } catch (error) {
+        console.error('Error fetching user plan:', error);
+      }
+    };
+
+    fetchUserInfo();
     fetchNewsletters();
     fetchSentThisMonth();
+    console.log("Detected user plan/role:", plan);
+
   }, []);
+
 
   const fetchNewsletters = async () => {
     try {
@@ -57,29 +74,34 @@ const Newsletters = () => {
 
   const handleAddNewsletter = async () => {
     try {
-      // Check if the user is on the Free plan and already has 5 newsletters
-      if (plan === 'Free' && newsletters.length >= 5) {
-        // Remove the oldest newsletter (FIFO)
+      console.log("Current role:", plan);
+      
+      // Check if user is on the Free plan
+      const isFreeUser = String(plan).toLowerCase() === 'free';
+
+      if (isFreeUser && newsletters.length >= 7) {
         const oldestNewsletter = newsletters[0];
         await axios.delete(`/api/newsletter/${oldestNewsletter.id}`);
-        setNewsletters((prevNewsletters) => prevNewsletters.slice(1));
+        setNewsletters(prev => prev.slice(1));
       }
 
-      // Add a new newsletter (this is just a placeholder, replace with actual logic)
+  
+      // Create new newsletter
       const newNewsletter = {
-        id: Date.now(), // Temporary ID for demonstration
+        id: Date.now(), // Temporary ID
         headline: 'New Newsletter',
         summary: 'This is a new newsletter summary.',
         created_at: new Date().toISOString(),
       };
-
-      // Save the new newsletter to the backend
+  
       const response = await axios.post('/api/newsletter', newNewsletter);
-      setNewsletters((prevNewsletters) => [...prevNewsletters, response.data]);
+      setNewsletters(prev => [...prev, response.data]);
+  
     } catch (error) {
       console.error('Error adding newsletter:', error);
     }
   };
+  
 
   const handleEdit = (newsletter) => {
     setSelectedNewsletter(newsletter);
@@ -163,8 +185,8 @@ const Newsletters = () => {
             </Box>
             <Divider orientation="vertical" flexItem />
             <Box flex={1} textAlign="center">
-              <Typography variant="h6">Average Open Rate</Typography>
-              <Typography variant="h4">0%</Typography>
+              <Typography variant="h6">Current Plan</Typography>
+              <Typography variant="h4">{plan}</Typography>
             </Box>
           </Paper>
         </Grid>
@@ -216,6 +238,7 @@ const Newsletters = () => {
         )}
       </Grid>
 
+      {/* Modals */}
       {selectedNewsletter && (
         <EditModal
           open={isEditModalOpen}

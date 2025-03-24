@@ -1883,37 +1883,41 @@ from flask import render_template, session
 @views.route('/dashboard')
 @login_required
 def dashboard():
-    user_plan = session.get('plan', 'Free')  # Default to 'Free' if not set
+    user_plan = session.get('role', 'Free')  # Default to 'Free' if not set
     user_role = current_user.role  # Get the user's role
     return render_template('dashboard.html', plan=user_plan, role=user_role)
 
 from flask import request, jsonify, session
 
-@views.route('/ai-summary', methods=['POST'])
-def ai_summary():
-    user_plan = session.get('plan', 'Free')
-    text = request.json.get('text', '')
-    length = request.json.get('length', 50)
-    tone = request.json.get('tone', 'Professional')
+# @views.route('/ai-summary-limited', methods=['POST'])
+# @login_required
+# def ai_summary_limited():
+#     # Get the user's role directly from current_user and normalize to lowercase
+#     user_role = current_user.role.lower()  # e.g., "free", "pro", "admin"
+#     text = request.json.get('text', '')
+#     length = request.json.get('length', 50)
+#     tone = request.json.get('tone', 'Professional')
 
-    if user_plan == 'Free':
-        # Restrict text length
-        if len(text.split()) > 500:
-            return jsonify({'error':    'Access limited, FREE user can summarize text up to 500 words long. '
-                                        'Upgrade to Pro for longer text.'}), 403
+#     if user_role == 'free':
+#         # Apply restrictions only for Free users
+#         if len(text.split()) > 500:
+#             return jsonify({
+#                 'error': 'Access limited, FREE users can only summarize up to 500 words. Upgrade to Pro for longer text.'
+#             }), 403
 
-        # Restrict length adjustment
-        if length != 50:
-            return jsonify({'error':    'Access limited, FREE user can summarize text up to 500 words long. '
-            '                           Length adjustment is Pro only.'}), 403
+#         if length != 50:
+#             return jsonify({
+#                 'error': 'Access limited, FREE users cannot adjust summary length. Upgrade to Pro for that feature.'
+#             }), 403
 
-        # Restrict tones
-        if tone != 'Professional':
-            return jsonify({'error': 'Access limited. This tone is Pro only.'}), 403
+#         if tone.lower() != 'professional':
+#             return jsonify({
+#                 'error': 'Access limited, FREE users can only use Professional tone. Upgrade to Pro for additional tones.'
+#             }), 403
 
-    # Process AI summary (existing logic)
-    summary = process_ai_summary(text, length, tone)
-    return jsonify({'summary': summary})
+#     # Process AI summary (existing logic)
+#     summary = process_ai_summary(text, length, tone)
+#     return jsonify({'summary': summary})
 
 def admin_required(f):
     @wraps(f)
@@ -1928,3 +1932,55 @@ def admin_required(f):
 @admin_required
 def admin_dashboard():
     return jsonify({'message': 'Welcome to the admin dashboard!'})
+
+@views.route('/api/user-info', methods=['GET'])
+@login_required
+def get_user_info():
+    """
+    API endpoint to fetch the current user's plan and role.
+    """
+    try:
+        #user_plan = current_user.role  # Assuming `plan` is a field in your User model
+        user_role = current_user.role  # Assuming `role` is a field in your User model
+        return jsonify({
+            #'plan': user_plan,
+            'role': user_role
+        }), 200
+    except Exception as e:
+        print(f"Error fetching user info: {str(e)}")
+        return jsonify({'error': 'Failed to fetch user info'}), 500
+
+
+@views.route('/api/admin/stats', methods=['GET'])
+@login_required
+def get_admin_stats():
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    try:
+        # Gather statistics
+        total_users = User.query.count()
+        free_users = User.query.filter_by(role='free').count()
+        pro_users = User.query.filter_by(role='pro').count()
+        admin_users = User.query.filter_by(role='admin').count()
+
+        ai_summary_count = SavedSummary.query.count()
+        scheduled_post_count = ScheduledPost.query.count()
+        email_usage_count = SavedSummary.query.filter(SavedSummary.sent_at != None).count()
+
+        return jsonify({
+            'user_counts': {
+                'total': total_users,
+                'free': free_users,
+                'pro': pro_users,
+                'admin': admin_users
+            },
+            'ai_summary_count': ai_summary_count,
+            'scheduled_post_count': scheduled_post_count,
+            'email_usage_count': email_usage_count
+        }), 200
+
+    except Exception as e:
+        print(f"Error fetching admin stats: {e}")
+        return jsonify({'error': 'Failed to load admin stats'}), 500
+

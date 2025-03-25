@@ -121,9 +121,9 @@ const AISummary = () => {
     // Count words (filtering out any empty strings)
     const wordCount = text.split(/\s+/).filter(word => word !== "").length;
     
-    // For Free users, limit summarized content to 7 words
-    if (String(plan).toLowerCase() === 'free' && wordCount > 7) {
-      alert('Please upgrade to Pro version to have full access.');
+    // For Free users, limit summarized content to 500 words
+    if (String(plan).toLowerCase() === 'free' && wordCount > 500) {
+      alert('No longer than 500 words. Please upgrade to Pro version to have full access.');
       return;
     }
     setOriginalContent(text);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Joyride from 'react-joyride';
 import { Box, Typography, Grid, Paper, Button, Stack } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -132,11 +133,35 @@ const FeatureCard = ({ title, icon, description, path }) => {
   );
 };
 
+// Placeholder data for analytics
+const analytics = [
+  { title: 'Views', value: '1,234', icon: <TrendingUpIcon />, trend: '+12%' },
+  { title: 'Posts', value: '56', icon: <ArticleIcon />, trend: '+8%' },
+  { title: 'Subscribers', value: '789', icon: <PeopleIcon />, trend: '+5%' },
+  { title: 'Speed', value: '95%', icon: <SpeedIcon />, trend: '+3%' },
+];
+
+// Placeholder data for quick actions
+const quickActions = [
+  { icon: <PostIcon />, label: 'Create Post', onClick: () => alert('Create Post clicked') },
+  { icon: <AIIcon />, label: 'Generate Summary', onClick: () => alert('Generate Summary clicked') },
+  { icon: <NewsletterIcon />, label: 'Send Newsletter', onClick: () => alert('Send Newsletter clicked') },
+  { icon: <TemplateIcon />, label: 'Explore Templates', onClick: () => alert('Explore Templates clicked') },
+];
+
+// Placeholder data for features
+const features = [
+  { title: 'Templates', icon: <TemplateIcon />, description: 'Browse and use content templates.', path: '/templates' },
+  { title: 'Favorites', icon: <FavoritesIcon />, description: 'View your favorite content.', path: '/favorites' },
+  { title: 'History', icon: <HistoryIcon />, description: 'Review your content history.', path: '/history' },
+];
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user')); // Retrieve user info from local storage
   const [plan, setPlan] = useState('Free'); // Default to 'Free'
   const [isAdmin, setIsAdmin] = useState(false); // Default to non-admin
+  const [runTutorial, setRunTutorial] = useState(true); // Start the tutorial
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -158,86 +183,32 @@ const Dashboard = () => {
     fetchUserInfo();
   }, []);
 
-  const analytics = [
+  const steps = [
     {
-      title: 'Total Posts',
-      value: '156',
-      icon: <ArticleIcon />,
-      trend: '+12%'
+      target: '.welcome-section',
+      content: 'Welcome to your dashboard! This is your main hub for managing content and analytics.',
+      disableBeacon: true,
     },
     {
-      title: 'Engagement Rate',
-      value: '24.8%',
-      icon: <PeopleIcon />,
-      trend: '+5.3%'
+      target: '.analytics-section',
+      content: 'Here you can view key metrics about your content performance.',
     },
     {
-      title: 'AI Summaries',
-      value: '34',
-      icon: <AIIcon />,
-      trend: '+18%'
+      target: '.quick-actions-section',
+      content: 'Use these buttons to quickly create posts, summaries, or newsletters.',
     },
     {
-      title: 'Avg. Response Time',
-      value: '1.2s',
-      icon: <SpeedIcon />,
-      trend: '-0.3s'
-    }
-  ];
-
-  const quickActions = [
-    {
-      icon: <EditIcon />,
-      label: 'Create New Post',
-      onClick: () => navigate('/editor')
+      target: '.features-section',
+      content: 'Explore templates, favorites, and history to manage your content.',
     },
-    {
-      icon: <AIIcon />,
-      label: 'Generate AI Summary',
-      onClick: () => navigate('/ai-summary')
-    },
-    {
-      icon: <PostIcon />,
-      label: 'Schedule Post',
-      onClick: () => navigate('/post-system')
-    },
-    {
-      icon: <NewsletterIcon />,
-      label: 'Create Newsletter',
-      onClick: () => navigate('/newsletters')
-    }
-  ];
-
-  const features = [
-    {
-      title: 'Templates',
-      icon: <TemplateIcon />,
-      description: 'Access and manage your content templates',
-      path: '/templates'
-    },
-    {
-      title: 'Favourites',
-      icon: <FavoritesIcon />,
-      description: 'Access your saved content and templates',
-      path: '/favourites'
-    },
-    {
-      title: 'History',
-      icon: <HistoryIcon />,
-      description: 'View your content history and analytics',
-      path: '/history'
-    },
-    // Add Admin Tab if the user is an admin
     ...(isAdmin
       ? [
           {
-            title: 'Admin Panel',
-            icon: <TrendingUpIcon />,
-            description: 'Manage users and system settings',
-            path: '/admin'
-          }
+            target: '.admin-panel-section',
+            content: 'As an admin, you can manage users and system settings here.',
+          },
         ]
-      : [])
+      : []),
   ];
 
   return (
@@ -247,9 +218,26 @@ const Dashboard = () => {
         minHeight: '100vh',
         background: 'var(--bg-secondary)',
         backgroundAttachment: 'fixed',
-        position: 'relative'
+        position: 'relative',
       }}
     >
+      <Joyride
+        steps={steps}
+        run={runTutorial}
+        continuous
+        showSkipButton
+        styles={{
+          options: {
+            zIndex: 1000,
+          },
+        }}
+        callback={(data) => {
+          if (data.status === 'finished' || data.status === 'skipped') {
+            setRunTutorial(false); // Stop the tutorial
+          }
+        }}
+      />
+
       {/* Plan Box */}
       <Box
         sx={{
@@ -261,7 +249,7 @@ const Dashboard = () => {
           padding: 'var(--spacing-md)',
           borderRadius: 'var(--border-radius-md)',
           boxShadow: 'var(--shadow-md)',
-          border: '1px solid rgba(var(--primary), 0.1)'
+          border: '1px solid rgba(var(--primary), 0.1)',
         }}
       >
         <Typography variant="body2" sx={{ fontWeight: 'var(--font-weight-bold)' }}>
@@ -273,10 +261,11 @@ const Dashboard = () => {
       <Typography
         variant="h3"
         gutterBottom
+        className="welcome-section"
         sx={{
           color: 'var(--text-primary)',
           mb: 'var(--spacing-xs)',
-          fontWeight: 'var(--font-weight-bold)'
+          fontWeight: 'var(--font-weight-bold)',
         }}
       >
         Welcome back, {user?.firstName || 'User'}
@@ -285,14 +274,14 @@ const Dashboard = () => {
         variant="subtitle1"
         sx={{
           color: 'var(--text-secondary)',
-          mb: 'var(--spacing-xl)'
+          mb: 'var(--spacing-xl)',
         }}
       >
         Here's what's happening with your content
       </Typography>
 
       {/* Analytics Section */}
-      <Grid container spacing={3} sx={{ mb: 'var(--spacing-xxl)' }}>
+      <Grid container spacing={3} sx={{ mb: 'var(--spacing-xxl)' }} className="analytics-section">
         {analytics.map((item) => (
           <Grid item xs={12} sm={6} md={3} key={item.title}>
             <AnalyticsCard {...item} />
@@ -304,10 +293,11 @@ const Dashboard = () => {
       <Typography
         variant="h5"
         gutterBottom
+        className="quick-actions-section"
         sx={{
           color: 'var(--text-primary)',
           mb: 'var(--spacing-lg)',
-          fontWeight: 'var(--font-weight-bold)'
+          fontWeight: 'var(--font-weight-bold)',
         }}
       >
         Quick Actions
@@ -324,10 +314,11 @@ const Dashboard = () => {
       <Typography
         variant="h5"
         gutterBottom
+        className="features-section"
         sx={{
           color: 'var(--text-primary)',
           mb: 'var(--spacing-lg)',
-          fontWeight: 'var(--font-weight-bold)'
+          fontWeight: 'var(--font-weight-bold)',
         }}
       >
         Features
@@ -339,6 +330,22 @@ const Dashboard = () => {
           </Grid>
         ))}
       </Grid>
+
+      {/* Admin Panel Section */}
+      {isAdmin && (
+        <Typography
+          variant="h5"
+          gutterBottom
+          className="admin-panel-section"
+          sx={{
+            color: 'var(--text-primary)',
+            mt: 'var(--spacing-lg)',
+            fontWeight: 'var(--font-weight-bold)',
+          }}
+        >
+          Admin Panel
+        </Typography>
+      )}
     </Box>
   );
 };

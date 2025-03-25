@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Joyride from 'react-joyride';
 import {
   Box,
   Typography,
@@ -84,6 +85,8 @@ const AISummary = () => {
   });
   const [saving, setSaving] = useState(false);
   const [plan, setPlan] = useState('Free'); // Default to 'Free', update based on user session
+  const [showTutorial, setShowTutorial] = useState(false); // Removed manual tutorial toggle
+  const [runTutorial, setRunTutorial] = useState(true); // Automatically start Joyride
 
   useEffect(() => {
     const fetchUserPlan = async () => {
@@ -101,6 +104,37 @@ const AISummary = () => {
     };
     fetchUserPlan();
   }, []);
+
+  useEffect(() => {
+    setRunTutorial(true); // Automatically start the tutorial when the component loads
+  }, []);
+
+  const steps = [
+    {
+      target: '.heading-primary',
+      content: 'Welcome to the AI Summary Tool! Let me guide you through the features.',
+    },
+    {
+      target: '#summary-length-slider',
+      content: 'Use this slider to adjust the summary length as a percentage of the original content.',
+    },
+    {
+      target: '#tone-select',
+      content: 'Select the tone for your summary. Free users are limited to the Professional tone.',
+    },
+    {
+      target: '.MuiTabs-root',
+      content: 'Switch between providing text content or a URL to summarize.',
+    },
+    {
+      target: '.MuiButton-containedPrimary',
+      content: 'Click this button to generate your summary after configuring the options.',
+    },
+    {
+      target: '.MuiPaper-root:last-of-type',
+      content: 'Here you will see the generated summary along with options to regenerate, copy, or save it.',
+    },
+  ];
 
   // Handlers
   const handleLengthChange = (event, newValue) => {
@@ -307,6 +341,23 @@ const AISummary = () => {
 
   return (
     <Box sx={{ p: 'var(--spacing-xl)' }}>
+      <Joyride
+        steps={steps}
+        run={runTutorial}
+        continuous
+        showSkipButton
+        disableBeacon // Prevent the red dot from appearing
+        styles={{
+          options: {
+            zIndex: 10000,
+          },
+        }}
+        callback={(data) => {
+          if (data.status === 'finished' || data.status === 'skipped') {
+            setRunTutorial(false); // Stop the tutorial when finished or skipped
+          }
+        }}
+      />
       <Typography variant="h4" gutterBottom className="heading-primary">
         AI Content Summary
       </Typography>

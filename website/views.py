@@ -405,6 +405,91 @@ def verify_twitter_credentials():
             'error': str(e)
         }), 500
 
+@views.route("/api/twitter/share-summary", methods=['POST'])
+@login_required
+def share_summary_to_twitter():
+    """
+    Share a summary to Twitter using the user's credentials
+    
+    Request body:
+    {
+        "summary": "Summary text to share",
+        "headline": "Optional headline",
+        "source": "Optional source URL"
+    }
+    
+    Returns:
+        JSON response with tweet status
+    """
+    try:
+        data = request.json
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'No data provided'
+            }), 400
+        
+        # Get the summary text and optional headline
+        summary = data.get('summary', '')
+        headline = data.get('headline', '')
+        source = data.get('source', '')
+        
+        if not summary:
+            return jsonify({
+                'success': False,
+                'error': 'No summary provided'
+            }), 400
+        
+        # Construct the tweet content
+        tweet_text = headline + "\n\n" if headline else ""
+        tweet_text += summary
+        
+        # Add source if provided
+        if source:
+            source_text = source
+            if len(source_text) > 30:
+                source_text = source_text[:27] + "..."
+            tweet_text += f"\n\nSource: {source_text}"
+        
+        # Add hashtags
+        tweet_text += "\n\n#MrGreen #AISummary"
+        
+        # Truncate if too long (Twitter limit is 280 characters)
+        if len(tweet_text) > 280:
+            tweet_text = tweet_text[:277] + "..."
+        
+        # Use the Twitter API credentials directly from twitter_api.py
+        from .twitter_api import TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET, post_tweet
+        
+        # Create credentials dict
+        credentials = {
+            'access_token': TWITTER_ACCESS_TOKEN,
+            'access_token_secret': TWITTER_ACCESS_SECRET
+        }
+        
+        # Post the tweet
+        result = post_tweet(tweet_text, credentials)
+        
+        if result['success']:
+            return jsonify({
+                'success': True,
+                'tweet_id': result['tweet_id'],
+                'message': 'Summary shared to Twitter successfully'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result['error']
+            }), 500
+    
+    except Exception as e:
+        print(f"Error sharing to Twitter: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @views.route("/", methods=["GET", "POST"])
 # basically you cannot get to the homepage unless youre logged in
 @login_required
@@ -1983,4 +2068,3 @@ def get_admin_stats():
     except Exception as e:
         print(f"Error fetching admin stats: {e}")
         return jsonify({'error': 'Failed to load admin stats'}), 500
-

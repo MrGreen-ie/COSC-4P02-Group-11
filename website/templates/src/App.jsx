@@ -11,11 +11,12 @@ import PostSystem from './pages/PostSystem';
 import Favourites from './pages/Favourites';
 import Newsletters from './pages/Newsletters';
 import History from './pages/History';
-import { Box } from '@mui/material';
-import NavBar from './components/NavBar';
+import Translation from './pages/Translation';
 import AboutUs from './pages/AboutUs';  
 import Contact from './pages/Contact';  
 import Pricing from './pages/Pricing';
+import { Box } from '@mui/material';
+import NavBar from './components/NavBar';
 import './styles/theme.css';
 
 const App = () => {
@@ -111,6 +112,10 @@ const App = () => {
           <Route
             path="/history"
             element={user ? <History /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/translation"
+            element={user ? <Translation /> : <Navigate to="/login" replace />}
           />
 
           {/* Default redirect */}

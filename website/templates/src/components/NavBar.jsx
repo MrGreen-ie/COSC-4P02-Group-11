@@ -28,11 +28,13 @@ import {
   Share as PostIcon,
   Star as FavoritesIcon,
   Email as NewsletterIcon,
-  History as HistoryIcon
+  History as HistoryIcon,
+  Translate as TranslateIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import logo from '../assests/logo.png';
 import '../styles/theme.css';
+import LanguageToggle from './LanguageToggle';
 
 function NavBar({ user, onLogout }) {
   const navigate = useNavigate();
@@ -65,7 +67,8 @@ function NavBar({ user, onLogout }) {
     { label: 'Post System', path: '/post-system', icon: <PostIcon /> },
     { label: 'Favourites', path: '/favourites', icon: <FavoritesIcon /> },
     { label: 'Newsletters', path: '/newsletters', icon: <NewsletterIcon /> },
-    { label: 'History', path: '/history', icon: <HistoryIcon /> }
+    { label: 'History', path: '/history', icon: <HistoryIcon /> },
+    { label: 'Translation', path: '/translation', icon: <TranslateIcon /> }
   ];
 
   // Get current navigation items based on auth status
@@ -127,6 +130,9 @@ function NavBar({ user, onLogout }) {
 
           {/* Right Side: Auth Buttons */}
           <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 'var(--spacing-md)' }}>
+            {/* Language Toggle */}
+            <LanguageToggle />
+            
             {!user && (
               <>
                 <Button

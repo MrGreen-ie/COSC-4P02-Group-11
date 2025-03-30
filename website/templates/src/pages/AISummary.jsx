@@ -1,44 +1,52 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import Joyride from 'react-joyride';
+import TranslatedText from '../components/TranslatedText';
+
 import {
-  Box,
-  Typography,
-  Paper,
-  Slider,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Button,
-  Grid,
-  Divider,
-  TextField,
-  CircularProgress,
   Alert,
-  Snackbar,
-  Tabs,
-  Tab,
-  Switch,
-  FormControlLabel,
+  Box,
+  Button,
   Chip,
+  CircularProgress,
   Collapse,
+  Divider,
+  FormControl,
+  FormControlLabel,
+  Grid,
+  InputLabel,
+  LinearProgress,
   List,
   ListItem,
   ListItemText,
   ListItemIcon,
-  LinearProgress
+  MenuItem,
+  Paper,
+  Select,
+  Slider,
+  Snackbar,
+  Switch,
+  Tab,
+  Tabs,
+  TextField,
+  Typography
 } from '@mui/material';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import LinkIcon from '@mui/icons-material/Link';
-import TextFieldsIcon from '@mui/icons-material/TextFields';
-import WarningIcon from '@mui/icons-material/Warning';
-import CategoryIcon from '@mui/icons-material/Category';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import SaveIcon from '@mui/icons-material/Save';
+
+import {
+  AccessTime as AccessTimeIcon,
+  Category as CategoryIcon,
+  ContentCopy as ContentCopyIcon,
+  ExpandLess as ExpandLessIcon,
+  ExpandMore as ExpandMoreIcon,
+  Link as LinkIcon,
+  Refresh as RefreshIcon,
+  Save as SaveIcon,
+  TextFields as TextFieldsIcon,
+  Warning as WarningIcon,
+  Twitter as TwitterIcon
+} from '@mui/icons-material';
+
 import { generateSummary, saveSummary } from '../services/api';
-import axios from 'axios';
 
 // Tab panel component
 function TabPanel(props) {
@@ -87,6 +95,238 @@ const AISummary = () => {
   const [plan, setPlan] = useState('Free'); // Default to 'Free', update based on user session
   const [showTutorial, setShowTutorial] = useState(false); // Removed manual tutorial toggle
   const [runTutorial, setRunTutorial] = useState(true); // Automatically start Joyride
+  const [twitterShareUrl, setTwitterShareUrl] = useState('');
+
+  // Translation functionality
+  const [inputText, setInputText] = useState('');
+  const [outputText, setOutputText] = useState('');
+  const [sourceLanguage, setSourceLanguage] = useState('en');
+  const [targetLanguage, setTargetLanguage] = useState('fr');
+  const [translationLoading, setTranslationLoading] = useState(false);
+  const [translationError, setTranslationError] = useState('');
+  const [autoDetect, setAutoDetect] = useState(false);
+  const [detectedLanguage, setDetectedLanguage] = useState('');
+  const [showTranslation, setShowTranslation] = useState(false);
+  const [detectingLanguage, setDetectingLanguage] = useState(false);
+
+  const API_KEY = 'AIzaSyDqkyW03Bw4A5rK1ZlJCzgkYvo0dMzDxjM';
+  const API_URL = 'https://translation.googleapis.com/language/translate/v2';
+  const DETECT_URL = 'https://translation.googleapis.com/language/translate/v2/detect';
+
+  const languages = [
+    { code: 'en', name: 'English' },
+    { code: 'fr', name: 'French' },
+    { code: 'es', name: 'Spanish' },
+    { code: 'de', name: 'German' },
+    { code: 'it', name: 'Italian' },
+    { code: 'ja', name: 'Japanese' },
+    { code: 'ko', name: 'Korean' },
+    { code: 'zh', name: 'Chinese' },
+    { code: 'ru', name: 'Russian' },
+    { code: 'ar', name: 'Arabic' },
+    { code: 'hi', name: 'Hindi' },
+    { code: 'pt', name: 'Portuguese' },
+  ];
+
+  const detectLanguage = async (text) => {
+    if (!text.trim()) return;
+    
+    setDetectingLanguage(true);
+    
+    try {
+      console.log("Detecting language for:", text.substring(0, 50) + "...");
+      
+      const response = await axios.post(
+        `${DETECT_URL}?key=${API_KEY}`,
+        { q: text }
+      );
+
+      console.log("Detection response:", response.data);
+
+      // Check if we have a valid detection result
+      if (response.data && 
+          response.data.data && 
+          response.data.data.detections && 
+          response.data.data.detections.length > 0 &&
+          response.data.data.detections[0].length > 0) {
+        
+        const detected = response.data.data.detections[0][0].language;
+        console.log("Detected language:", detected);
+        
+        setDetectedLanguage(detected);
+        
+        if (autoDetect) {
+          setSourceLanguage(detected);
+        }
+        
+        return detected;
+      } else {
+        // Alternative approach: try to detect language using translation API directly
+        console.log("Trying alternative detection method...");
+        
+        const translationResponse = await axios.post(
+          `${API_URL}?key=${API_KEY}`,
+          { 
+            q: text,
+            target: targetLanguage,
+            format: 'text' 
+          }
+        );
+        
+        console.log("Translation response for detection:", translationResponse.data);
+        
+        if (translationResponse.data && 
+            translationResponse.data.data && 
+            translationResponse.data.data.translations && 
+            translationResponse.data.data.translations.length > 0 &&
+            translationResponse.data.data.translations[0].detectedSourceLanguage) {
+          
+          const detected = translationResponse.data.data.translations[0].detectedSourceLanguage;
+          console.log("Detected language from translation:", detected);
+          
+          setDetectedLanguage(detected);
+          
+          if (autoDetect) {
+            setSourceLanguage(detected);
+          }
+          
+          return detected;
+        } else {
+          console.log("No language detected in either response structure");
+        }
+      }
+    } catch (error) {
+      console.error('Language detection error:', error);
+      // Don't set error state here to avoid disrupting the UI
+    } finally {
+      setDetectingLanguage(false);
+    }
+    
+    return null;
+  };
+
+  const handleInputChange = (e) => {
+    const text = e.target.value;
+    setInputText(text);
+    
+    // Debounce language detection to avoid too many API calls
+    if (text.trim().length > 10 && autoDetect && !detectingLanguage) {
+      // Clear any previous timeout
+      if (window.detectLanguageTimeout) {
+        clearTimeout(window.detectLanguageTimeout);
+      }
+      
+      // Set a new timeout
+      window.detectLanguageTimeout = setTimeout(() => {
+        console.log("Triggering language detection after debounce");
+        detectLanguage(text);
+      }, 1000); // Increased debounce time for better API usage
+    }
+  };
+
+  const handleTranslate = async () => {
+    if (!inputText.trim()) {
+      setTranslationError('Please enter text to translate');
+      return;
+    }
+
+    setTranslationLoading(true);
+    setTranslationError('');
+
+    try {
+      // If auto-detect is enabled, detect the language first
+      let sourceLang = sourceLanguage;
+      if (autoDetect) {
+        setDetectingLanguage(true);
+        const detected = await detectLanguage(inputText);
+        if (detected) {
+          sourceLang = detected;
+        }
+        setDetectingLanguage(false);
+      }
+
+      const requestBody = {
+        q: inputText,
+        target: targetLanguage,
+        format: 'text'
+      };
+      
+      // Only include source parameter if not using auto-detect
+      if (!autoDetect) {
+        requestBody.source = sourceLang;
+      }
+
+      console.log("Translation request body:", requestBody);
+      
+      const response = await axios.post(
+        `${API_URL}?key=${API_KEY}`,
+        requestBody
+      );
+
+      console.log("Translation response:", response.data);
+      
+      if (response.data && 
+          response.data.data && 
+          response.data.data.translations && 
+          response.data.data.translations.length > 0) {
+        
+        setOutputText(response.data.data.translations[0].translatedText);
+        
+        // If the translation included detected language info, update the UI
+        if (response.data.data.translations[0].detectedSourceLanguage) {
+          const detected = response.data.data.translations[0].detectedSourceLanguage;
+          console.log("Detected language from translation:", detected);
+          setDetectedLanguage(detected);
+          if (autoDetect) {
+            setSourceLanguage(detected);
+          }
+        }
+      } else {
+        setTranslationError('Translation failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Translation error:', error);
+      setTranslationError(error.response?.data?.error?.message || 'An error occurred during translation');
+    } finally {
+      setTranslationLoading(false);
+    }
+  };
+
+  const handleSwapLanguages = () => {
+    if (!autoDetect) {
+      setSourceLanguage(targetLanguage);
+      setTargetLanguage(sourceLanguage);
+      setInputText(outputText);
+      setOutputText(inputText);
+    } else {
+      // If auto-detect is on, just swap the output to input
+      setTargetLanguage(sourceLanguage);
+      setInputText(outputText);
+      setOutputText('');
+      setAutoDetect(false); // Turn off auto-detect when swapping
+    }
+  };
+
+  const handleAutoDetectChange = (e) => {
+    setAutoDetect(e.target.checked);
+    if (e.target.checked && inputText.trim()) {
+      detectLanguage(inputText);
+    }
+  };
+
+  // Helper function to get language name from code
+  const getLanguageName = (code) => {
+    const language = languages.find(lang => lang.code === code);
+    return language ? language.name : code;
+  };
+
+  // Function to copy summary to translation input
+  const copyToTranslation = () => {
+    setInputText(summary);
+    setShowTranslation(true);
+    // Scroll to translation section
+    document.getElementById('translation-section').scrollIntoView({ behavior: 'smooth' });
+  };
 
   useEffect(() => {
     const fetchUserPlan = async () => {
@@ -239,8 +479,6 @@ const AISummary = () => {
         setShowWarnings(true);
       }
       
-// Log success
-// Log success
       console.log('Summary generated successfully:', result);
       
     } catch (err) {
@@ -255,26 +493,59 @@ const AISummary = () => {
     handleGenerateSummary();
   };
 
-  const handleCopyToClipboard = () => {// Copy both headline and summary if headline exists
-
-// Copy both headline and summary if headline exists
+  const handleCopyToClipboard = () => {
     const textToCopy = headline ? `${headline}\n\n${summary}` : summary;
-    navigator.clipboard.writeText(textToCopy)
-      .then(() => {
-        setSnackbar({
-          open: true,
-          message: 'Summary copied to clipboard',
-          severity: 'success'
-        });
-      })
-      .catch(err => {
-        console.error('Failed to copy:', err);
-        setSnackbar({
-          open: true,
-          message: 'Failed to copy to clipboard',
-          severity: 'error'
-        });
+    const textArea = document.createElement('textarea');
+    textArea.value = textToCopy;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+    
+    setSnackbar({
+      open: true,
+      message: 'Summary copied to clipboard',
+      severity: 'success'
+    });
+  };
+
+  const handleTwitterShare = () => {
+    try {
+      const textToShare = headline ? `${headline}\n\n${summary}` : summary;
+      // Truncate text if it's too long for Twitter (280 chars)
+      const truncatedText = textToShare.length > 250 
+        ? textToShare.substring(0, 247) + '...' 
+        : textToShare;
+      
+      // Add hashtags and source information
+      let tweetText = truncatedText;
+      if (metadata && metadata.source) {
+        const sourceUrl = metadata.source.length > 30 
+          ? metadata.source.substring(0, 27) + '...' 
+          : metadata.source;
+        tweetText += `\n\nSource: ${sourceUrl}`;
+      }
+      tweetText += '\n\n#MrGreen #AISummary';
+      
+      // Use Twitter's web intent URL
+      const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
+      
+      // Open in a new tab
+      window.open(shareUrl, '_blank');
+      
+      setSnackbar({
+        open: true,
+        message: 'Opening Twitter share page',
+        severity: 'success'
       });
+    } catch (error) {
+      console.error('Error sharing to Twitter:', error);
+      setSnackbar({
+        open: true,
+        message: `Error sharing to Twitter: ${error.message || 'Unknown error'}`,
+        severity: 'error'
+      });
+    }
   };
 
   const handleSaveSummary = async () => {
@@ -289,9 +560,7 @@ const AISummary = () => {
   
     setSaving(true);
   
-// Save the summary to newsletters
     try {
-// Save the summary to newsletters
       const response = await axios.post('/api/newsletter', {
         headline,
         summary
@@ -322,7 +591,6 @@ const AISummary = () => {
     setSnackbar({ ...snackbar, open: false });
   };
 
-// Helper function to get category color
   const getCategoryColor = (category) => {
     const categoryColors = {
       'technology': 'primary',
@@ -598,8 +866,25 @@ const AISummary = () => {
                 onClick={handleSaveSummary}
                 disabled={saving}
                 color="secondary"
+                sx={{ mr: 1 }}
               >
                 {saving ? <CircularProgress size={24} color="inherit" /> : 'Save'}
+              </Button>
+
+              <Button
+                startIcon={<TwitterIcon />}
+                onClick={handleTwitterShare}
+                color="info"
+                sx={{ mr: 1 }}
+              >
+                Tweet
+              </Button>
+
+              <Button
+                onClick={copyToTranslation}
+                color="primary"
+              >
+                Translate
               </Button>
             </Box>
           </Box>
@@ -653,6 +938,151 @@ const AISummary = () => {
           )}
         </Paper>
       )}
+
+      {/* Translation Section */}
+      <Box id="translation-section" sx={{ mt: 4 }}>
+        <Button 
+          onClick={() => setShowTranslation(!showTranslation)}
+          variant="outlined"
+          fullWidth
+          sx={{ mb: 2 }}
+        >
+          {showTranslation ? "Hide Translation Tool" : "Show Translation Tool"}
+        </Button>
+
+        {showTranslation && (
+          <Paper
+            elevation={3}
+            sx={{
+              padding: 3,
+              borderRadius: '10px',
+            }}
+          >
+            <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ textAlign: 'center', mb: 3 }}>
+              <TranslatedText>Text Translation</TranslatedText>
+            </Typography>
+
+            {translationError && (
+              <Alert severity="error" sx={{ mb: 3 }}>
+                <TranslatedText>{translationError}</TranslatedText>
+              </Alert>
+            )}
+
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2, mb: 3 }}>
+              <Box sx={{ flex: 1 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <FormControl sx={{ width: autoDetect ? '60%' : '100%' }}>
+                    <InputLabel id="source-language-label">
+                      <TranslatedText>Source Language</TranslatedText>
+                    </InputLabel>
+                    <Select
+                      labelId="source-language-label"
+                      value={sourceLanguage}
+                      onChange={(e) => setSourceLanguage(e.target.value)}
+                      disabled={autoDetect}
+                    >
+                      {languages.map((lang) => (
+                        <MenuItem key={lang.code} value={lang.code}>
+                          {lang.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                  <FormControlLabel
+                    control={
+                      <Switch 
+                        checked={autoDetect}
+                        onChange={handleAutoDetectChange}
+                      />
+                    }
+                    label={<TranslatedText>Auto Detect</TranslatedText>}
+                    sx={{ ml: 1 }}
+                  />
+                </Box>
+                
+                {autoDetect && detectedLanguage && (
+                  <Typography variant="body2" sx={{ mb: 1, color: 'primary.main', textAlign: 'left' }}>
+                    <TranslatedText>Detected:</TranslatedText> {getLanguageName(detectedLanguage)}
+                    {detectingLanguage && <CircularProgress size={12} sx={{ ml: 1 }} />}
+                  </Typography>
+                )}
+                
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={6}
+                  placeholder="Enter text to translate"
+                  value={inputText}
+                  onChange={handleInputChange}
+                />
+              </Box>
+
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', p: 1 }}>
+                <Button
+                  onClick={handleSwapLanguages}
+                  variant="contained"
+                  sx={{
+                    minWidth: { xs: '100%', md: 'auto' },
+                    borderRadius: '50%',
+                    width: '40px',
+                    height: '40px',
+                    p: 0,
+                  }}
+                >
+                  ⇄
+                </Button>
+              </Box>
+
+              <Box sx={{ flex: 1 }}>
+                <FormControl fullWidth sx={{ mb: 2 }}>
+                  <InputLabel id="target-language-label">
+                    <TranslatedText>Target Language</TranslatedText>
+                  </InputLabel>
+                  <Select
+                    labelId="target-language-label"
+                    value={targetLanguage}
+                    onChange={(e) => setTargetLanguage(e.target.value)}
+                  >
+                    {languages.map((lang) => (
+                      <MenuItem key={lang.code} value={lang.code}>
+                        {lang.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={6}
+                  placeholder="Translation will appear here"
+                  value={outputText}
+                  InputProps={{
+                    readOnly: true,
+                  }}
+                />
+              </Box>
+            </Box>
+
+            <Button
+              onClick={handleTranslate}
+              disabled={translationLoading}
+              fullWidth
+              variant="contained"
+              sx={{
+                mt: 2,
+                mb: 2,
+                height: '50px',
+              }}
+            >
+              {translationLoading ? <CircularProgress size={24} /> : <TranslatedText>Translate</TranslatedText>}
+            </Button>
+
+            <Typography variant="caption" sx={{ display: 'block', mt: 2, textAlign: 'center', color: 'text.secondary' }}>
+              <TranslatedText>Powered by Google Translate API</TranslatedText>
+            </Typography>
+          </Paper>
+        )}
+      </Box>
       
       <Snackbar
         open={snackbar.open}

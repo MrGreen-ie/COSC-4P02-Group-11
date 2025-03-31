@@ -10,6 +10,11 @@ import {
   Chip,
   CircularProgress,
   Collapse,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   Divider,
   FormControl,
   FormControlLabel,
@@ -36,6 +41,7 @@ import {
   AccessTime as AccessTimeIcon,
   Category as CategoryIcon,
   ContentCopy as ContentCopyIcon,
+  Edit as EditIcon,
   ExpandLess as ExpandLessIcon,
   ExpandMore as ExpandMoreIcon,
   Link as LinkIcon,
@@ -96,6 +102,10 @@ const AISummary = () => {
   const [showTutorial, setShowTutorial] = useState(false); // Removed manual tutorial toggle
   const [runTutorial, setRunTutorial] = useState(true); // Automatically start Joyride
   const [twitterShareUrl, setTwitterShareUrl] = useState('');
+  const [isEditing, setIsEditing] = useState(false); // Track editing state
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [originalSummary, setOriginalSummary] = useState('');
+  const [originalHeadline, setOriginalHeadline] = useState('');
 
   // Translation functionality
   const [inputText, setInputText] = useState('');
@@ -374,6 +384,10 @@ const AISummary = () => {
       target: '.MuiPaper-root:last-of-type',
       content: 'Here you will see the generated summary along with options to regenerate, copy, or save it.',
     },
+    {
+      target: '.edit-button',
+      content: 'You can now edit your summary! Click the Edit button to make changes to both the headline and summary text, then click Save Edits when done.',
+    },
   ];
 
   // Handlers
@@ -437,60 +451,24 @@ const AISummary = () => {
     }
   };
 
-  const handleGenerateSummary = async () => {
-    // Reset state
-    setSummary('');
-    setHeadline('');
-    setError(null);
-    setMetadata(null);
-    setWarnings([]);
-    setLoading(true);
-    setProgress(0);
-    setProgressMessage('Preparing to generate summary...');
-    
-    try {
-      // Determine if we're using content or URL
-      const content = inputTab === 0 ? originalContent : '';
-      const urlToUse = inputTab === 1 ? url : '';
-      
-      if (!content && !urlToUse) {
-        throw new Error('Please provide content or a URL to summarize.');
-      }
-      
-      // Call the API with progress callback
-      const result = await generateSummary(
-        content,
-        length,
-        tone,
-        isHtml,
-        urlToUse,
-        strictFiltering,
-        handleProgressUpdate
-      );
-      
-      // Update state with results
-      setSummary(result.summary);
-      setHeadline(result.headline || '');
-      setMetadata(result.metadata);
-      
-      // Set warnings if present
-      if (result.warnings && result.warnings.length > 0) {
-        setWarnings(result.warnings);
-        setShowWarnings(true);
-      }
-      
-      console.log('Summary generated successfully:', result);
-      
-    } catch (err) {
-      console.error('Error generating summary:', err);
-      setError(err.error || 'Failed to generate summary. Please try again.');
-    } finally {
-      setLoading(false);
+  const handleRegenerate = () => {
+    // Check if user has made edits to the summary
+    if (isEditing || 
+        (summary !== originalSummary && originalSummary !== '') || 
+        (headline !== originalHeadline && originalHeadline !== '')) {
+      setConfirmDialogOpen(true);
+    } else {
+      handleGenerateSummary();
     }
   };
 
-  const handleRegenerate = () => {
+  const handleConfirmRegenerate = () => {
+    setConfirmDialogOpen(false);
     handleGenerateSummary();
+  };
+
+  const handleCancelRegenerate = () => {
+    setConfirmDialogOpen(false);
   };
 
   const handleCopyToClipboard = () => {
@@ -507,6 +485,29 @@ const AISummary = () => {
       message: 'Summary copied to clipboard',
       severity: 'success'
     });
+  };
+
+  // Handler for summary editing
+  const handleSummaryChange = (event) => {
+    setSummary(event.target.value);
+  };
+
+  // Handler for headline editing
+  const handleHeadlineChange = (event) => {
+    setHeadline(event.target.value);
+  };
+
+  // Toggle edit mode
+  const toggleEditMode = () => {
+    if (isEditing) {
+      // When saving edits
+      setSnackbar({
+        open: true,
+        message: 'Summary edits saved successfully',
+        severity: 'success'
+      });
+    }
+    setIsEditing(!isEditing);
   };
 
   const handleTwitterShare = () => {
@@ -605,6 +606,63 @@ const AISummary = () => {
     };
 
     return categoryColors[category] || 'default';
+  };
+
+  const handleGenerateSummary = async () => {
+    // Reset state
+    setSummary('');
+    setHeadline('');
+    setError(null);
+    setMetadata(null);
+    setWarnings([]);
+    setLoading(true);
+    setProgress(0);
+    setProgressMessage('Preparing to generate summary...');
+    setIsEditing(false);
+    
+    try {
+      // Determine if we're using content or URL
+      const content = inputTab === 0 ? originalContent : '';
+      const urlToUse = inputTab === 1 ? url : '';
+      
+      if (!content && !urlToUse) {
+        throw new Error('Please provide content or a URL to summarize.');
+      }
+      
+      // Call the API with progress callback
+      const result = await generateSummary(
+        content,
+        length,
+        tone,
+        isHtml,
+        urlToUse,
+        strictFiltering,
+        handleProgressUpdate
+      );
+      
+      // Update state with results
+      setSummary(result.summary);
+      setHeadline(result.headline || '');
+      setMetadata(result.metadata);
+      
+      // Store original summary and headline for comparison
+      setOriginalSummary(result.summary);
+      setOriginalHeadline(result.headline || '');
+      
+      // Set warnings if present
+      if (result.warnings && result.warnings.length > 0) {
+        setWarnings(result.warnings);
+        setShowWarnings(true);
+      }
+      
+      console.log('Summary generated successfully:', result);
+      
+    } catch (err) {
+      console.error('Error generating summary:', err);
+      setError(err.error || 'Failed to generate summary. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -883,8 +941,18 @@ const AISummary = () => {
               <Button
                 onClick={copyToTranslation}
                 color="primary"
+                sx={{ mr: 1 }}
               >
                 Translate
+              </Button>
+
+              <Button
+                onClick={toggleEditMode}
+                color={isEditing ? "success" : "primary"}
+                className="edit-button"
+                startIcon={isEditing ? <SaveIcon /> : <EditIcon />}
+              >
+                {isEditing ? "Save Edits" : "Edit"}
               </Button>
             </Box>
           </Box>
@@ -916,16 +984,39 @@ const AISummary = () => {
           
           {headline && (
             <>
-              <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold' }}>
-                {headline}
-              </Typography>
+              {isEditing ? (
+                <TextField
+                  fullWidth
+                  value={headline}
+                  onChange={handleHeadlineChange}
+                  variant="outlined"
+                  sx={{ mb: 2, fontWeight: 'bold' }}
+                />
+              ) : (
+                <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold' }}>
+                  {headline}
+                </Typography>
+              )}
               <Divider sx={{ mb: 2 }} />
             </>
           )}
           
-          <Typography variant="body1" component="div" sx={{ whiteSpace: 'pre-wrap' }}>
-            {summary}
-          </Typography>
+          {isEditing ? (
+            <TextField
+              multiline
+              fullWidth
+              rows={10}
+              value={summary}
+              onChange={handleSummaryChange}
+              variant="outlined"
+              sx={{ whiteSpace: 'pre-wrap' }}
+              helperText={`${summary.length} characters`}
+            />
+          ) : (
+            <Typography variant="body1" component="div" sx={{ whiteSpace: 'pre-wrap' }}>
+              {summary}
+            </Typography>
+          )}
           
           {metadata && (
             <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid #eee' }}>
@@ -1093,6 +1184,29 @@ const AISummary = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+      
+      {/* Confirmation Dialog */}
+      <Dialog
+        open={confirmDialogOpen}
+        onClose={handleCancelRegenerate}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">
+          {"Regenerate Summary?"}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            You have made edits to the summary. Regenerating will replace your edited content with a new AI-generated summary. Are you sure you want to continue?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelRegenerate}>Cancel</Button>
+          <Button onClick={handleConfirmRegenerate} autoFocus>
+            Regenerate
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

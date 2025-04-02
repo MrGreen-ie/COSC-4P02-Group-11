@@ -228,7 +228,8 @@ def get_newsletters_sent_this_month():
 @login_required
 def add_to_newsletter():
     try:
-        user_plan = session.get('plan', 'Free')  # Default to 'Free' if not set
+        # Get the user's role (defaulting to 'free' if not set) and make it case-insensitive
+        user_role = current_user.role.lower() if current_user.role else 'free'
         data = request.get_json()
         headline = data.get('headline')
         summary = data.get('summary')
@@ -236,15 +237,18 @@ def add_to_newsletter():
         if not headline or not summary:
             return jsonify({'error': 'Headline and summary are required'}), 400
 
-        # Check if the user is on the Free plan and already has 5 newsletters
-        if user_plan == 'Free':
-            newsletters = SavedSummary.query.filter_by(user_id=current_user.id).order_by(SavedSummary.created_at).all()
+        # If user is free, enforce a limit (10 newsletters in this case)
+        if user_role == 'free':
+            newsletters = SavedSummary.query.filter_by(user_id=current_user.id)\
+                            .order_by(SavedSummary.created_at).all()
             if len(newsletters) >= 5:
-                # Remove the oldest newsletter (FIFO)
                 oldest_newsletter = newsletters[0]
                 db.session.delete(oldest_newsletter)
+                db.session.commit()
 
-        # Add the new newsletter
+        # Pro and admin users have unlimited storage (no removal)
+
+        # Create and add the new newsletter
         new_newsletter = SavedSummary(
             user_id=current_user.id,
             headline=headline,

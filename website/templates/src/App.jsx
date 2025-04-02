@@ -18,6 +18,7 @@ import Pricing from './pages/Pricing';
 import { Box } from '@mui/material';
 import NavBar from './components/NavBar';
 import './styles/theme.css';
+import PostHub from './pages/PostHub';
 
 const App = () => {
   const navigate = useNavigate();
@@ -116,6 +117,10 @@ const App = () => {
           <Route
             path="/translation"
             element={user ? <Translation /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/post-hub"
+            element={user ? <PostHub /> : <Navigate to="/login" replace />}
           />
 
           {/* Default redirect */}

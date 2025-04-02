@@ -79,7 +79,7 @@ const Newsletters = () => {
       // Check if user is on the Free plan
       const isFreeUser = String(plan).toLowerCase() === 'free';
 
-      if (isFreeUser && newsletters.length >= 7) {
+      if (isFreeUser && newsletters.length >= 5) {
         const oldestNewsletter = newsletters[0];
         await axios.delete(`/api/newsletter/${oldestNewsletter.id}`);
         setNewsletters(prev => prev.slice(1));

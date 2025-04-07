@@ -11,6 +11,8 @@ import {
   CardActions,
   IconButton,
   Divider,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -20,6 +22,7 @@ import {
   Analytics as AnalyticsIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import EditModal from '../components/EditModal';
 import SendModal from '../components/SendModal';
 
@@ -30,6 +33,8 @@ const Newsletters = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSendModalOpen, setIsSendModalOpen] = useState(false);
   const [plan, setPlan] = useState('Free'); // Default to 'Free', update based on user session
+  const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -120,24 +125,35 @@ const Newsletters = () => {
       )
     );
     setIsEditModalOpen(false);
+    setNotification({ open: true, message: 'Newsletter updated successfully', severity: 'success' });
   };
 
   const handleDelete = async (id) => {
     try {
       await axios.delete(`/api/newsletter/${id}`);
       setNewsletters((prevNewsletters) => prevNewsletters.filter((newsletter) => newsletter.id !== id));
+      setNotification({ open: true, message: 'Newsletter deleted successfully', severity: 'info' });
     } catch (error) {
       console.error('Error deleting newsletter:', error);
+      setNotification({ open: true, message: 'Error deleting newsletter', severity: 'error' });
     }
   };
 
-  const handleSendComplete = async () => {
-    try {
-      const response = await axios.get('/api/newsletter/sent-this-month');
-      setSentThisMonth(response.data.sent_this_month);
-    } catch (error) {
-      console.error('Error fetching sent newsletters count:', error);
+  const handleSendComplete = async (updatedCount) => {
+    if (updatedCount !== undefined) {
+      setSentThisMonth(updatedCount);
+    } else {
+      try {
+        const response = await axios.get('/api/newsletter/sent-this-month');
+        setSentThisMonth(response.data.sent_this_month);
+      } catch (error) {
+        console.error('Error fetching sent newsletters count:', error);
+      }
     }
+  };
+
+  const handleCloseNotification = () => {
+    setNotification({ ...notification, open: false });
   };
 
   return (
@@ -150,7 +166,7 @@ const Newsletters = () => {
           variant="contained"
           color="primary"
           startIcon={<AddIcon />}
-          onClick={handleAddNewsletter}
+          onClick={() => navigate('/ai-summary')}
           sx={{
             background: 'var(--primary)',
             '&:hover': {
@@ -225,9 +241,6 @@ const Newsletters = () => {
                   <IconButton size="small" title="Send" onClick={() => handleSend(newsletter)}>
                     <SendIcon />
                   </IconButton>
-                  <IconButton size="small" title="View Stats">
-                    <AnalyticsIcon />
-                  </IconButton>
                   <IconButton size="small" title="Delete" onClick={() => handleDelete(newsletter.id)}>
                     <DeleteIcon />
                   </IconButton>
@@ -256,6 +269,18 @@ const Newsletters = () => {
           onSend={handleSendComplete}
         />
       )}
+
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={1500}
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{ bottom: 20 }}  // Increase this value to push it lower
+      >
+        <Alert onClose={handleCloseNotification} severity={notification.severity} variant="filled">
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };

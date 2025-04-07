@@ -32,6 +32,7 @@ class User(db.Model, UserMixin):
     scheduled_posts = db.relationship("ScheduledPost")
     role = db.Column(db.String(50), default='free')  # Add role field with default value 'user'
     ai_summary_count = db.Column(db.Integer, default=0)
+    subscribers = db.relationship('Subscriber', backref='user', lazy=True)
 
 
 # Social media post scheduling model
@@ -80,5 +81,12 @@ class FavoriteSummary(db.Model):
 class SavedContent(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.Text, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# Subscriber model for newsletter
+class Subscriber(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(150), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

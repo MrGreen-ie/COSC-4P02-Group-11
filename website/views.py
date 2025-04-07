@@ -6,7 +6,7 @@ import smtplib
 import uuid
 from flask import Blueprint, current_app, render_template, request, flash, jsonify, redirect, session, url_for
 from flask_login import login_required, current_user
-from .models import Note, User, ScheduledPost, SavedSummary, FavoriteSummary
+from .models import Note, User, ScheduledPost, SavedSummary, FavoriteSummary, Subscriber
 from . import db
 from .cache import redis_cache
 from .content_processor import process_content, preprocess_for_gemini
@@ -76,33 +76,61 @@ EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD')
 @views.route('/api/newsletter/subscribe', methods=['POST'])
 @login_required
 def send_email():
-    data = request.json
-    recipient = data['recipient']
-    subject = data['subject']
-    body = data['body']
-    newsletter_id = data['newsletter_id']
+    data = request.get_json()
+    recipients = data.get('recipients')  # List of emails
+    subject = data.get('subject')
+    body = data.get('body')
+    newsletter_id = data.get('newsletter_id')
 
-    msg = MIMEText(body)
-    msg['Subject'] = subject
-    msg['From'] = 'cosc.4p02.summit@gmail.com'
-    msg['To'] = recipient
+    if not recipients or not isinstance(recipients, list):
+        return jsonify({'error': 'A valid recipients list is required.'}), 400
 
-    try:
-        with smtplib.SMTP('smtp.gmail.com', 587) as server:
-            server.starttls()
-            server.login('cosc.4p02.summit@gmail.com', 'kght ejuo omgw oqru')
-            server.sendmail('cosc.4p02.summit@gmail.com', recipient, msg.as_string())
+    sent_messages = []
+    for recipient in recipients:
+        if not recipient:
+            continue
+        # Ensure subscriber exists (or add it)
+        subscriber = Subscriber.query.filter_by(user_id=current_user.id, email=recipient).first()
+        if not subscriber:
+            new_subscriber = Subscriber(email=recipient, user_id=current_user.id)
+            db.session.add(new_subscriber)
+            db.session.commit()
 
-        # Update the sent_at field
-        newsletter = SavedSummary.query.get(newsletter_id)
+        msg = MIMEText(body)
+        msg['Subject'] = subject
+        msg['From'] = 'cosc.4p02.summit@gmail.com'
+        msg['To'] = recipient
+
+        try:
+            with smtplib.SMTP('smtp.gmail.com', 587) as server:
+                server.starttls()
+                server.login('cosc.4p02.summit@gmail.com', 'kght ejuo omgw oqru')
+                server.sendmail('cosc.4p02.summit@gmail.com', recipient, msg.as_string())
+            sent_messages.append(recipient)
+        except Exception as e:
+            print(f"Error sending email to {recipient}: {str(e)}")
+
+    # Mark the newsletter as sent by updating its sent_at timestamp.
+    newsletter = SavedSummary.query.get(newsletter_id)
+    if newsletter:
         newsletter.sent_at = datetime.utcnow()
         db.session.commit()
-        print(f"Newsletter {newsletter_id} sent at {newsletter.sent_at}")
 
-        return jsonify({'message': 'Email sent successfully'}), 200
-    except Exception as e:
-        print(f"Error sending email: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+    # Optionally, recalculate the sent count here and return it.
+    now = datetime.utcnow()
+    start_of_month = datetime(now.year, now.month, 1)
+    end_of_month = datetime(now.year, now.month + 1, 1) if now.month < 12 else datetime(now.year + 1, 1, 1)
+    sent_count = SavedSummary.query.filter(
+        SavedSummary.user_id == current_user.id,
+        SavedSummary.sent_at >= start_of_month,
+        SavedSummary.sent_at < end_of_month
+    ).count()
+
+    return jsonify({
+        'message': 'Email sent successfully',
+        'sent_to': sent_messages,
+        'sent_this_month': sent_count  # Return the updated count
+    }), 200
 
 @views.route('/newsletter', methods=['GET'])
 @login_required
@@ -267,6 +295,8 @@ def add_to_newsletter():
     except Exception as e:
         print(f"Error adding to newsletter: {str(e)}")
         return jsonify({'error': 'An unexpected error occurred while adding to the newsletter.'}), 500
+    
+
 
 # Twitter API routes
 @views.route('/api/twitter/auth', methods=['GET'])
@@ -2072,3 +2102,30 @@ def get_admin_stats():
     except Exception as e:
         print(f"Error fetching admin stats: {e}")
         return jsonify({'error': 'Failed to load admin stats'}), 500
+
+@views.route('/api/subscribers', methods=['GET'])
+@login_required
+def get_subscribers():
+    subscribers = Subscriber.query.filter_by(user_id=current_user.id).all()
+    subscriber_list = [{
+        'id': sub.id,
+        'email': sub.email,
+        'created_at': sub.created_at.isoformat()
+    } for sub in subscribers]
+    return jsonify({'subscribers': subscriber_list}), 200
+
+@views.route('/api/subscribers/<int:id>', methods=['DELETE'])
+@login_required
+def delete_subscriber(id):
+    try:
+        subscriber = Subscriber.query.filter_by(user_id=current_user.id, id=id).first()
+        if not subscriber:
+            return jsonify({'error': 'Subscriber not found'}), 404
+        
+        db.session.delete(subscriber)
+        db.session.commit()
+        return jsonify({'success': 'Subscriber deleted successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting subscriber: {str(e)}")
+        return jsonify({'error': 'An error occurred while deleting the subscriber.'}), 500

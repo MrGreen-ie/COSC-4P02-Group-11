@@ -10,11 +10,11 @@ import time
 
 # Twitter credentials - using the same ones from twitter_api.py
 CREDENTIALS = {
-    'access_token': '1896787230079008768-6rksWZuaC9Yz6hALB2hQ23U5jGuNSk',
-    'access_token_secret': 'RT5LeszfW7iHPHNmIc8nHogUaNrkbQngR6if9nHCBCTMx'
+    'access_token': '846222756781834240-ToTHFa3UBKdbvU5n04ikwbjMzKktvh5',
+    'access_token_secret': 'm77LO6GMlcCMAKQo0PNgbgSidfPUQul18AvFtWstZNX7S'
 }
 
-def test_rate_limit(num_tweets=10, delay=1):
+def test_rate_limit(num_tweets=3, delay=1):
     """
     Test Twitter API rate limits by posting multiple tweets
     

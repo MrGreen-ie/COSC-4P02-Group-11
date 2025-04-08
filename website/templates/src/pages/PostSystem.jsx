@@ -148,9 +148,9 @@ const PostSystem = () => {
   
   // State for Twitter rate limit
   const [twitterRateLimit, setTwitterRateLimit] = useState({
-    isLimited: true, // Temporarily set to true for testing
-    message: 'Twitter API rate limit exceeded (429 Too Many Requests)',
-    resetTime: new Date(new Date().getTime() + 15 * 60000) // 15 minutes from now
+    isLimited: false,
+    message: '',
+    resetTime: null
   });
   
   // State for alerts
@@ -1108,30 +1108,31 @@ useEffect(() => {
             </Typography>
             
             {/* Twitter Rate Limit Warning Banner */}
-            {/* Always show this for testing */}
-            <Alert 
-              severity="warning" 
-              sx={{ 
-                mb: 'var(--spacing-md)', 
-                borderRadius: 'var(--border-radius-md)',
-                border: '2px solid #ff9800',
-                backgroundColor: '#fff3e0',
-                '& .MuiAlert-icon': {
-                  color: '#ff9800'
-                }
-              }}
-            >
-              <AlertTitle sx={{ fontWeight: 'bold', fontSize: '1.1rem' }}>Twitter Rate Limit Exceeded</AlertTitle>
-              <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                Your Twitter account has reached its API rate limit. 
-                {twitterRateLimit.resetTime && (
-                  <>Try again after <strong>{twitterRateLimit.resetTime.toLocaleTimeString()}</strong>.</>
-                )}
-              </Typography>
-              <Typography variant="body2" sx={{ mt: 1, color: '#d32f2f' }}>
-                Error: {twitterRateLimit.message}
-              </Typography>
-            </Alert>
+            {twitterRateLimit.isLimited && (
+              <Alert 
+                severity="warning" 
+                sx={{ 
+                  mb: 'var(--spacing-md)', 
+                  borderRadius: 'var(--border-radius-md)',
+                  border: '2px solid #ff9800',
+                  backgroundColor: '#fff3e0',
+                  '& .MuiAlert-icon': {
+                    color: '#ff9800'
+                  }
+                }}
+              >
+                <AlertTitle sx={{ fontWeight: 'bold', fontSize: '1.1rem' }}>Twitter Rate Limit Exceeded</AlertTitle>
+                <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                  Your Twitter account has reached its API rate limit. 
+                  {twitterRateLimit.resetTime && (
+                    <>Try again after <strong>{twitterRateLimit.resetTime.toLocaleTimeString()}</strong>.</>
+                  )}
+                </Typography>
+                <Typography variant="body2" sx={{ mt: 1, color: '#d32f2f' }}>
+                  Error: {twitterRateLimit.message}
+                </Typography>
+              </Alert>
+            )}
         
         {/* Content input */}
         <TextField

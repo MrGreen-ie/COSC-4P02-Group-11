@@ -15,6 +15,7 @@
   /* Background Colors */
   --bg-primary: #ffffff;
   --bg-secondary: #f5f5f5;
+  --bg-paper: #ffffff;
   --bg-accent: rgba(139, 0, 0, 0.1);
   --bg-accent-hover: rgba(139, 0, 0, 0.2);
   
@@ -28,6 +29,7 @@
   
   /* Border Colors */
   --border-color: rgba(0, 0, 0, 0.12);
+  --border-color-light: rgba(0, 0, 0, 0.08);
   --border-light: rgba(255, 255, 255, 0.2);
   
   /* Status Colors */
@@ -196,6 +198,8 @@
   align-items: center;
   justify-content: center;
 }
+
+
 
 /* Responsive Breakpoints */
 @media (max-width: 600px) {

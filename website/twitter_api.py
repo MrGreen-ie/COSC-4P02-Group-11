@@ -6,17 +6,21 @@ import uuid
 import base64
 from cryptography.fernet import Fernet
 from dotenv import load_dotenv
+import random
 
 # Load environment variables
 load_dotenv()
 
+# Twitter API is now configured to always post directly to Twitter
+# No simulation mode is available
+
 # Twitter API credentials - Using a different approach with direct authentication
 # For development purposes only - in production, these should be securely stored
-TWITTER_API_KEY = "uyEH7WsRjEvx2zfKqWpPZNe8J"
-TWITTER_API_SECRET = "ZUNAJpqHcjlLt5q6RKSr6LWdcyZJeeYkEeZMkWGemwheXCAZZw"
-TWITTER_BEARER_TOKEN = "AAAAAAAAAAAAAAAAAAAAANYqzgEAAAAAo7B8grAhuBgSF5Xf2Xd2Yev1nSE%3DBeRFbPH2d7KmQ5uwRZXEWBbEgiU3b1EgiU3b1EgqHkzM1MdTEpuytYAz2"
-TWITTER_ACCESS_TOKEN = "846222756781834240-ToTHFa3UBKdbvU5n04ikwbjMzKktvh5"
-TWITTER_ACCESS_SECRET = "m77LO6GMlcCMAKQo0PNgbgSidfPUQul18AvFtWstZNX7S"
+TWITTER_API_KEY = "qhmWsCp1OfogGSlG5NJK0OVFL"
+TWITTER_API_SECRET = "v6b8xP0diRTQnTXwIFeKAZgk9QQSFe6zsNQoQXn9sY7t7bUI74"
+TWITTER_BEARER_TOKEN = "AAAAAAAAAAAAAAAAAAAAADPg0QEAAAAAEMdH7QHS4SppS%2F6U1agiC%2F7qbgw%3DhErpKZe8pl9WrA326800CzZi83EJPTYYJCXPpdFXFEmoyoFUEU"
+TWITTER_ACCESS_TOKEN = "1896787230079008768-6rksWZuaC9Yz6hALB2hQ23U5jGuNSk"
+TWITTER_ACCESS_SECRET = "RT5LeszfW7iHPHNmIc8nHogUaNrkbQngR6if9nHCBCTMx"
 
 # Generate a proper Fernet key
 def generate_key():
@@ -98,6 +102,7 @@ def post_tweet(content, credentials, media_files=None):
         dict: Result of the tweet operation
     """
     try:
+        # Validate credentials
         if not credentials:
             return {
                 'success': False,
@@ -136,7 +141,6 @@ def post_tweet(content, credentials, media_files=None):
             for media_file in media_files:
                 try:
                     if os.path.exists(media_file):
-                        # Upload the media file
                         media = api.media_upload(media_file)
                         media_ids.append(media.media_id)
                 except Exception as e:
@@ -146,18 +150,24 @@ def post_tweet(content, credentials, media_files=None):
                     }
         
         # Post the tweet with or without media
-        if media_ids:
-            response = client.create_tweet(text=content, media_ids=media_ids)
-        else:
-            response = client.create_tweet(text=content)
-        
-        # Extract the tweet ID from the response
-        tweet_id = response.data['id']
-        
-        return {
-            'success': True,
-            'tweet_id': tweet_id
-        }
+        try:
+            if media_ids:
+                response = client.create_tweet(text=content, media_ids=media_ids)
+            else:
+                response = client.create_tweet(text=content)
+            
+            # Extract the tweet ID from the response
+            tweet_id = response.data['id']
+            
+            return {
+                'success': True,
+                'tweet_id': tweet_id
+            }
+        except Exception as tweet_error:
+            return {
+                'success': False,
+                'error': f"Failed to create tweet: {str(tweet_error)}"
+            }
         
     except Exception as e:
         # Handle any exceptions that might occur

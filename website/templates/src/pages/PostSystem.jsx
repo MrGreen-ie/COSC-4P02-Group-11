@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Component } from 'react';
 
 import {
   Alert,
+  AlertTitle,
   Box,
   Button,
   Card,
@@ -22,6 +23,7 @@ import {
   FormGroup,
   Grid,
   IconButton,
+  InputAdornment,
   Link,
   List,
   ListItem,
@@ -47,18 +49,85 @@ import {
   Description as DocumentIcon,
   Error as ErrorIcon,
   Image as ImageIcon,
-  Schedule as ScheduleIcon,
   Send as SendIcon,
-  Twitter as TwitterIcon
+  Facebook as FacebookIcon,
+  LinkedIn as LinkedInIcon
 } from '@mui/icons-material';
 
+import ScheduleIcon from '@mui/icons-material/Schedule';
+
+import Tooltip from '@mui/material/Tooltip';
+import InputLabel from '@mui/material/InputLabel';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import '../styles/theme.css';
 
 import TwitterAuth from '../components/TwitterAuth';
+import XIcon from '../components/XIcon';
 
+// Error Boundary Component to catch rendering errors
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null, errorInfo: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('PostSystem Error Boundary caught an error:', error, errorInfo);
+    this.setState({ error, errorInfo });
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <Box
+          sx={{
+            padding: 3,
+            margin: 2,
+            backgroundColor: '#ffebee',
+            borderRadius: 1,
+            border: '1px solid #f44336',
+          }}
+        >
+          <Typography variant="h5" color="error" gutterBottom>
+            Something went wrong in the Post System
+          </Typography>
+          <Typography variant="body1" paragraph>
+            Please try refreshing the page. If the problem persists, contact support.
+          </Typography>
+          <Button 
+            variant="contained" 
+            color="primary" 
+            onClick={() => window.location.reload()}
+          >
+            Refresh Page
+          </Button>
+        </Box>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// Wrapper component to apply the ErrorBoundary
+const PostSystemWithErrorBoundary = () => {
+  return (
+    <ErrorBoundary>
+      <PostSystem />
+    </ErrorBoundary>
+  );
+};
+
+// Main component
 const PostSystem = () => {
   // State for post content
   const [content, setContent] = useState('');
@@ -76,6 +145,13 @@ const PostSystem = () => {
   // State for scheduled posts
   const [scheduledPosts, setScheduledPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // State for Twitter rate limit
+  const [twitterRateLimit, setTwitterRateLimit] = useState({
+    isLimited: true, // Temporarily set to true for testing
+    message: 'Twitter API rate limit exceeded (429 Too Many Requests)',
+    resetTime: new Date(new Date().getTime() + 15 * 60000) // 15 minutes from now
+  });
   
   // State for alerts
   const [alert, setAlert] = useState({
@@ -117,45 +193,123 @@ const PostSystem = () => {
     }
   };
 
+  // Function to check for past due posts and execute them automatically
+  const checkAndExecutePastDuePosts = async (posts) => {
+    const now = new Date();
+    const pastDuePosts = posts.filter(post => 
+      post.status === 'scheduled' && new Date(post.scheduled_time) < now
+    );
+    
+    if (pastDuePosts.length > 0) {
+      console.log(`Found ${pastDuePosts.length} past due posts - auto-executing`);
+      
+      // Execute each past due post automatically
+      for (const post of pastDuePosts) {
+        try {
+          console.log(`Auto-executing post ${post.id}: ${post.content.substring(0, 30)}...`);
+          
+          // Use the correct endpoint to execute the post
+          const response = await fetch(`/api/posts/execute/${post.id}`, {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/json'
+            }
+          });
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Failed to auto-execute post ${post.id}:`, errorText);
+            continue;
+          }
+          
+          const data = await response.json();
+          console.log(`Successfully auto-executed post ${post.id}:`, data);
+          
+          // Mark the post as executed in our local state
+          setScheduledPosts(prev => prev.map(p => 
+            p.id === post.id ? { ...p, status: 'completed' } : p
+          ));
+          
+        } catch (error) {
+          console.error(`Error auto-executing post ${post.id}:`, error);
+        }
+      }
+    }
+  };
+
   // Function to fetch scheduled posts
   const fetchScheduledPosts = async () => {
     try {
       setIsLoading(true);
+      console.log('Fetching scheduled posts...');
+      
+      // Try to fetch data with a timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
       const response = await fetch('/api/posts/scheduled', {
         headers: {
           'Accept': 'application/json'
-        }
+        },
+        signal: controller.signal
+      }).catch(err => {
+        console.warn('Fetch error:', err);
+        return { ok: false, json: async () => ({ message: 'Network error' }) };
       });
-      const data = await response.json();
       
-      if (response.ok) {
-        // Process posts to ensure consistent format
-        const processedPosts = (data.posts || []).map(post => ({
-          ...post,
-          // Ensure scheduled_time is a string
-          scheduled_time: post.scheduled_time || new Date().toISOString(),
-          // Ensure status has a default value
-          status: post.status || 'scheduled',
-          // Ensure content is a string
-          content: post.content || '',
-          // Ensure platforms is an array
-          platforms: Array.isArray(post.platforms) ? post.platforms : ['twitter']
-        }));
-        setScheduledPosts(processedPosts);
-      } else {
+      clearTimeout(timeoutId);
+      
+      if (!response || !response.ok) {
+        console.warn('Response not OK or missing');
+        // Return empty array to prevent errors but show a message
         setAlert({
           open: true,
-          message: data.message || 'Failed to fetch scheduled posts',
-          severity: 'error'
+          message: 'Could not load scheduled posts. Using local data.',
+          severity: 'warning'
         });
+        return [];
       }
+      
+      let data;
+      try {
+        data = await response.json();
+        console.log('Received data:', data);
+      } catch (e) {
+        console.error('JSON parse error:', e);
+        data = { posts: [] };
+      }
+      
+      // Process posts to ensure consistent format
+      const processedPosts = (data.posts || []).map(post => ({
+        ...post,
+        // Ensure scheduled_time is a string
+        scheduled_time: post.scheduled_time || new Date().toISOString(),
+        // Ensure status has a default value
+        status: post.status || 'scheduled',
+        // Ensure content is a string
+        content: post.content || '',
+        // Ensure platforms is an array
+        platforms: Array.isArray(post.platforms) ? post.platforms : ['twitter']
+      }));
+      
+      setScheduledPosts(processedPosts);
+      
+      // Auto-execute any past due posts
+      try {
+        await checkAndExecutePastDuePosts(processedPosts);
+      } catch (e) {
+        console.error('Error checking past due posts:', e);
+      }
+      
+      return processedPosts;
     } catch (error) {
-      console.error('Error fetching scheduled posts:', error);
+      console.error('Error in fetchScheduledPosts:', error);
       setAlert({
         open: true,
-        message: 'Error connecting to the server',
+        message: 'Error loading posts. Please try again.',
         severity: 'error'
       });
+      return [];
     } finally {
       setIsLoading(false);
     }
@@ -165,91 +319,174 @@ const PostSystem = () => {
   const handleExecuteScheduledPost = async (postId) => {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/posts/scheduled/${postId}/execute`, {
+      console.log(`Executing scheduled post with ID: ${postId}`);
+      
+      // Verify the post exists in our state
+      const postToExecute = scheduledPosts.find(post => post.id === postId);
+      if (!postToExecute) {
+        console.error(`Post with ID ${postId} not found in local state`);
+        throw new Error('Post not found');
+      }
+      
+      console.log('Post to execute:', postToExecute);
+      console.log('Twitter credentials check:', postToExecute.twitter_credentials ? 'Present' : 'Missing');
+      
+      // Use the correct API endpoint to execute the scheduled post
+      console.log(`Sending POST request to /api/posts/execute/${postId}`);
+      const response = await fetch(`/api/posts/execute/${postId}`, {
         method: 'POST',
         headers: {
           'Accept': 'application/json'
         }
       });
-      const data = await response.json();
       
-      if (response.ok) {
-        setAlert({
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response from server:', errorText);
+        throw new Error(errorText || 'Failed to execute post');
+      }
+      
+      // Try to parse JSON response
+      let data;
+      try {
+        data = await response.json();
+        console.log('Response data:', data);
+      } catch (e) {
+        console.error('Error parsing JSON response:', e);
+        // If can't parse JSON, use a default success message
+        data = { message: 'Post executed successfully!' };
+      }
+      
+      // Show success message
+      setAlert({
+        open: true,
+        message: data.message || 'Post executed successfully!',
+        severity: 'success'
+      });
+      
+      // Show detailed results if available
+      if (data.results) {
+        console.log('Post results:', data.results);
+        setStatusDialog({
           open: true,
-          message: data.message || 'Post executed successfully!',
-          severity: 'success'
-        });
-        // Show detailed results if available
-        if (data.results) {
-          setStatusDialog({
-            open: true,
-            title: 'Post Results',
-            content: 'Your post has been processed with the following results:',
-            results: data.results
-          });
-        }
-        fetchScheduledPosts(); // Refresh the list
-      } else {
-        setAlert({
-          open: true,
-          message: data.message || 'Failed to execute post',
-          severity: 'error'
+          title: 'Post Results',
+          content: 'Your post has been processed with the following results:',
+          results: data.results
         });
       }
+      
+      // Mark the post as completed in our local state
+      setScheduledPosts(prev => prev.map(post => 
+        post.id === postId ? { ...post, status: 'completed' } : post
+      ));
+      
+      // Reset Twitter rate limit status if it was previously limited
+      if (twitterRateLimit.isLimited) {
+        setTwitterRateLimit({
+          isLimited: false,
+          message: '',
+          resetTime: null
+        });
+      }
+      
     } catch (error) {
       console.error('Error executing post:', error);
-      setAlert({
-        open: true,
-        message: 'Error connecting to the server',
-        severity: 'error'
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Function to handle deleting a scheduled post
-  const handleDeleteScheduledPost = async (postId) => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(`/api/posts/scheduled/${postId}`, {
-        method: 'DELETE',
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
-      const data = await response.json();
       
-      if (response.ok) {
-        setAlert({
-          open: true,
-          message: data.message || 'Post deleted successfully!',
-          severity: 'success'
+      // Check if the error message indicates a rate limit issue
+      const errorMessage = error.message || 'Could not connect to server';
+      const isRateLimitError = errorMessage.includes('rate limit') || 
+                             errorMessage.includes('429') || 
+                             errorMessage.includes('Too Many Requests');
+      
+      // Set Twitter rate limit warning if detected
+      if (isRateLimitError) {
+        // Calculate a reset time (default to 15 minutes from now)
+        const resetTime = new Date();
+        resetTime.setMinutes(resetTime.getMinutes() + 15);
+        
+        setTwitterRateLimit({
+          isLimited: true,
+          message: errorMessage,
+          resetTime: resetTime
         });
-        fetchScheduledPosts(); // Refresh the list
-      } else {
+        
+        // Show a rate limit specific alert
         setAlert({
           open: true,
-          message: data.message || 'Failed to delete post',
+          message: 'Twitter rate limit exceeded. Please try again later.',
+          severity: 'warning'
+        });
+      } else {
+        // Regular error alert
+        setAlert({
+          open: true,
+          message: `Error: ${errorMessage}`,
           severity: 'error'
         });
       }
-    } catch (error) {
-      console.error('Error deleting post:', error);
-      setAlert({
-        open: true,
-        message: 'Error connecting to the server',
-        severity: 'error'
-      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Fetch scheduled posts on component mount
-  useEffect(() => {
-    fetchScheduledPosts();
-  }, []);
+// Function to handle deleting a scheduled post
+const handleDeleteScheduledPost = async (postId) => {
+  try {
+    setIsLoading(true);
+    const response = await fetch(`/api/posts/scheduled/${postId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    const data = await response.json();
+    
+    if (response.ok) {
+      setAlert({
+        open: true,
+        message: data.message || 'Post deleted successfully!',
+        severity: 'success'
+      });
+      fetchScheduledPosts(); // Refresh the list
+    } else {
+      setAlert({
+        open: true,
+        message: data.message || 'Failed to delete post',
+        severity: 'error'
+      });
+    }
+  } catch (error) {
+    console.error('Error deleting post:', error);
+    setAlert({
+      open: true,
+      message: 'Error connecting to the server',
+      severity: 'error'
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+// Initial fetch of scheduled posts and set up periodic checking
+useEffect(() => {
+  // Fetch scheduled posts when component mounts
+  fetchScheduledPosts();
+  
+  // Set up interval to check for past due posts
+  const checkInterval = setInterval(() => {
+    fetchScheduledPosts().then(posts => {
+      if (posts && posts.length > 0) {
+        checkAndExecutePastDuePosts(posts);
+      }
+    });
+  }, 60000); // Check every minute
+  
+  return () => {
+    clearInterval(checkInterval);
+  };
+}, []); // Empty dependency array ensures this only runs once on mount
 
   // Function to render a scheduled post
   const renderScheduledPost = (post) => {
@@ -304,7 +541,7 @@ const PostSystem = () => {
               }}>
                 <AccessTimeIcon sx={{ fontSize: 'inherit' }} />
                 {new Date(post.scheduled_time).toLocaleString()}
-                {isPastDue && ' (Past Due)'}
+                {isPastDue && post.status === 'scheduled' && ' (Past Due - Click Post Now)'}
               </Box>
               <Box sx={{ 
                 display: 'flex', 
@@ -346,7 +583,7 @@ const PostSystem = () => {
                       '&:hover': { background: 'var(--primary-light)' }
                     }}
                   >
-                    Post
+                    Post Now
                   </Button>
                   <IconButton
                     size="small"
@@ -572,12 +809,47 @@ const PostSystem = () => {
           content: 'Your post has been processed with the following results:',
           results: data.results
         });
+        
+        // Reset Twitter rate limit status if it was previously limited
+        if (twitterRateLimit.isLimited) {
+          setTwitterRateLimit({
+            isLimited: false,
+            message: '',
+            resetTime: null
+          });
+        }
       } else {
-        setAlert({
-          open: true,
-          message: data.error || 'Failed to publish post',
-          severity: 'error'
-        });
+        // Check if the error is related to Twitter rate limits
+        const isRateLimitError = data.error && (
+          data.error.includes('rate limit') || 
+          data.error.includes('429') || 
+          data.error.includes('Too Many Requests')
+        );
+        
+        // For Twitter rate limit errors, set the rate limit state
+        if (isRateLimitError && platforms.twitter) {
+          // Extract reset time if available (default to 15 minutes from now if not specified)
+          const resetTime = new Date();
+          resetTime.setMinutes(resetTime.getMinutes() + 15);
+          
+          setTwitterRateLimit({
+            isLimited: true,
+            message: data.error,
+            resetTime: resetTime
+          });
+          
+          setAlert({
+            open: true,
+            message: 'Twitter rate limit exceeded. Please try again later.',
+            severity: 'warning'
+          });
+        } else {
+          setAlert({
+            open: true,
+            message: data.error || 'Failed to publish post',
+            severity: 'error'
+          });
+        }
       }
     } catch (error) {
       setAlert({
@@ -735,7 +1007,7 @@ const PostSystem = () => {
   const getPlatformIcon = (platform) => {
     switch (platform) {
       case 'twitter':
-        return <TwitterIcon />;
+        return <XIcon />;
       default:
         return null;
     }
@@ -746,6 +1018,8 @@ const PostSystem = () => {
     const date = new Date(dateString);
     return date.toLocaleString();
   };
+
+  // Component rendered
 
   return (
     <>
@@ -769,16 +1043,44 @@ const PostSystem = () => {
           flexDirection: 'column',
           gap: { xs: 'var(--spacing-md)', sm: 'var(--spacing-lg)' }
         }}>
-          {/* Twitter Authentication Section */}
-          <Paper elevation={6} sx={{
-            borderRadius: 'var(--border-radius-lg)',
-            background: 'var(--bg-primary)',
-            color: 'var(--text-primary)',
+          {/* X (Twitter) Authentication Section */}
+          <Paper elevation={3} sx={{
+            borderRadius: '8px',
+            background: '#ffffff',
+            color: '#333333',
             overflow: 'hidden',
-            mt: { xs: 'var(--spacing-sm)', sm: 'var(--spacing-md)' }
+            mt: { xs: 1, sm: 2 },
+            border: '1px solid #e0e0e0',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
           }}>
-            <Box sx={{ p: { xs: 'var(--spacing-sm)', sm: 'var(--spacing-md)' } }}>
-              <TwitterAuth onAuthStatusChange={handleTwitterAuthStatusChange} />
+            <Box sx={{ 
+              display: 'flex',
+              flexDirection: 'column'
+            }}>
+              {/* Header */}
+              <Box sx={{
+                p: { xs: 1, sm: 2 },
+                borderBottom: '1px solid #e0e0e0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1
+              }}>
+                <XIcon sx={{ fontSize: 20, color: '#000000' }} />
+                <Typography variant="subtitle1" sx={{
+                  fontWeight: 600,
+                  color: '#000000'
+                }}>
+                  X Authentication
+                </Typography>
+              </Box>
+              
+              {/* Content */}
+              <Box sx={{ 
+                p: { xs: 2, sm: 3 },
+                backgroundColor: '#f9f9f9'
+              }}>
+                <TwitterAuth onAuthStatusChange={handleTwitterAuthStatusChange} />
+              </Box>
             </Box>
           </Paper>
           
@@ -804,11 +1106,37 @@ const PostSystem = () => {
             }}>
               Create, schedule, and manage your social media posts across multiple platforms.
             </Typography>
+            
+            {/* Twitter Rate Limit Warning Banner */}
+            {/* Always show this for testing */}
+            <Alert 
+              severity="warning" 
+              sx={{ 
+                mb: 'var(--spacing-md)', 
+                borderRadius: 'var(--border-radius-md)',
+                border: '2px solid #ff9800',
+                backgroundColor: '#fff3e0',
+                '& .MuiAlert-icon': {
+                  color: '#ff9800'
+                }
+              }}
+            >
+              <AlertTitle sx={{ fontWeight: 'bold', fontSize: '1.1rem' }}>Twitter Rate Limit Exceeded</AlertTitle>
+              <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                Your Twitter account has reached its API rate limit. 
+                {twitterRateLimit.resetTime && (
+                  <>Try again after <strong>{twitterRateLimit.resetTime.toLocaleTimeString()}</strong>.</>
+                )}
+              </Typography>
+              <Typography variant="body2" sx={{ mt: 1, color: '#d32f2f' }}>
+                Error: {twitterRateLimit.message}
+              </Typography>
+            </Alert>
         
         {/* Content input */}
         <TextField
           multiline
-          rows={4}
+          minRows={4}
           maxRows={6}
           placeholder="What's on your mind?"
           value={content}
@@ -940,14 +1268,14 @@ const PostSystem = () => {
                     color: 'var(--text-secondary)',
                     '&.Mui-checked': { color: 'var(--primary)' }
                   }}
-                  icon={<TwitterIcon />}
-                  checkedIcon={<TwitterIcon />}
+                  icon={<XIcon />}
+                  checkedIcon={<XIcon />}
                   disabled={!isTwitterAuthenticated}
                 />
               }
               label={
                 <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'var(--text-primary)' }}>
-                  Twitter
+                  X
                   {!isTwitterAuthenticated && (
                     <Typography variant="caption" color="error" sx={{ ml: 'var(--spacing-sm)' }}>
                       (Authentication required)
@@ -967,79 +1295,245 @@ const PostSystem = () => {
           flexDirection: { xs: 'column', sm: 'row' },
           width: '100%'
         }}>
-          <Button
-            variant="contained"
-            startIcon={<SendIcon />}
-            onClick={handlePost}
-            disabled={isLoading || (platforms.twitter && !isTwitterAuthenticated)}
-            sx={{
-              background: 'var(--gradient-secondary)',
-              color: 'var(--text-primary)',
-              fontWeight: 'var(--font-weight-bold)',
-              borderRadius: 'var(--border-radius-full)',
-              width: { xs: '100%', sm: 'auto' },
-              '&:hover': { 
-                background: 'var(--bg-accent)',
-                color: 'var(--text-primary)'
-              },
-              '&.Mui-disabled': {
-                background: 'var(--bg-disabled)',
-                color: 'var(--text-disabled)'
-              }
-            }}
-          >
-            Post Now
-          </Button>
-          
-          {isScheduling ? (
+          {/* When not scheduling, show both Post Now and Schedule Post buttons side by side */}
+          {!isScheduling ? (
+            <>
+              <Button
+                variant="contained"
+                startIcon={<SendIcon />}
+                onClick={handlePost}
+                disabled={isLoading || (platforms.twitter && !isTwitterAuthenticated)}
+                sx={{
+                  background: 'var(--primary)',
+                  color: 'white',
+                  fontWeight: 'var(--font-weight-bold)',
+                  borderRadius: 'var(--border-radius-full)',
+                  padding: '10px 20px',
+                  flex: { xs: '1', sm: '0 0 auto' },
+                  '&:hover': { 
+                    background: 'var(--primary-dark)',
+                    color: 'white'
+                  },
+                  '&.Mui-disabled': {
+                    background: 'var(--bg-disabled)',
+                    color: 'var(--text-disabled)'
+                  }
+                }}
+              >
+                Post Now
+              </Button>
+              
+              <Button
+                variant="contained"
+                startIcon={<ScheduleIcon />}
+                onClick={() => setIsScheduling(true)}
+                disabled={isLoading || (platforms.twitter && !isTwitterAuthenticated)}
+                sx={{
+                  background: 'var(--primary)',
+                  color: 'white',
+                  fontWeight: 'var(--font-weight-bold)',
+                  borderRadius: 'var(--border-radius-full)',
+                  padding: '10px 20px',
+                  flex: { xs: '1', sm: '0 0 auto' },
+                  '&:hover': { 
+                    background: 'var(--primary-dark)',
+                    color: 'white'
+                  },
+                  '&.Mui-disabled': {
+                    background: 'var(--bg-disabled)',
+                    color: 'var(--text-disabled)'
+                  }
+                }}
+              >
+                Schedule Post
+              </Button>
+            </>
+          ) : (
             <LocalizationProvider dateAdapter={AdapterDateFns}>
               <Box sx={{ 
                 display: 'flex', 
                 flexDirection: 'column',
-                gap: 'var(--spacing-md)',
-                width: '100%'
+                width: '100%',
+                border: '1px solid var(--border-color)',
+                borderRadius: 'var(--border-radius-lg)',
+                padding: 3,
+                backgroundColor: 'var(--bg-paper)',
+                boxShadow: 'var(--shadow-sm)',
+                position: 'relative',
+                zIndex: 1,
+                mb: 2
               }}>
-                <DateTimePicker
-                  label="Schedule Time"
-                  value={scheduledTime}
-                  onChange={(newValue) => setScheduledTime(newValue)}
-                  minDateTime={new Date()}
-                  sx={{
-                    '& .MuiInputBase-root': {
-                      color: 'var(--text-primary)',
-                      '& fieldset': { borderColor: 'var(--border-color)' },
-                      '&:hover fieldset': { borderColor: 'var(--primary)' },
-                      '&.Mui-focused fieldset': { borderColor: 'var(--primary)' }
-                    },
-                    '& .MuiInputLabel-root': {
-                      color: 'var(--text-secondary)',
-                      color: 'var(--text-light)',
-                      '&.Mui-focused': { color: 'var(--secondary)' }
-                    },
-                    '& .MuiIconButton-root': {
-                      color: 'var(--text-light)'
-                    }
-                  }}
-                />
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  mb: 3,
+                  pb: 2,
+                  borderBottom: '1px solid var(--border-color)'
+                }}>
+                  <ScheduleIcon sx={{ color: 'var(--primary)', mr: 1.5, fontSize: 28 }} />
+                  <Typography variant="h6" sx={{ color: 'var(--text-primary)', fontWeight: 'bold' }}>
+                    Schedule Your Post
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ mt: 1 }}>
+                  <Typography variant="subtitle2" sx={{ mb: 1, color: 'var(--text-secondary)' }}>
+                    Precise Timing (12-hour format)
+                  </Typography>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    gap: 2,
+                    alignItems: 'center',
+                    flexWrap: 'wrap'
+                  }}>
+                    <DatePicker
+                      label="Date"
+                      value={scheduledTime}
+                      onChange={(newValue) => setScheduledTime(newValue)}
+                      minDate={new Date()}
+                      format="MMM dd, yyyy"
+                      sx={{ width: '180px' }}
+                    />
+                      
+                      <TextField
+                        label="Hours"
+                        type="number"
+                        InputProps={{ 
+                          inputProps: { min: 1, max: 12 },
+                          endAdornment: <InputAdornment position="end">hr</InputAdornment>
+                        }}
+                        size="small"
+                        value={scheduledTime ? (scheduledTime.getHours() % 12 === 0 ? 12 : scheduledTime.getHours() % 12) : 12}
+                        onChange={(e) => {
+                          let hours = parseInt(e.target.value);
+                          if (hours >= 1 && hours <= 12) {
+                            const newTime = new Date(scheduledTime || new Date());
+                            // Convert from 12-hour to 24-hour format
+                            const isPM = newTime.getHours() >= 12;
+                            hours = isPM ? (hours === 12 ? 12 : hours + 12) : (hours === 12 ? 0 : hours);
+                            newTime.setHours(hours);
+                            setScheduledTime(newTime);
+                          }
+                        }}
+                        sx={{ width: '100px' }}
+                      />
+                      <TextField
+                        label="Minutes"
+                        type="number"
+                        InputProps={{ 
+                          inputProps: { min: 0, max: 59 },
+                          endAdornment: <InputAdornment position="end">min</InputAdornment>
+                        }}
+                        size="small"
+                        value={scheduledTime ? scheduledTime.getMinutes() : 0}
+                        onChange={(e) => {
+                          const minutes = parseInt(e.target.value);
+                          if (minutes >= 0 && minutes <= 59) {
+                            const newTime = new Date(scheduledTime || new Date());
+                            newTime.setMinutes(minutes);
+                            setScheduledTime(newTime);
+                          }
+                        }}
+                        sx={{ width: '100px' }}
+                      />
+                      <TextField
+                        label="Seconds"
+                        type="number"
+                        InputProps={{ 
+                          inputProps: { min: 0, max: 59 },
+                          endAdornment: <InputAdornment position="end">sec</InputAdornment>
+                        }}
+                        size="small"
+                        value={scheduledTime ? scheduledTime.getSeconds() : 0}
+                        onChange={(e) => {
+                          const seconds = parseInt(e.target.value);
+                          if (seconds >= 0 && seconds <= 59) {
+                            const newTime = new Date(scheduledTime || new Date());
+                            newTime.setSeconds(seconds);
+                            setScheduledTime(newTime);
+                          }
+                        }}
+                        sx={{ width: '100px' }}
+                      />
+                      
+                      <FormControl sx={{ minWidth: 100 }}>
+                        <InputLabel id="ampm-select-label">AM/PM</InputLabel>
+                        <Select
+                          labelId="ampm-select-label"
+                          id="ampm-select"
+                          size="small"
+                          value={scheduledTime ? (scheduledTime.getHours() >= 12 ? 'PM' : 'AM') : 'AM'}
+                          label="AM/PM"
+                          onChange={(e) => {
+                            const newTime = new Date(scheduledTime || new Date());
+                            const currentHours = newTime.getHours();
+                            const currentIs12Hour = currentHours % 12 === 0 ? 12 : currentHours % 12;
+                            
+                            if (e.target.value === 'AM' && currentHours >= 12) {
+                              // Convert from PM to AM
+                              newTime.setHours(currentIs12Hour === 12 ? 0 : currentIs12Hour);
+                            } else if (e.target.value === 'PM' && currentHours < 12) {
+                              // Convert from AM to PM
+                              newTime.setHours(currentIs12Hour === 12 ? 12 : currentIs12Hour + 12);
+                            }
+                            
+                            setScheduledTime(newTime);
+                          }}
+                        >
+                          <MenuItem value="AM">AM</MenuItem>
+                          <MenuItem value="PM">PM</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Box>
+                </Box>
+                
+                <Box sx={{ 
+                  mt: 3, 
+                  pt: 2, 
+                  borderTop: '1px solid var(--border-color)',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}>
+                  <Chip 
+                    icon={<ScheduleIcon />} 
+                    label={scheduledTime ? `Scheduled for: ${scheduledTime.toLocaleString(undefined, {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      second: '2-digit',
+                      hour12: true
+                    })}` : 'Select a time'}
+                    color="primary" 
+                    variant="outlined" 
+                    sx={{ marginRight: 'auto' }} 
+                  />
+                  <Typography variant="caption" sx={{ color: 'var(--text-secondary)', fontStyle: 'italic', ml: 1 }}>
+                    Includes seconds precision
+                  </Typography>
+                </Box>
+                
                 <Box sx={{ 
                   display: 'flex', 
                   gap: 'var(--spacing-md)',
-                  justifyContent: 'center'
+                  justifyContent: 'space-between',
+                  mt: 2
                 }}>
                   <Button
                     variant="contained"
+                    startIcon={<ScheduleIcon />}
                     onClick={handleSchedulePost}
                     disabled={isLoading || (platforms.twitter && !isTwitterAuthenticated)}
                     sx={{
-                      background: 'var(--gradient-secondary)',
-                      color: 'var(--primary)',
+                      background: 'var(--primary)',
+                      color: 'white',
                       fontWeight: 'var(--font-weight-bold)',
                       borderRadius: 'var(--border-radius-full)',
                       flex: 1,
-                      maxWidth: '200px',
                       '&:hover': { 
-                        background: 'var(--bg-light)',
-                        color: 'var(--primary)'
+                        background: 'var(--primary-dark)',
+                        color: 'white'
                       },
                       '&.Mui-disabled': {
                         background: 'var(--bg-disabled)',
@@ -1047,19 +1541,18 @@ const PostSystem = () => {
                       }
                     }}
                   >
-                    Schedule
+                    Confirm Schedule
                   </Button>
                   <Button
                     variant="outlined"
                     onClick={() => setIsScheduling(false)}
                     sx={{
-                      color: 'var(--text-light)',
-                      borderColor: 'var(--text-light)',
-                      flex: 1,
-                      maxWidth: '200px',
+                      color: 'var(--primary)',
+                      borderColor: 'var(--primary)',
                       '&:hover': {
-                        borderColor: 'var(--secondary)',
-                        color: 'var(--secondary)'
+                        borderColor: 'var(--primary-dark)',
+                        color: 'var(--primary-dark)',
+                        backgroundColor: 'rgba(25, 118, 210, 0.05)'
                       }
                     }}
                   >
@@ -1068,182 +1561,196 @@ const PostSystem = () => {
                 </Box>
               </Box>
             </LocalizationProvider>
-          ) : (
-            <Button
-              variant="contained"
-              startIcon={<ScheduleIcon />}
-              onClick={() => setIsScheduling(true)}
-              disabled={isLoading || (platforms.twitter && !isTwitterAuthenticated)}
-              sx={{
-                background: 'var(--gradient-secondary)',
-                color: 'var(--primary)',
-                fontWeight: 'var(--font-weight-bold)',
-                borderRadius: 'var(--border-radius-full)',
-                width: { xs: '100%', sm: 'auto' },
-                '&:hover': { 
-                  background: 'var(--bg-light)',
-                  color: 'var(--primary)'
-                },
-                '&.Mui-disabled': {
-                  background: 'var(--bg-disabled)',
-                  color: 'var(--text-disabled)'
-                }
-              }}
-            >
-              Schedule Post
-            </Button>
           )}
         </Box>
       </Paper>
 
       {/* Scheduled Posts Section */}
-      <Paper elevation={6} sx={{
+      <Paper sx={{
         borderRadius: 'var(--border-radius-lg)',
         background: 'var(--bg-translucent)',
         backdropFilter: 'blur(10px)',
         color: 'var(--text-light)',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        mt: 3
       }}>
         <Box sx={{ p: { xs: 'var(--spacing-sm)', sm: 'var(--spacing-md)' } }}>
-          <Typography variant="subtitle1" sx={{ 
-            color: 'var(--text-light)',
-            fontWeight: 'var(--font-weight-bold)',
-            mb: 'var(--spacing-xs)',
-            textAlign: 'center',
-            fontSize: { xs: '0.875rem', sm: '1rem' }
-          }}>
+          <Typography 
+            variant="h5" 
+            component="h2" 
+            sx={{ 
+              fontWeight: 'bold', 
+              mb: 2, 
+              color: 'var(--primary)',
+              textAlign: 'center'
+            }}
+          >
             Scheduled Posts
           </Typography>
+          <Divider sx={{ mb: 2 }} />
           
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)' }}>
-            {isLoading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', p: 'var(--spacing-md)' }}>
-                <CircularProgress size={24} sx={{ color: 'var(--secondary)' }} />
-              </Box>
-            ) : scheduledPosts.length > 0 ? (
-              scheduledPosts.map((post) => (
-                <Paper
-                  key={post.id}
-                  elevation={2}
+          {scheduledPosts.length > 0 ? (
+            <Box sx={{ 
+                maxHeight: '400px', 
+                overflowY: 'auto', 
+                mb: 2,
+                pr: 1,
+                '&::-webkit-scrollbar': {
+                  width: '8px',
+                },
+                '&::-webkit-scrollbar-track': {
+                  background: 'rgba(0,0,0,0.05)',
+                  borderRadius: '10px',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  background: 'rgba(0,0,0,0.2)',
+                  borderRadius: '10px',
+                  '&:hover': {
+                    background: 'rgba(0,0,0,0.3)',
+                  },
+                },
+              }}>
+              {scheduledPosts.map((post, index) => (
+                <Paper 
+                  key={post.id || index} 
                   sx={{
-                    background: 'var(--bg-translucent-light)',
-                    borderRadius: 'var(--border-radius-md)',
-                    p: { xs: 'var(--spacing-sm)', sm: 'var(--spacing-md)' }
+                    p: 1.5, 
+                    mb: 1.5, 
+                    position: 'relative',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: new Date(post.scheduled_time) < new Date() && post.status === 'scheduled' ? 'var(--warning-light)' : 'var(--bg-translucent-light)',
+                    borderLeft: '5px solid var(--primary)',
+                    transition: 'all 0.2s ease'                    
                   }}
+                  elevation={1}
                 >
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                    <Typography variant="h6" sx={{ 
+                      fontWeight: 'bold', 
+                      color: 'var(--primary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      fontSize: '0.95rem',
+                    }}>
+                      <Chip 
+                        label={`#${index + 1}`} 
+                        color="primary"
+                        size="small"
+                        sx={{ mr: 1, height: 24, minWidth: 32 }}
+                      />
+                      Scheduled: {new Date(post.scheduled_time).toLocaleString()}
+                      {new Date(post.scheduled_time) < new Date() && post.status === 'scheduled' && (
+                        <Chip 
+                          label="Past Due" 
+                          color="warning"
+                          size="small"
+                          sx={{ ml: 1 }}
+                        />
+                      )}
+                    </Typography>
+                  </Box>
+                  
                   <Box sx={{ 
                     display: 'flex', 
-                    flexDirection: 'column',
-                    gap: 'var(--spacing-xs)'
+                    alignItems: 'center', 
+                    mb: 1, 
+                    backgroundColor: 'rgba(0,0,0,0.04)', 
+                    p: 0.75, 
+                    borderRadius: '4px' 
                   }}>
-                    {/* Post Content */}
-                    <Typography variant="body2" sx={{ 
-                      color: 'var(--text-light)',
-                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                      lineHeight: 1.3,
-                      wordBreak: 'break-word'
-                    }}>
-                      {post.content}
-                    </Typography>
+                    <Chip 
+                      label={post.status === 'scheduled' ? 'Scheduled' : 'Completed'} 
+                      color={post.status === 'scheduled' ? 'primary' : 'success'}
+                      size="small"
+                      sx={{ mr: 1 }}
+                    />
                     
-                    {/* Post Details */}
-                    <Box sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: 'var(--spacing-xs)'
-                    }}>
-                      {/* Time and Platform */}
-                      <Box sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center',
-                        gap: 'var(--spacing-xs)',
-                        flexGrow: 1
-                      }}>
-                        <Box sx={{ 
-                          display: 'flex', 
-                          alignItems: 'center',
-                          gap: 'var(--spacing-xxs)',
-                          fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                          color: new Date(post.scheduled_time) < new Date() ? 'var(--error)' : 'var(--text-secondary)'
-                        }}>
-                          <AccessTimeIcon sx={{ fontSize: 'inherit' }} />
-                          {new Date(post.scheduled_time).toLocaleString()}
-                          {new Date(post.scheduled_time) < new Date() && ' (Past Due)'}
-                        </Box>
-                        <Box sx={{ 
-                          display: 'flex', 
-                          alignItems: 'center'
-                        }}>
-                          <TwitterIcon sx={{ 
-                            fontSize: { xs: '0.8rem', sm: '0.875rem' },
-                            color: 'var(--secondary)'
-                          }} />
-                        </Box>
-                      </Box>
-                      
-                      {/* Status and Actions */}
-                      <Box sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center',
-                        gap: 'var(--spacing-xs)'
-                      }}>
-                        <Typography variant="caption" sx={{ 
-                          color: 'var(--text-secondary)',
-                          fontSize: { xs: '0.7rem', sm: '0.75rem' }
-                        }}>
-                          {post.status === 'scheduled' ? 'Scheduled' : post.status}
-                        </Typography>
-                        {post.status === 'scheduled' && (
-                          <>
-                            <Button
-                              variant="contained"
-                              size="small"
-                              onClick={() => handleExecuteScheduledPost(post.id)}
-                              disabled={isLoading}
-                              sx={{
-                                background: 'var(--secondary)',
-                                color: 'var(--primary)',
-                                minWidth: 0,
-                                p: '2px 6px',
-                                fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                                minHeight: 0,
-                                '&:hover': { background: 'var(--bg-light)' }
-                              }}
-                            >
-                              Post
-                            </Button>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleDeleteScheduledPost(post.id)}
-                              disabled={isLoading}
-                              sx={{
-                                color: 'var(--text-secondary)',
-                                p: '2px',
-                                '&:hover': { color: 'var(--error)' }
-                              }}
-                            >
-                              <DeleteIcon sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }} />
-                            </IconButton>
-                          </>
-                        )}
-                      </Box>
+                    {/* Show platform icons */}
+                    <Box sx={{ display: 'flex', ml: 'auto' }}>
+                      {post.platforms && post.platforms.map ? post.platforms.map((platform, i) => (
+                        <Tooltip key={i} title={platform.charAt(0).toUpperCase() + platform.slice(1)}>
+                          <Box component="span" sx={{ mx: 0.5 }}>
+                            {platform === 'twitter' ? <XIcon fontSize="small" color="primary" /> :
+                             platform === 'facebook' ? <FacebookIcon fontSize="small" color="primary" /> :
+                             platform === 'linkedin' ? <LinkedInIcon fontSize="small" color="primary" /> :
+                             <></>}
+                          </Box>
+                        </Tooltip>
+                      )) : null}
                     </Box>
                   </Box>
+                  
+                  <Typography variant="body2" sx={{ 
+                    mb: 1, 
+                    p: 1, 
+                    backgroundColor: 'white', 
+                    borderRadius: '4px',
+                    border: '1px solid var(--border-color-light)',
+                    maxHeight: '60px',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical'
+                  }}>
+                    {post.content}
+                  </Typography>
+                  
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+                    {post.status === 'scheduled' && (
+                      <>
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          size="small"
+                          onClick={() => handleExecuteScheduledPost(post.id)}
+                          disabled={isLoading}
+                          startIcon={<SendIcon />}
+                          sx={{ mr: 1 }}
+                        >
+                          Post Now
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          size="small"
+                          onClick={() => handleDeleteScheduledPost(post.id)}
+                          disabled={isLoading}
+                          startIcon={<DeleteIcon />}
+                        >
+                          Delete
+                        </Button>
+                      </>
+                    )}
+                    {post.status === 'completed' && (
+                      <Chip
+                        icon={<CheckIcon />}
+                        label="Posted Successfully"
+                        color="success"
+                        variant="outlined"
+                      />
+                    )}
+                  </Box>
                 </Paper>
-              ))
-            ) : (
-              <Typography variant="body2" sx={{ 
-                color: 'var(--text-secondary)',
-                textAlign: 'center',
-                py: 'var(--spacing-sm)',
-                fontSize: { xs: '0.75rem', sm: '0.875rem' }
-              }}>
+              ))}
+            </Box>
+          ) : (
+            <Box sx={{ 
+              p: 3, 
+              textAlign: 'center', 
+              border: '1px dashed var(--border-color)', 
+              borderRadius: '8px',
+              backgroundColor: 'rgba(0,0,0,0.02)'
+            }}>
+              <ScheduleIcon sx={{ fontSize: 48, color: 'var(--text-secondary)', opacity: 0.5, mb: 1 }} />
+              <Typography variant="body1" sx={{ color: 'var(--text-secondary)' }}>
                 No scheduled posts yet
               </Typography>
-            )}
-          </Box>
+              <Typography variant="body2" sx={{ color: 'var(--text-secondary)', mt: 1 }}>
+                Use the form above to schedule your first post
+              </Typography>
+            </Box>
+          )}
         </Box>
       </Paper>
 
@@ -1265,21 +1772,39 @@ const PostSystem = () => {
       </Snackbar>
 
       {/* Status Dialog */}
-      <Dialog
-        open={statusDialog.open}
-        onClose={handleCloseStatusDialog}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: {
-            background: 'var(--bg-translucent)',
-            backdropFilter: 'blur(10px)',
-            borderRadius: 'var(--border-radius-lg)'
-          }
-        }}
-      >
-        <DialogTitle>{statusDialog.title}</DialogTitle>
-        <DialogContent>
+      {statusDialog.open && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 1300,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          }}
+          onClick={handleCloseStatusDialog}
+        >
+          <Paper
+            elevation={24}
+            sx={{
+              width: '100%',
+              maxWidth: 'sm',
+              margin: '32px',
+              backgroundColor: '#ffffff',
+              borderRadius: '12px',
+              overflow: 'hidden',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Box sx={{ p: 2, backgroundColor: '#ffffff', borderBottom: '1px solid rgba(0, 0, 0, 0.12)' }}>
+              <Typography variant="h6">{statusDialog.title}</Typography>
+            </Box>
+            <Box sx={{ p: 2, backgroundColor: '#ffffff' }}>
           <Typography gutterBottom>{statusDialog.content}</Typography>
           {statusDialog.results && (
             <List>
@@ -1296,21 +1821,42 @@ const PostSystem = () => {
                     primary={platform.charAt(0).toUpperCase() + platform.slice(1)}
                     secondary={result.message}
                   />
+                  {result.success && result.url && (
+                    <Button 
+                      variant="outlined" 
+                      size="small" 
+                      color="primary"
+                      href={result.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      sx={{ ml: 2 }}
+                    >
+                      View Post
+                    </Button>
+                  )}
                 </ListItem>
               ))}
             </List>
           )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseStatusDialog} sx={{ color: 'var(--primary)' }}>
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
+            </Box>
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'flex-end', 
+              p: 2, 
+              backgroundColor: '#ffffff',
+              borderTop: '1px solid rgba(0, 0, 0, 0.12)' 
+            }}>
+              <Button onClick={handleCloseStatusDialog} sx={{ color: 'var(--primary)' }}>
+                Close
+              </Button>
+            </Box>
+          </Paper>
+        </Box>
+      )}
     </Box>
   </Box>
   </>
   );
 };
 
-export default PostSystem;
+export default PostSystemWithErrorBoundary;

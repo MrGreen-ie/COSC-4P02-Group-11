@@ -16,12 +16,12 @@ import {
   IconButton
 } from '@mui/material';
 import { 
-  Twitter as TwitterIcon, 
   Link as LinkIcon, 
   Check as CheckIcon,
   Close as CloseIcon,
   Logout as LogoutIcon
 } from '@mui/icons-material';
+import XIcon from './XIcon';
 
 const TwitterAuth = ({ onAuthStatusChange }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -209,7 +209,12 @@ const TwitterAuth = ({ onAuthStatusChange }) => {
       width: '100%',
       display: 'flex',
       flexDirection: 'column',
-      alignItems: 'center'
+      alignItems: 'center',
+      backgroundColor: '#ffffff',
+      borderRadius: '8px',
+      p: 1.5,
+      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+      border: '1px solid #e0e0e0'
     }}>
       {isAuthenticated ? (
         <Box sx={{ 
@@ -217,14 +222,22 @@ const TwitterAuth = ({ onAuthStatusChange }) => {
           display: 'flex',
           alignItems: 'center',
           gap: 2,
-          p: 1
+          p: 1,
+          borderRadius: '8px'
         }}>
-          <TwitterIcon sx={{ fontSize: 24, color: '#ffdd57' }} />
+          <XIcon sx={{ fontSize: 24, color: '#000000' }} />
           <Box sx={{ flex: 1 }}>
-            <Typography variant="subtitle2" sx={{ color: 'white', fontWeight: 'bold' }}>
+            <Typography variant="subtitle2" sx={{ 
+              color: '#000000', 
+              fontWeight: 'bold',
+              textShadow: '0 1px 1px rgba(0,0,0,0.05)'
+            }}>
               {userData.name}
             </Typography>
-            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+            <Typography variant="caption" sx={{ 
+              color: '#666666',
+              fontWeight: 500
+            }}>
               @{userData.username}
             </Typography>
           </Box>
@@ -234,13 +247,15 @@ const TwitterAuth = ({ onAuthStatusChange }) => {
             onClick={handleDisconnect}
             disabled={isLoading}
             sx={{
-              color: 'white',
-              borderColor: 'white',
+              color: '#1976d2',
+              borderColor: '#1976d2',
+              backgroundColor: 'rgba(25,118,210,0.05)',
               minWidth: 'auto',
               px: 2,
               '&:hover': {
-                borderColor: '#ffdd57',
-                color: '#ffdd57'
+                borderColor: '#0d47a1',
+                backgroundColor: 'rgba(25,118,210,0.1)',
+                color: '#0d47a1'
               }
             }}
           >
@@ -253,27 +268,29 @@ const TwitterAuth = ({ onAuthStatusChange }) => {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          p: 1
+          p: 1.5
         }}>
           <Button
             variant="contained"
-            startIcon={<TwitterIcon />}
+            startIcon={<XIcon />}
             onClick={handleConnect}
             disabled={isLoading}
             size="medium"
             sx={{
-              background: 'linear-gradient(135deg, #ffdd57, #FFD700)',
-              color: '#8B0000',
+              backgroundColor: '#000000',
+              color: '#ffffff',
               fontWeight: 'bold',
               borderRadius: '30px',
               px: 3,
+              boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
               '&:hover': { 
-                background: '#fff',
-                color: '#8B0000'
+                backgroundColor: '#333333',
+                color: '#ffffff',
+                boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
               }
             }}
           >
-            {isLoading ? 'Connecting...' : 'Connect with Twitter'}
+            {isLoading ? 'Connecting...' : 'Connect with X'}
           </Button>
         </Box>
       )}
@@ -283,9 +300,10 @@ const TwitterAuth = ({ onAuthStatusChange }) => {
         onClose={handleErrorClose}
         PaperProps={{
           sx: {
-            background: 'rgba(255, 255, 255, 0.95)',
+            background: '#ffffff',
             backdropFilter: 'blur(10px)',
-            borderRadius: '15px'
+            borderRadius: '12px',
+            boxShadow: '0 8px 16px rgba(0,0,0,0.2)'
           }
         }}
       >
@@ -301,7 +319,7 @@ const TwitterAuth = ({ onAuthStatusChange }) => {
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleErrorClose} sx={{ color: '#8B0000' }}>
+          <Button onClick={handleErrorClose} sx={{ color: '#1976d2' }}>
             Close
           </Button>
         </DialogActions>
@@ -313,7 +331,7 @@ const TwitterAuth = ({ onAuthStatusChange }) => {
           justifyContent: 'center', 
           mt: 1
         }}>
-          <CircularProgress size={20} sx={{ color: '#ffdd57' }} />
+          <CircularProgress size={20} sx={{ color: '#000000' }} />
         </Box>
       )}
     </Box>

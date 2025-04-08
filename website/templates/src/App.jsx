@@ -125,6 +125,9 @@ const App = () => {
 
           {/* Default redirect */}
           <Route path="/" element={<Navigate to={user ? "/dashboard" : "/home"} replace />} />
+          
+          {/* Catch all for 404 pages - add this at the end of your routes */}
+          <Route path="*" element={<Navigate to={user ? "/dashboard" : "/home"} replace />} />
         </Routes>
       </Box>
     </Box>

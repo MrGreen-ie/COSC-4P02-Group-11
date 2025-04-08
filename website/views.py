@@ -770,10 +770,15 @@ def schedule_post():
 @views.route("/api/posts/execute/<post_id>", methods=["POST"])
 @login_required
 def execute_scheduled_post(post_id):
+    print(f"Executing scheduled post with ID: {post_id}")
+    print(f"Available post IDs: {list(scheduled_posts.keys())}")
+    
     if post_id not in scheduled_posts:
+        print(f"Error: Post with ID {post_id} not found in scheduled posts")
         return jsonify({'error': 'Scheduled post not found'}), 404
     
     post = scheduled_posts[post_id]
+    print(f"Found post: {post['content'][:50]}...")
     
     # Mark the post as in progress
     post['status'] = 'in_progress'
@@ -782,9 +787,32 @@ def execute_scheduled_post(post_id):
     
     for platform in post['platforms']:
         try:
+            print(f"Processing platform: {platform}")
             if platform == 'twitter':
                 twitter_credentials = post.get('twitter_credentials')
+                print(f"Twitter credentials found: {bool(twitter_credentials)}")
+                
+                # If credentials aren't stored in the post, try to use the ones from the session
                 if not twitter_credentials:
+                    print("No credentials in post, checking session...")
+                    # Try to get credentials from user's session or database
+                    if 'twitter_access_token' in session and 'twitter_access_token_secret' in session:
+                        print("Using credentials from session")
+                        twitter_credentials = {
+                            'access_token': session['twitter_access_token'],
+                            'access_token_secret': session['twitter_access_token_secret']
+                        }
+                    else:
+                        # If we still don't have credentials, use the API key and secret directly
+                        print("Using default API credentials")
+                        from .twitter_api import TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET
+                        twitter_credentials = {
+                            'access_token': TWITTER_ACCESS_TOKEN,
+                            'access_token_secret': TWITTER_ACCESS_SECRET
+                        }
+                
+                if not twitter_credentials:
+                    print("No Twitter credentials available, cannot post")
                     results[platform] = {
                         'success': False,
                         'error': 'Twitter credentials not provided'
@@ -793,13 +821,16 @@ def execute_scheduled_post(post_id):
                 
                 # Use the Twitter API to post
                 from .twitter_api import post_tweet
+                print(f"Posting to Twitter with content: {post['content'][:30]}...")
                 tweet_result = post_tweet(post['content'], twitter_credentials, post.get('media_paths', []))
+                print(f"Tweet result: {tweet_result}")
                 
                 if tweet_result.get('success'):
                     results[platform] = {
                         'success': True,
                         'post_id': tweet_result.get('tweet_id'),
-                        'url': f"https://twitter.com/user/status/{tweet_result.get('tweet_id')}"
+                        'url': f"https://twitter.com/user/status/{tweet_result.get('tweet_id')}",
+                        'simulated': tweet_result.get('simulated', False)
                     }
                 else:
                     results[platform] = {
@@ -824,6 +855,7 @@ def execute_scheduled_post(post_id):
                 }
             
         except Exception as e:
+            print(f"Error processing platform {platform}: {str(e)}")
             results[platform] = {
                 'success': False,
                 'error': str(e)
@@ -835,6 +867,7 @@ def execute_scheduled_post(post_id):
         try:
             if os.path.exists(file_path):
                 os.remove(file_path)
+                print(f"Removed temporary file: {file_path}")
         except Exception as e:
             print(f"Error removing temporary file {file_path}: {str(e)}")
     
@@ -842,6 +875,7 @@ def execute_scheduled_post(post_id):
     post['status'] = 'completed'
     post['results'] = results
     post['executed_at'] = datetime.now().isoformat()
+    print(f"Post execution completed with results: {results}")
     
     return jsonify({
         'message': 'Scheduled post executed',

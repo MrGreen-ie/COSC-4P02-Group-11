@@ -37,6 +37,7 @@ import { getSavedSummaries } from "../services/api";
 
 const Template = () => {
   const navigate = useNavigate();
+  const [showOverlay, setShowOverlay] = useState(true); // Overlay state
   const [selectedTemplate, setSelectedTemplate] = useState(0);
   const [activeView, setActiveView] = useState("selection"); // 'selection' or 'preview'
   const [summaries, setSummaries] = useState([]);
@@ -361,6 +362,14 @@ const Template = () => {
 
   const handleContentChange = (event) => {
     setEditedContent(event.target.value);
+  };
+
+  const handleOverlaySelection = (option) => {
+    if (option === "template") {
+      setShowOverlay(false); // Proceed to template selection
+    } else if (option === "no-template") {
+      navigate("/ai-summary"); // Directly navigate to AI Summaries
+    }
   };
 
   // Custom templates that accept content as props
@@ -1110,6 +1119,83 @@ const Template = () => {
       </>
     );
   };
+
+  if (showOverlay) {
+    return (
+      <Box
+        sx={{
+          position: "fixed", // Ensure the overlay covers the entire screen
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          backdropFilter: "blur(8px)", // Apply blur effect to the background
+          backgroundColor: "rgba(0, 0, 0, 0.5)", // Add a semi-transparent dark overlay
+          zIndex: 1300, // Ensure it appears above other elements
+        }}
+      >
+        <Paper
+          elevation={6}
+          sx={{
+            padding: "40px",
+            display: "flex",
+            gap: "20px",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Box
+            sx={{
+              width: "200px",
+              height: "150px",
+              border: "2px solid var(--primary)",
+              borderRadius: "8px",
+              textAlign: "center",
+              padding: "20px",
+              cursor: "pointer",
+              "&:hover": {
+                backgroundColor: "rgba(var(--primary-rgb), 0.1)",
+              },
+            }}
+            onClick={() => handleOverlaySelection("template")}
+          >
+            <Typography variant="h5" gutterBottom>
+              <strong>Template</strong>
+            </Typography>
+            <Typography variant="body2">
+              Templated summaries can only be sent out as emails.
+            </Typography>
+          </Box>
+          <Box
+            sx={{
+              width: "200px",
+              height: "150px",
+              border: "2px solid var(--primary)",
+              borderRadius: "8px",
+              textAlign: "center",
+              padding: "20px",
+              cursor: "pointer",
+              "&:hover": {
+                backgroundColor: "rgba(var(--primary-rgb), 0.1)",
+              },
+            }}
+            onClick={() => handleOverlaySelection("no-template")}
+          >
+            <Typography variant="h5" gutterBottom>
+              <strong>No Template</strong>
+            </Typography>
+            <Typography variant="body2">
+              Non-templated summaries can be sent out as an email or posted to
+              social media.
+            </Typography>
+          </Box>
+        </Paper>
+      </Box>
+    );
+  }
 
   return (
     <Box

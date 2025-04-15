@@ -26,11 +26,8 @@ const Template1 = () => (
         borderBottom: "2px solid #000",
       }}
     >
-      <h1 style={{ margin: "0", fontSize: "36px", fontWeight: "bold" }}>
-        BUSINESS
-      </h1>
-      <h2 style={{ margin: "0", fontSize: "24px", fontWeight: "bold" }}>
-        NEWSLETTER
+      <h2 style={{ margin: "0", fontSize: "36px", fontWeight: "bold" }}>
+        BUSINESS NEWSLETTER
       </h2>
     </div>
     <div style={{ padding: "20px", backgroundColor: "#fff" }}>

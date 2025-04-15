@@ -23,12 +23,12 @@ const Template2 = () => (
           fontWeight: "bold",
         }}
       >
-        March 2025
+        April 2025
       </div>
     </div>
     <div style={{ textAlign: "center", padding: "20px 0" }}>
       <h1 style={{ fontSize: "36px", color: "#1B5E20", margin: "0" }}>
-        Your title
+        The Minimalist Movement
       </h1>
       <p style={{ fontSize: "14px", color: "#1B5E20", margin: "5px 0" }}>
         Official customer newsletter
@@ -36,9 +36,6 @@ const Template2 = () => (
     </div>
 
     <div style={{ padding: "20px 0" }}>
-      <h2 style={{ fontSize: "24px", color: "#1B5E20" }}>
-        The Minimalist Movement
-      </h2>
       <p className="par1" style={{ fontSize: "16px", color: "#1B5E20" }}>
         Company newsletters are essential in building relationships with your
         employees, customers or even prospective clients. Engaged and
@@ -55,38 +52,38 @@ const Template2 = () => (
         options are endless!
       </p>
     </div>
-    <div style={{ padding: "20px 0", backgroundColor: "#C8E6C9" }}>
-      <h3 style={{ fontSize: "18px", color: "#1B5E20" }}>
-        Your company socials
-      </h3>
-      <p style={{ fontSize: "16px", color: "#1B5E20", fontWeight: "bold" }}>
-        this month's issue:
+    <div
+      style={{
+        backgroundColor: "#C8E6C9",
+        color: "#fff",
+        padding: "10px",
+        textAlign: "center",
+      }}
+    >
+      <p style={{ margin: "0", fontSize: "12px" }}>Follow us on:</p>
+      <p style={{ margin: "0", fontSize: "12px" }}>
+        <a
+          href="https://facebook.com"
+          style={{ color: "#fff", margin: "0 5px" }}
+        >
+          Facebook
+        </a>{" "}
+        |
+        <a
+          href="https://twitter.com"
+          style={{ color: "#fff", margin: "0 5px" }}
+        >
+          Twitter
+        </a>{" "}
+        |
+        <a
+          href="https://linkedin.com"
+          style={{ color: "#fff", margin: "0 5px" }}
+        >
+          LinkedIn
+        </a>
       </p>
-      <p style={{ fontSize: "16px", color: "#1B5E20" }}>
-        THE SPRING COLOR PALETTE
-      </p>
-      <div
-        style={{
-          padding: "10px",
-          textAlign: "center",
-        }}
-      >
-        <p style={{ margin: "0", fontSize: "12px" }}>Follow us on:</p>
-        <p style={{ margin: "0", fontSize: "12px" }}>
-          <a href="https://facebook.com" style={{ margin: "0 5px" }}>
-            Facebook
-          </a>{" "}
-          |
-          <a href="https://twitter.com" style={{ margin: "0 5px" }}>
-            Twitter
-          </a>{" "}
-          |
-          <a href="https://linkedin.com" style={{ margin: "0 5px" }}>
-            LinkedIn
-          </a>
-        </p>
-        <p style={{ margin: "0", fontSize: "12px" }}>Footer information</p>
-      </div>
+      <p style={{ margin: "0", fontSize: "12px" }}>© 2025 SUMMIT</p>
     </div>
   </div>
 );

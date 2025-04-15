@@ -446,3 +446,47 @@ export const checkFavoriteStatus = async (summaryId) => {
     throw error.response?.data || { error: error.message };
   }
 };
+
+/**
+ * Search for news articles by category from TheNewsAPI
+ * @param {Array} categories - Array of category names (limit 2)
+ * @returns {Promise<Object>} - Articles response
+ */
+export const searchNewsArticles = async (categories) => {
+  try {
+    const response = await api.post('/api/news/search', { categories });
+    return response.data;
+  } catch (error) {
+    console.error('News article search failed:', error);
+    throw error.response?.data || { error: error.message };
+  }
+};
+
+/**
+ * Toggle favorite status for an article
+ * @param {Object} article - The article object to favorite/unfavorite
+ * @returns {Promise<Object>} - The response with updated favorite status
+ */
+export const toggleArticleFavorite = async (article) => {
+  try {
+    const response = await api.post('/api/news/favorite', { article });
+    return response.data;
+  } catch (error) {
+    console.error('Toggle article favorite failed:', error);
+    throw error.response?.data || { error: error.message };
+  }
+};
+
+/**
+ * Get all favorited articles for the current user
+ * @returns {Promise<Object>} - The favorited articles response
+ */
+export const getFavoriteArticles = async () => {
+  try {
+    const response = await api.get('/api/news/favorites');
+    return response.data;
+  } catch (error) {
+    console.error('Get favorite articles failed:', error);
+    throw error.response?.data || { error: error.message };
+  }
+};

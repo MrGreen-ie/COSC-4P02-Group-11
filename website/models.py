@@ -33,6 +33,8 @@ class User(db.Model, UserMixin):
     role = db.Column(db.String(50), default='free')  # Add role field with default value 'user'
     ai_summary_count = db.Column(db.Integer, default=0)
     subscribers = db.relationship('Subscriber', backref='user', lazy=True)
+    # Relationship with favorite articles
+    favorite_articles = db.relationship('FavoriteArticle', backref='user', lazy=True)
 
 
 # Social media post scheduling model
@@ -90,3 +92,30 @@ class Subscriber(db.Model):
     email = db.Column(db.String(150), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# News Article model
+class Article(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    uuid = db.Column(db.String(100), unique=True)  # TheNewsAPI unique identifier
+    title = db.Column(db.String(500), nullable=False)
+    description = db.Column(db.Text)
+    keywords = db.Column(db.String(500))
+    snippet = db.Column(db.Text)
+    url = db.Column(db.String(500), nullable=False)
+    image_url = db.Column(db.String(500))
+    language = db.Column(db.String(10))
+    source = db.Column(db.String(100))
+    categories = db.Column(db.String(200))  # Comma-separated list of categories
+    locale = db.Column(db.String(10))
+    published_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    favorites = db.relationship('FavoriteArticle', backref='article', lazy=True)
+
+# Favorite Article model
+class FavoriteArticle(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    article_id = db.Column(db.Integer, db.ForeignKey("article.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    # Prevent duplicate favorites
+    __table_args__ = (db.UniqueConstraint('user_id', 'article_id', name='unique_user_article'),)

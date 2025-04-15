@@ -6,7 +6,7 @@ import smtplib
 import uuid
 from flask import Blueprint, current_app, render_template, request, flash, jsonify, redirect, session, url_for
 from flask_login import login_required, current_user
-from .models import Note, User, ScheduledPost, SavedSummary, FavoriteSummary, Subscriber
+from .models import Note, User, ScheduledPost, SavedSummary, FavoriteSummary, Subscriber, Article, FavoriteArticle
 from . import db
 from .cache import redis_cache
 from .content_processor import process_content, preprocess_for_gemini
@@ -2163,3 +2163,118 @@ def delete_subscriber(id):
         db.session.rollback()
         print(f"Error deleting subscriber: {str(e)}")
         return jsonify({'error': 'An error occurred while deleting the subscriber.'}), 500
+
+# TheNewsAPI endpoint
+@views.route('/api/news/search', methods=['POST'])
+@login_required
+def search_news():
+    data = request.get_json()
+    categories = data.get('categories', [])
+    
+    if not categories or len(categories) > 2:
+        return jsonify({'error': 'Please provide 1-2 categories'}), 400
+        
+    # Call TheNewsAPI
+    articles = fetch_from_news_api(categories)
+    
+    return jsonify({'articles': articles})
+
+@views.route('/api/news/favorite', methods=['POST'])
+@login_required
+def toggle_article_favorite():
+    data = request.get_json()
+    article_data = data.get('article')
+    
+    if not article_data or not article_data.get('uuid'):
+        return jsonify({'error': 'Invalid article data'}), 400
+    
+    # Check if article exists in DB, if not create it
+    article = Article.query.filter_by(uuid=article_data['uuid']).first()
+    if not article:
+        article = Article(
+            uuid=article_data['uuid'],
+            title=article_data['title'],
+            description=article_data.get('description', ''),
+            keywords=article_data.get('keywords', ''),
+            snippet=article_data.get('snippet', ''),
+            url=article_data['url'],
+            image_url=article_data.get('image_url', ''),
+            language=article_data.get('language', ''),
+            source=article_data.get('source', ''),
+            categories=','.join(article_data.get('categories', [])),
+            locale=article_data.get('locale', ''),
+            published_at=datetime.fromisoformat(article_data.get('published_at', '').replace('Z', '+00:00'))
+            if article_data.get('published_at') else datetime.utcnow()
+        )
+        db.session.add(article)
+        db.session.commit()
+    
+    # Toggle favorite status
+    favorite = FavoriteArticle.query.filter_by(user_id=current_user.id, article_id=article.id).first()
+    
+    if favorite:
+        db.session.delete(favorite)
+        is_favorite = False
+    else:
+        favorite = FavoriteArticle(user_id=current_user.id, article_id=article.id)
+        db.session.add(favorite)
+        is_favorite = True
+        
+    db.session.commit()
+    
+    return jsonify({'success': True, 'is_favorite': is_favorite})
+
+@views.route('/api/news/favorites', methods=['GET'])
+@login_required
+def get_favorite_articles():
+    favorites = db.session.query(Article).join(FavoriteArticle).filter(
+        FavoriteArticle.user_id == current_user.id
+    ).all()
+    
+    articles = [{
+        'id': article.id,
+        'uuid': article.uuid,
+        'title': article.title,
+        'description': article.description,
+        'keywords': article.keywords,
+        'snippet': article.snippet,
+        'url': article.url,
+        'image_url': article.image_url,
+        'language': article.language,
+        'source': article.source,
+        'categories': article.categories.split(',') if article.categories else [],
+        'locale': article.locale,
+        'published_at': article.published_at.isoformat() if article.published_at else None,
+        'is_favorite': True
+    } for article in favorites]
+    
+    return jsonify({'favorites': articles})
+
+def fetch_from_news_api(categories):
+    api_key = os.environ.get('THE_NEWS_API_KEY')
+    articles = []
+    
+    # Convert our categories to TheNewsAPI categories
+    category_str = ','.join(categories)
+    
+    # Use the Headlines endpoint for top news by category
+    url = f"https://api.thenewsapi.com/v1/news/top?api_token={api_key}&categories={category_str}&language=en&limit=10"
+    
+    try:
+        response = requests.get(url)
+        
+        if response.status_code == 200:
+            data = response.json()
+            
+            # Check if articles were returned
+            if 'data' in data:
+                for article in data['data']:
+                    # Add is_favorite flag for UI (will be updated on client side)
+                    article['is_favorite'] = False
+                    articles.append(article)
+        else:
+            print(f"Error fetching from TheNewsAPI: {response.status_code} - {response.text}")
+    except Exception as e:
+        print(f"Error fetching from TheNewsAPI: {e}")
+    
+    return articles

@@ -43,7 +43,7 @@ def create_app():
     app.register_blueprint(auth, url_prefix="/")
 
     # check if the db has created before running the server
-    from .models import User, Note, ScheduledPost
+    from .models import User, Note, ScheduledPost, Article, FavoriteArticle
 
     # db function called
     with app.app_context():

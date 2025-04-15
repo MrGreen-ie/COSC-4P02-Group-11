@@ -352,7 +352,28 @@ const AISummary = () => {
         console.error('Error fetching user plan:', error);
       }
     };
+    console.log('Running first time setup for AISummary component');
     fetchUserPlan();
+
+    // Check if there's a tutorial flag in localStorage
+    const hasTutorial = localStorage.getItem('ai_summary_tutorial');
+    if (!hasTutorial) {
+      setShowTutorial(true);
+      localStorage.setItem('ai_summary_tutorial', 'seen');
+    }
+    
+    // Check if there's an article URL to summarize
+    const articleUrl = localStorage.getItem('articleToSummarize');
+    if (articleUrl) {
+      setUrl(articleUrl);
+      setInputTab(1); // Switch to URL tab
+      localStorage.removeItem('articleToSummarize'); // Clear after use
+      
+      // Auto-generate the summary if a URL is provided
+      setTimeout(() => {
+        handleGenerateSummary();
+      }, 500);
+    }
   }, []);
 
   useEffect(() => {

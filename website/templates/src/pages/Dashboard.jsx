@@ -155,11 +155,12 @@ const Dashboard = () => {
   const [plan, setPlan] = useState('Free');
   const [newsletterCount, setNewsletterCount] = useState(0);
   const [sentNewsletterCount, setSentNewsletterCount] = useState(0);
-  const [subscriberCount, setSubscriberCount] = useState(0); // New state for subscribers
+  const [subscriberCount, setSubscriberCount] = useState(0);
+  const [tweetCount, setTweetCount] = useState(0); // Added state for tweet count
   const [isAdmin, setIsAdmin] = useState(false);
   const [runTutorial, setRunTutorial] = useState(true);
 
-  // Fetch user info, newsletter count and sent newsletters count
+  // Fetch user info, newsletter count, sent newsletters count, subscribers, and tweet count
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
@@ -194,7 +195,6 @@ const Dashboard = () => {
       }
     };
 
-    // New function to fetch subscribers
     const fetchSubscribers = async () => {
       try {
         const response = await axios.get('/api/subscribers');
@@ -204,10 +204,20 @@ const Dashboard = () => {
       }
     };
 
+    const fetchTweetCount = async () => {
+      try {
+        const response = await axios.get('/api/tweets/count');
+        setTweetCount(response.data.count);
+      } catch (error) {
+        console.error('Error fetching tweet count:', error);
+      }
+    };
+
     fetchUserInfo();
     fetchNewsletterCount();
     fetchSentNewsletterCount();
     fetchSubscribers();
+    fetchTweetCount(); // Call tweet count function on mount
   }, []);
 
   const steps = [
@@ -238,12 +248,12 @@ const Dashboard = () => {
       : []),
   ];
 
-  // Update the analytics array dynamically
+  // Update the analytics array dynamically; "X Post" now uses tweetCount state
   const analytics = [
-    { title: 'Summary', value: newsletterCount.toLocaleString(), icon: <TrendingUpIcon />},
-    { title: 'X Post', value: '56', icon: <ArticleIcon />},
+    { title: 'Summary', value: newsletterCount.toLocaleString(), icon: <TrendingUpIcon /> },
+    { title: 'X Post', value: tweetCount.toLocaleString(), icon: <ArticleIcon /> },
     { title: 'Newsletter Post', value: sentNewsletterCount.toLocaleString(), icon: <PeopleIcon /> },
-    { title: 'Subscribers', value: subscriberCount.toLocaleString(), icon: <SpeedIcon />},
+    { title: 'Subscribers', value: subscriberCount.toLocaleString(), icon: <SpeedIcon /> },
   ];
 
   return (

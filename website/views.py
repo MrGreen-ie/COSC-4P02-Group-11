@@ -2278,3 +2278,14 @@ def fetch_from_news_api(categories):
         print(f"Error fetching from TheNewsAPI: {e}")
     
     return articles
+
+@views.route('/api/tweets/count', methods=['GET'])
+@login_required
+def get_tweet_count():
+    try:
+        # Fetch the tweet count from the database or Twitter API
+        tweet_count = ScheduledPost.query.filter_by(user_id=current_user.id).count()
+        return jsonify({'count': tweet_count}), 200
+    except Exception as e:
+        print(f"Error fetching tweet count: {str(e)}")
+        return jsonify({'error': 'Failed to fetch tweet count'}), 500

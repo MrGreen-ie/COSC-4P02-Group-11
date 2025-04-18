@@ -71,6 +71,10 @@ def create_app():
     global scheduler
     scheduler = init_scheduler(app)
 
+    # Initialize the newsletter scheduler
+    from .newsletter_scheduler import init_newsletter_scheduler
+    init_newsletter_scheduler(app)
+
     return app
 
 

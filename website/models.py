@@ -64,7 +64,8 @@ class SavedSummary(db.Model):
     tone = db.Column(db.String(50))
     length = db.Column(db.Integer)
     created_at = db.Column(db.DateTime(timezone=True), default=func.now())
-    sent_at = db.Column(db.DateTime(timezone=True), nullable=True)  # Add this line
+    sent_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    scheduled_time = db.Column(db.DateTime(timezone=True), nullable=True)  # Add this line
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
 
 
@@ -119,3 +120,13 @@ class FavoriteArticle(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     # Prevent duplicate favorites
     __table_args__ = (db.UniqueConstraint('user_id', 'article_id', name='unique_user_article'),)
+
+# Newsletter Scheduling model
+class ScheduledNewsletter(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    newsletter_id = db.Column(db.Integer, db.ForeignKey("saved_summary.id"), nullable=False)
+    recipient_email = db.Column(db.String(150), nullable=False)
+    scheduled_time = db.Column(db.DateTime(timezone=True), nullable=False)
+    status = db.Column(db.String(50), default="scheduled")
+    error_message = db.Column(db.String(500), nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), default=func.now())

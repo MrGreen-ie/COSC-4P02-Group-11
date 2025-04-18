@@ -20,11 +20,13 @@ import {
   Delete as DeleteIcon,
   Send as SendIcon,
   Analytics as AnalyticsIcon,
+  Schedule as ScheduleIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import EditModal from '../components/EditModal';
 import SendModal from '../components/SendModal';
+
 
 const Newsletters = () => {
   const [newsletters, setNewsletters] = useState([]);
@@ -34,6 +36,9 @@ const Newsletters = () => {
   const [isSendModalOpen, setIsSendModalOpen] = useState(false);
   const [plan, setPlan] = useState('Free'); // Default to 'Free', update based on user session
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState(new Date());
+  const [selectedNewsletterForSchedule, setSelectedNewsletterForSchedule] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -77,37 +82,6 @@ const Newsletters = () => {
     }
   };
 
-  const handleAddNewsletter = async () => {
-    try {
-      console.log("Current role:", plan);
-      
-      // Check if user is on the Free plan
-      const isFreeUser = String(plan).toLowerCase() === 'free';
-
-      if (isFreeUser && newsletters.length >= 5) {
-        const oldestNewsletter = newsletters[0];
-        await axios.delete(`/api/newsletter/${oldestNewsletter.id}`);
-        setNewsletters(prev => prev.slice(1));
-      }
-
-  
-      // Create new newsletter
-      const newNewsletter = {
-        id: Date.now(), // Temporary ID
-        headline: 'New Newsletter',
-        summary: 'This is a new newsletter summary.',
-        created_at: new Date().toISOString(),
-      };
-  
-      const response = await axios.post('/api/newsletter', newNewsletter);
-      setNewsletters(prev => [...prev, response.data]);
-  
-    } catch (error) {
-      console.error('Error adding newsletter:', error);
-    }
-  };
-  
-
   const handleEdit = (newsletter) => {
     setSelectedNewsletter(newsletter);
     setIsEditModalOpen(true);
@@ -116,6 +90,26 @@ const Newsletters = () => {
   const handleSend = (newsletter) => {
     setSelectedNewsletter(newsletter);
     setIsSendModalOpen(true);
+  };
+
+  const handleSchedule = (newsletter) => {
+    setSelectedNewsletterForSchedule(newsletter);
+    setIsScheduleModalOpen(true);
+  };
+
+  const handleScheduleSubmit = async () => {
+    try {
+      console.log("Submitting Scheduled Date:", scheduleDate); // Debugging log
+      const response = await axios.post('/api/newsletter/schedule', {
+        newsletter_id: selectedNewsletterForSchedule.id,
+        scheduled_time: scheduleDate.toISOString(), // Ensure this is in ISO format
+      });
+      setNotification({ open: true, message: 'Newsletter scheduled successfully', severity: 'success' });
+      setIsScheduleModalOpen(false);
+    } catch (error) {
+      console.error('Error scheduling newsletter:', error);
+      setNotification({ open: true, message: 'Error scheduling newsletter', severity: 'error' });
+    }
   };
 
   const handleSave = (updatedNewsletter) => {
@@ -269,6 +263,8 @@ const Newsletters = () => {
           onSend={handleSendComplete}
         />
       )}
+
+  
 
       <Snackbar
         open={notification.open}

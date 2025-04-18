@@ -6,7 +6,7 @@ import smtplib
 import uuid
 from flask import Blueprint, current_app, render_template, request, flash, jsonify, redirect, session, url_for
 from flask_login import login_required, current_user
-from .models import Note, User, ScheduledPost, SavedSummary, FavoriteSummary, Subscriber, Article, FavoriteArticle
+from .models import Note, User, ScheduledPost, SavedSummary, FavoriteSummary, Subscriber, Article, FavoriteArticle, ScheduledNewsletter
 from . import db
 from .cache import redis_cache
 from .content_processor import process_content, preprocess_for_gemini
@@ -295,7 +295,48 @@ def add_to_newsletter():
     except Exception as e:
         print(f"Error adding to newsletter: {str(e)}")
         return jsonify({'error': 'An unexpected error occurred while adding to the newsletter.'}), 500
-    
+
+@views.route('/api/newsletter/schedule', methods=['POST'])
+@login_required
+def schedule_newsletter():
+    try:
+        data = request.get_json()
+        newsletter_id = data.get('newsletter_id')
+        scheduled_time = data.get('scheduled_time')
+        recipients = data.get('recipients', [])
+
+        print(f"Newsletter ID: {newsletter_id}")  # Debugging log
+        print(f"Scheduled Time: {scheduled_time}")  # Debugging log
+        print(f"Recipients: {recipients}")  # Debugging log
+
+        if not newsletter_id or not scheduled_time or not recipients:
+            return jsonify({'error': 'Newsletter ID, scheduled time, and recipients are required.'}), 400
+
+        # Convert scheduled_time to a naive datetime in UTC
+        scheduled_time = datetime.fromisoformat(scheduled_time)
+        if scheduled_time.tzinfo is not None:
+            scheduled_time = scheduled_time.astimezone(pytz.utc).replace(tzinfo=None)
+
+        # Compare with the current UTC time
+        if scheduled_time < datetime.utcnow():
+            return jsonify({'error': 'Cannot schedule a time in the past.'}), 400
+
+        # Create a ScheduledNewsletter entry for each recipient
+        for recipient in recipients:
+            print(f"Scheduling for recipient: {recipient}")  # Debugging log
+            scheduled_newsletter = ScheduledNewsletter(
+                newsletter_id=newsletter_id,
+                recipient_email=recipient,
+                scheduled_time=scheduled_time,
+            )
+            db.session.add(scheduled_newsletter)
+
+        db.session.commit()
+        return jsonify({'message': 'Newsletter scheduled successfully!'}), 200
+
+    except Exception as e:
+        print(f"Error scheduling newsletter: {str(e)}")  # Debugging log
+        return jsonify({'error': 'Failed to schedule newsletter.'}), 500
 
 
 # Twitter API routes

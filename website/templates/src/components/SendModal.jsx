@@ -1,52 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Box, Typography, TextField, Button, List, ListItem, FormControlLabel, Checkbox, IconButton, Snackbar, Alert } from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
+import { Modal, Box, Typography, TextField, Button, Snackbar, Alert, Checkbox, FormControlLabel, List, ListItem, ListItemText } from '@mui/material';
 import axios from 'axios';
 
 const SendModal = ({ open, handleClose, newsletter, onSend }) => {
-  const [subscribers, setSubscribers] = useState([]);
-  const [selectedEmails, setSelectedEmails] = useState([]);
   const [manualEmail, setManualEmail] = useState('');
+  const [selectedEmails, setSelectedEmails] = useState([]);
+  const [subscribers, setSubscribers] = useState([]);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
 
-  // Reset manualEmail and selectedEmails when modal opens.
   useEffect(() => {
     if (open) {
-      setManualEmail('');
-      setSelectedEmails([]);
-      axios.get('/api/subscribers')
-        .then(response => {
-          setSubscribers(response.data.subscribers || []);
-        })
-        .catch(error => {
-          console.error('Error fetching subscribers:', error);
-        });
+      fetchSubscribers();
     }
   }, [open]);
 
-  const handleCheckboxChange = (email) => {
-    setSelectedEmails(prev => {
+  const fetchSubscribers = async () => {
+    try {
+      const response = await axios.get('/api/subscribers');
+      if (response.data && response.data.subscribers) {
+        setSubscribers(response.data.subscribers);
+      }
+    } catch (error) {
+      console.error('Error fetching subscribers:', error);
+    }
+  };
+
+  const handleToggleSubscriber = (email) => {
+    setSelectedEmails((prev) => {
       if (prev.includes(email)) {
-        return prev.filter(e => e !== email);
+        return prev.filter((e) => e !== email);
       } else {
         return [...prev, email];
       }
     });
-  };
-
-  const handleDeleteSubscriber = async (subscriberId) => {
-    try {
-      await axios.delete(`/api/subscribers/${subscriberId}`);
-      // Update local state by filtering out the deleted subscriber.
-      setSubscribers(prev => prev.filter(sub => sub.id !== subscriberId));
-      // Also remove from selectedEmails if present.
-      setSelectedEmails(prev => prev.filter(email => {
-        const sub = subscribers.find(s => s.id === subscriberId);
-        return sub ? sub.email !== email : true;
-      }));
-    } catch (error) {
-      console.error('Error deleting subscriber:', error);
-    }
   };
 
   const handleSend = async () => {
@@ -57,12 +43,24 @@ const SendModal = ({ open, handleClose, newsletter, onSend }) => {
       }
       recipients = [...new Set(recipients)];
 
-      await axios.post('/api/newsletter/subscribe', {
+      // Prepare the payload
+      const payload = {
         recipients,
         subject: newsletter.headline,
-        body: newsletter.summary,
+        body: newsletter.content,
         newsletter_id: newsletter.id,
-      });
+      };
+      
+      // Add section data for Template3
+      if (newsletter.template_id === 2) {
+        payload.isTemplate3 = true;
+        payload.section1 = newsletter.section1 || '';
+        payload.section2 = newsletter.section2 || '';
+        payload.section3 = newsletter.section3 || '';
+      }
+      
+      // Send the newsletter
+      await axios.post('/api/newsletter/send', payload);
       
       // Show success notification
       setSnackbarOpen(true);
@@ -78,56 +76,80 @@ const SendModal = ({ open, handleClose, newsletter, onSend }) => {
   return (
     <>
       <Modal open={open} onClose={handleClose}>
-        <Box sx={{ p: 4, backgroundColor: 'white', margin: 'auto', mt: 40, width: 400 }}>
-          <Typography variant="h6" component="h2">
+        <Box sx={{ 
+          p: 4, 
+          backgroundColor: 'white', 
+          margin: 'auto', 
+          mt: '10%', 
+          width: '80%', 
+          maxWidth: '600px',
+          maxHeight: '80vh',
+          overflowY: 'auto',
+          borderRadius: 1,
+        }}>
+          <Typography variant="h6" component="h2" gutterBottom>
             Send Newsletter
           </Typography>
+          
           <TextField
             fullWidth
             label="Recipient Email (manual entry)"
             value={manualEmail}
             onChange={(e) => setManualEmail(e.target.value)}
-            sx={{ mt: 2 }}
+            sx={{ mt: 2, mb: 2 }}
           />
-          <Typography variant="subtitle1" sx={{ mt: 2 }}>
-            Or select from your subscriber list:
-          </Typography>
-          <List sx={{ maxHeight: 200, overflowY: 'auto' }}>
-            {subscribers.map((subscriber) => (
-              <ListItem key={subscriber.id} disablePadding
-                secondaryAction={
-                  <IconButton edge="end" onClick={() => handleDeleteSubscriber(subscriber.id)}>
-                    <DeleteIcon />
-                  </IconButton>
-                }
-              >
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={selectedEmails.includes(subscriber.email)}
-                      onChange={() => handleCheckboxChange(subscriber.email)}
+          
+          {subscribers.length > 0 ? (
+            <>
+              <Typography variant="subtitle1" gutterBottom>
+                Select from your subscriber list:
+              </Typography>
+              <List sx={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #eee', borderRadius: 1 }}>
+                {subscribers.map((subscriber) => (
+                  <ListItem key={subscriber.email} dense>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={selectedEmails.includes(subscriber.email)}
+                          onChange={() => handleToggleSubscriber(subscriber.email)}
+                        />
+                      }
+                      label={<ListItemText primary={subscriber.email} />}
                     />
-                  }
-                  label={subscriber.email}
-                />
-              </ListItem>
-            ))}
-          </List>
-          <Button variant="contained" color="primary" onClick={handleSend} sx={{ mt: 2 }}>
-            Send
-          </Button>
+                  </ListItem>
+                ))}
+              </List>
+            </>
+          ) : (
+            <Typography variant="body2" color="textSecondary" sx={{ mt: 2, mb: 2 }}>
+              No subscribers found. Add some subscribers first or use manual entry.
+            </Typography>
+          )}
+          
+          <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between' }}>
+            <Button variant="outlined" onClick={handleClose}>
+              Cancel
+            </Button>
+            <Button 
+              variant="contained" 
+              color="primary" 
+              onClick={handleSend}
+              disabled={selectedEmails.length === 0 && manualEmail.trim() === ''}
+            >
+              Send Newsletter
+            </Button>
+          </Box>
         </Box>
       </Modal>
       
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={1500}
+      <Snackbar 
+        open={snackbarOpen} 
+        autoHideDuration={6000} 
         onClose={() => setSnackbarOpen(false)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        sx={{ bottom: 30 }}
       >
-        <Alert onClose={() => setSnackbarOpen(false)} severity="success" sx={{ width: '100%' }}>
-          Email sent successfully!
+        <Alert onClose={() => setSnackbarOpen(false)} severity="success" variant="filled">
+          Newsletter sent successfully!
         </Alert>
       </Snackbar>
     </>

@@ -6,7 +6,7 @@ import smtplib
 import uuid
 from flask import Blueprint, current_app, render_template, request, flash, jsonify, redirect, session, url_for
 from flask_login import login_required, current_user
-from .models import Note, User, ScheduledPost, SavedSummary, FavoriteSummary, Subscriber, Article, FavoriteArticle
+from .models import Note, User, ScheduledPost, SavedSummary, FavoriteSummary, Subscriber, Article, FavoriteArticle, SavedTemplate
 from . import db
 from .cache import redis_cache
 from .content_processor import process_content, preprocess_for_gemini
@@ -31,6 +31,10 @@ from .models import db, SavedContent
 from flask_login import login_required, current_user
 from datetime import datetime, timedelta
 from functools import wraps
+from flask_mail import Message
+from sqlalchemy import func, extract
+from flask import current_app
+from . import db, mail  # Import mail along with db
 
 
 # for environment variables
@@ -73,124 +77,6 @@ EMAIL_ADDRESS = os.getenv('EMAIL_ADDRESS')
 EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD')
 
 # Email/Newsletter API routes
-@views.route('/api/newsletter/subscribe', methods=['POST'])
-@login_required
-def send_email():
-    data = request.get_json()
-    recipients = data.get('recipients')  # List of emails
-    subject = data.get('subject')
-    body = data.get('body')
-    newsletter_id = data.get('newsletter_id')
-
-    if not recipients or not isinstance(recipients, list):
-        return jsonify({'error': 'A valid recipients list is required.'}), 400
-
-    sent_messages = []
-    for recipient in recipients:
-        if not recipient:
-            continue
-        # Ensure subscriber exists (or add it)
-        subscriber = Subscriber.query.filter_by(user_id=current_user.id, email=recipient).first()
-        if not subscriber:
-            new_subscriber = Subscriber(email=recipient, user_id=current_user.id)
-            db.session.add(new_subscriber)
-            db.session.commit()
-
-        msg = MIMEText(body)
-        msg['Subject'] = subject
-        msg['From'] = 'cosc.4p02.summit@gmail.com'
-        msg['To'] = recipient
-
-        try:
-            with smtplib.SMTP('smtp.gmail.com', 587) as server:
-                server.starttls()
-                server.login('cosc.4p02.summit@gmail.com', 'kght ejuo omgw oqru')
-                server.sendmail('cosc.4p02.summit@gmail.com', recipient, msg.as_string())
-            sent_messages.append(recipient)
-        except Exception as e:
-            print(f"Error sending email to {recipient}: {str(e)}")
-
-    # Mark the newsletter as sent by updating its sent_at timestamp.
-    newsletter = SavedSummary.query.get(newsletter_id)
-    if newsletter:
-        newsletter.sent_at = datetime.utcnow()
-        db.session.commit()
-
-    # Optionally, recalculate the sent count here and return it.
-    now = datetime.utcnow()
-    start_of_month = datetime(now.year, now.month, 1)
-    end_of_month = datetime(now.year, now.month + 1, 1) if now.month < 12 else datetime(now.year + 1, 1, 1)
-    sent_count = SavedSummary.query.filter(
-        SavedSummary.user_id == current_user.id,
-        SavedSummary.sent_at >= start_of_month,
-        SavedSummary.sent_at < end_of_month
-    ).count()
-
-    return jsonify({
-        'message': 'Email sent successfully',
-        'sent_to': sent_messages,
-        'sent_this_month': sent_count  # Return the updated count
-    }), 200
-
-@views.route('/newsletter', methods=['GET'])
-@login_required
-def newsletter():
-    try:
-        # Fetch all saved summaries for the current user
-        summaries = SavedSummary.query.filter_by(user_id=current_user.id).order_by(SavedSummary.created_at.desc()).all()
-        
-        # Render the newsletter template with the summaries
-        return render_template('newsletter.html', summaries=summaries)
-    except Exception as e:
-        print(f"Error fetching summaries for newsletter: {str(e)}")
-        return jsonify({'error': 'An unexpected error occurred while fetching summaries.'}), 500
-
-@views.route('/api/newsletter', methods=['GET'])
-@login_required
-def get_newsletters():
-    try:
-        # Fetch all saved summaries for the current user
-        summaries = SavedSummary.query.filter_by(user_id=current_user.id).order_by(SavedSummary.created_at.desc()).all()
-        
-        # Convert summaries to a list of dictionaries
-        summaries_list = [{
-            'id': summary.id,
-            'headline': summary.headline,
-            'summary': summary.summary,
-            'tags': summary.tags,
-            'tone': summary.tone,
-            'length': summary.length,
-            'created_at': summary.created_at.isoformat()
-        } for summary in summaries]
-        
-        return jsonify({'summaries': summaries_list})
-    except Exception as e:
-        print(f"Error fetching summaries for newsletter: {str(e)}")
-        return jsonify({'error': 'An unexpected error occurred while fetching summaries.'}), 500
-    
-@views.route('/api/save-content', methods=['POST'])
-@login_required
-def save_content():
-    try:
-        data = request.get_json()
-        content = data.get('content')
-        
-        if not content:
-            return jsonify({'error': 'Content is required'}), 400
-        
-        new_content = SavedContent(
-            content=content,
-            user_id=current_user.id
-        )
-        
-        db.session.add(new_content)
-        db.session.commit()
-        
-        return jsonify({'success': 'Content saved successfully', 'content_id': new_content.id})
-    except Exception as e:
-        print(f"Error saving content: {str(e)}")
-        return jsonify({'error': 'An unexpected error occurred while saving the content.'}), 500
-
 @views.route('/api/newsletter/<int:id>', methods=['PUT'])
 @login_required
 def update_newsletter(id):
@@ -2278,3 +2164,471 @@ def fetch_from_news_api(categories):
         print(f"Error fetching from TheNewsAPI: {e}")
     
     return articles
+
+@views.route('/api/template/save', methods=['POST'])
+@login_required
+def save_template():
+    try:
+        data = request.get_json()
+        print(f"Template save request received - Data keys: {data.keys()}")
+        
+        # Extract fields with type checking
+        template_id = data.get('template_id')
+        template_name = data.get('template_name')
+        summary_id = data.get('summary_id')
+        headline = data.get('headline')
+        content = data.get('content')
+        
+        # Extract Template3 specific fields if present
+        section1 = data.get('section1', '')
+        section2 = data.get('section2', '')
+        section3 = data.get('section3', '')
+        
+        # Extract Template6 specific fields if present
+        content_left = data.get('content_left', '')
+        content_right = data.get('content_right', '')
+        
+        # Convert template_id to int if possible
+        try:
+            if template_id is not None:
+                template_id = int(template_id)
+        except (ValueError, TypeError):
+            print(f"Error: template_id '{template_id}' is not a valid integer")
+            return jsonify({'error': 'template_id must be a valid integer'}), 400
+            
+        # Convert summary_id to int if possible
+        try:
+            if summary_id is not None:
+                summary_id = int(summary_id)
+        except (ValueError, TypeError):
+            print(f"Error: summary_id '{summary_id}' is not a valid integer")
+            return jsonify({'error': 'summary_id must be a valid integer'}), 400
+        
+        # Log received fields for debugging
+        print(f"Template save fields: template_id={template_id}, template_name={template_name}, summary_id={summary_id}")
+        print(f"Headline present: {headline is not None}, Content present: {content is not None}")
+        
+        # More detailed logging for Template3 sections
+        if template_id == 2:
+            print(f"Template3 sections received:")
+            print(f"  section1: length={len(section1) if section1 else 0}, type={type(section1)}")
+            print(f"  section2: length={len(section2) if section2 else 0}, type={type(section2)}")
+            print(f"  section3: length={len(section3) if section3 else 0}, type={type(section3)}")
+            
+            # Ensure sections are strings for Template3
+            if section1 is None:
+                section1 = ''
+            elif not isinstance(section1, str):
+                section1 = str(section1)
+                
+            if section2 is None:
+                section2 = ''
+            elif not isinstance(section2, str):
+                section2 = str(section2)
+                
+            if section3 is None:
+                section3 = ''
+            elif not isinstance(section3, str):
+                section3 = str(section3)
+                
+            print(f"Normalized Template3 sections:")
+            print(f"  section1: length={len(section1)}, type={type(section1)}")
+            print(f"  section2: length={len(section2)}, type={type(section2)}")
+            print(f"  section3: length={len(section3)}, type={type(section3)}")
+        
+        # More detailed logging for Template6 columns
+        if template_id == 5:
+            print(f"Template6 columns received:")
+            print(f"  content_left: length={len(content_left) if content_left else 0}, type={type(content_left)}")
+            print(f"  content_right: length={len(content_right) if content_right else 0}, type={type(content_right)}")
+            
+            # Ensure columns are strings for Template6
+            if content_left is None:
+                content_left = ''
+            elif not isinstance(content_left, str):
+                content_left = str(content_left)
+                
+            if content_right is None:
+                content_right = ''
+            elif not isinstance(content_right, str):
+                content_right = str(content_right)
+                
+            print(f"Normalized Template6 columns:")
+            print(f"  content_left: length={len(content_left)}, type={type(content_left)}")
+            print(f"  content_right: length={len(content_right)}, type={type(content_right)}")
+        
+        # Validate required fields
+        if template_id is None or summary_id is None or not headline or not content:
+            missing_fields = []
+            if template_id is None: missing_fields.append('template_id')
+            if summary_id is None: missing_fields.append('summary_id')  
+            if not headline: missing_fields.append('headline')
+            if not content: missing_fields.append('content')
+            
+            print(f"Missing required fields: {', '.join(missing_fields)}")
+            return jsonify({'error': f"Missing required fields: {', '.join(missing_fields)}"}), 400
+
+        # Check if the summary exists and belongs to the user
+        summary = SavedSummary.query.get(summary_id)
+        if not summary or summary.user_id != current_user.id:
+            print(f"Summary not found or unauthorized: ID={summary_id}, exists={summary is not None}")
+            return jsonify({'error': 'Summary not found or unauthorized'}), 404
+            
+        # Create new template with basic fields
+        try:
+            new_template = SavedTemplate(
+                template_id=template_id,
+                template_name=template_name,
+                summary_id=summary_id,
+                headline=headline,
+                content=content,
+                user_id=current_user.id
+            )
+            
+            # Add Template3 specific fields if this is Template3
+            if template_id == 2:  # Template3 ID
+                new_template.section1 = section1
+                new_template.section2 = section2
+                new_template.section3 = section3
+                print(f"Added Template3 sections: section1_len={len(section1)}, " +
+                      f"section2_len={len(section2)}, section3_len={len(section3)}")
+            
+            # Add Template6 specific fields if this is Template6
+            if template_id == 5:  # Template6 ID
+                new_template.content_left = content_left
+                new_template.content_right = content_right
+                print(f"Added Template6 columns: content_left_len={len(content_left)}, " +
+                      f"content_right_len={len(content_right)}")
+            
+            db.session.add(new_template)
+            db.session.commit()
+            print(f"Template saved successfully with ID: {new_template.id}")
+            
+            return jsonify({
+                'success': True,
+                'message': 'Template saved successfully',
+                'template': {
+                    'id': new_template.id,
+                    'template_id': new_template.template_id,
+                    'template_name': new_template.template_name,
+                    'summary_id': new_template.summary_id,
+                    'headline': new_template.headline,
+                    'created_at': new_template.created_at.isoformat()
+                }
+            }), 201
+            
+        except Exception as db_error:
+            print(f"Database error while creating template: {str(db_error)}")
+            import traceback
+            traceback.print_exc()
+            db.session.rollback()
+            return jsonify({'error': f"Database error: {str(db_error)}"}), 500
+        
+    except Exception as e:
+        print(f"Error saving template: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        db.session.rollback()
+        return jsonify({'error': 'An unexpected error occurred while saving the template.'}), 500
+
+@views.route('/api/template/saved', methods=['GET'])
+@login_required
+def get_saved_templates():
+    try:
+        # Fetch all saved templates for the current user
+        templates = SavedTemplate.query.filter_by(user_id=current_user.id).order_by(SavedTemplate.created_at.desc()).all()
+        
+        # Convert templates to a list of dictionaries
+        templates_list = []
+        for template in templates:
+            template_dict = {
+                'id': template.id,
+                'template_id': template.template_id,
+                'template_name': template.template_name,
+                'summary_id': template.summary_id,
+                'headline': template.headline,
+                'content': template.content,
+                'created_at': template.created_at.isoformat()
+            }
+            
+            # Add Template3 specific fields if this is Template3
+            if template.template_id == 2:  # Template3 ID
+                template_dict['section1'] = template.section1
+                template_dict['section2'] = template.section2
+                template_dict['section3'] = template.section3
+            
+            # Add Template6 specific fields if this is Template6
+            if template.template_id == 5:  # Template6 ID
+                template_dict['content_left'] = template.content_left
+                template_dict['content_right'] = template.content_right
+                
+            templates_list.append(template_dict)
+        
+        return jsonify({'templates': templates_list})
+    except Exception as e:
+        print(f"Error fetching saved templates: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred while fetching templates.'}), 500
+
+@views.route('/api/template/<int:id>', methods=['DELETE'])
+@login_required
+def delete_template(id):
+    try:
+        template = SavedTemplate.query.get_or_404(id)
+        if template.user_id != current_user.id:
+            return jsonify({'error': 'Unauthorized access'}), 403
+
+        db.session.delete(template)
+        db.session.commit()
+        return jsonify({'success': 'Template deleted successfully'})
+    except Exception as e:
+        print(f"Error deleting template: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred while deleting the template.'}), 500
+
+@views.route('/api/template/<int:id>', methods=['PUT'])
+@login_required
+def update_template(id):
+    try:
+        # Get the template to update
+        template = SavedTemplate.query.get_or_404(id)
+        
+        # Ensure the user owns this template
+        if template.user_id != current_user.id:
+            return jsonify({'error': 'Unauthorized access to this template'}), 403
+            
+        # Get request data
+        data = request.get_json()
+        print(f"Template update request received - Data keys: {data.keys()}")
+        
+        # Update fields
+        if 'headline' in data:
+            template.headline = data['headline']
+        if 'content' in data:
+            template.content = data['content']
+            
+        # Update Template3 specific fields
+        if template.template_id == 2:  # Template3 ID
+            if 'section1' in data:
+                template.section1 = data['section1']
+            if 'section2' in data:
+                template.section2 = data['section2']
+            if 'section3' in data:
+                template.section3 = data['section3']
+                
+        # Update Template6 specific fields
+        if template.template_id == 5:  # Template6 ID
+            if 'content_left' in data:
+                template.content_left = data['content_left']
+            if 'content_right' in data:
+                template.content_right = data['content_right']
+                
+        # Save changes
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Template updated successfully',
+            'template': {
+                'id': template.id,
+                'template_id': template.template_id,
+                'template_name': template.template_name,
+                'summary_id': template.summary_id,
+                'headline': template.headline,
+                'content': template.content,
+                'section1': template.section1 if template.template_id == 2 else None,
+                'section2': template.section2 if template.template_id == 2 else None,
+                'section3': template.section3 if template.template_id == 2 else None,
+                'content_left': template.content_left if template.template_id == 5 else None,
+                'content_right': template.content_right if template.template_id == 5 else None,
+                'created_at': template.created_at.isoformat()
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"Error updating template: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        db.session.rollback()
+        return jsonify({'error': 'An unexpected error occurred while updating the template.'}), 500
+
+@views.route('/api/newsletter/send', methods=['POST'])
+@login_required
+def send_newsletter():
+    """Send a newsletter to recipients via email"""
+    try:
+        print("Starting send_newsletter function")
+        data = request.json
+        print(f"Received data: {data}")
+        
+        # Validate required fields
+        if not data or not data.get('recipients') or not data.get('newsletter_id'):
+            print("Missing required fields in request")
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        recipients = data.get('recipients', [])
+        newsletter_id = data.get('newsletter_id')
+        subject = data.get('subject', 'Newsletter')
+        
+        print(f"Processing newsletter_id: {newsletter_id}, recipients: {recipients}")
+        
+        # Fetch the template
+        template = SavedTemplate.query.filter_by(id=newsletter_id).first()
+        if not template:
+            print(f"Template with ID {newsletter_id} not found")
+            return jsonify({'error': 'Template not found'}), 404
+        
+        print(f"Found template: {template.id}, template_id: {template.template_id}, headline: {template.headline}")
+        
+        # Determine the content based on template type
+        body = template.content
+        
+        # Get current year for copyright notices
+        current_year = datetime.now().year
+        
+        # Get the appropriate template HTML based on template_id
+        template_html = ''
+        
+        # Print available template paths
+        template_dir = os.path.join(current_app.root_path, 'templates', 'email')
+        print(f"Looking for email templates in: {template_dir}")
+        if os.path.exists(template_dir):
+            print(f"Available templates: {os.listdir(template_dir)}")
+        else:
+            print(f"Email template directory not found: {template_dir}")
+            # Create the directory if it doesn't exist
+            os.makedirs(template_dir, exist_ok=True)
+            print(f"Created email template directory: {template_dir}")
+        
+        try:
+            if template.template_id == 0:  # Business Template
+                print("Rendering template1.html")
+                template_html = render_template('email/template1.html', 
+                                            headline=template.headline, 
+                                            content=body,
+                                            year=current_year)
+            elif template.template_id == 1:  # Modern Green
+                print("Rendering template2.html")
+                template_html = render_template('email/template2.html', 
+                                            headline=template.headline, 
+                                            content=body,
+                                            year=current_year)
+            elif template.template_id == 2:  # Grid Layout (Template3)
+                # For Template3, use the section content if available
+                section1 = template.section1 or ''
+                section2 = template.section2 or ''
+                section3 = template.section3 or ''
+                
+                print(f"Rendering template3.html with sections: {bool(section1)}, {bool(section2)}, {bool(section3)}")
+                template_html = render_template('email/template3.html', 
+                                            headline=template.headline,
+                                            section1=section1,
+                                            section2=section2,
+                                            section3=section3,
+                                            year=current_year)
+            elif template.template_id == 3:  # Aqua Breeze
+                print("Rendering template4.html")
+                template_html = render_template('email/template4.html', 
+                                            headline=template.headline, 
+                                            content=body,
+                                            year=current_year)
+            elif template.template_id == 4:  # Vibrant Purple
+                print("Rendering template5.html")
+                template_html = render_template('email/template5.html', 
+                                            headline=template.headline, 
+                                            content=body,
+                                            year=current_year)
+            elif template.template_id == 5:  # Dual Column
+                # For Template6, use the column content if available
+                content_left = template.content_left or ''
+                content_right = template.content_right or ''
+                
+                print(f"Rendering template6.html with columns: {bool(content_left)}, {bool(content_right)}")
+                template_html = render_template('email/template6.html', 
+                                            headline=template.headline,
+                                            content_left=content_left,
+                                            content_right=content_right,
+                                            year=current_year)
+            else:
+                # Default plain text template
+                print("Rendering default.html")
+                template_html = render_template('email/default.html', 
+                                            headline=template.headline, 
+                                            content=body,
+                                            year=current_year)
+            
+            print(f"Successfully rendered template. HTML length: {len(template_html)}")
+        except Exception as template_error:
+            print(f"Error rendering template: {str(template_error)}")
+            # Fallback to basic HTML template
+            template_html = f"""
+            <html>
+                <body>
+                    <h1>{template.headline}</h1>
+                    <div>{body}</div>
+                </body>
+            </html>
+            """
+            print("Using fallback HTML template")
+        
+        # Check mail configuration
+        print(f"Mail configuration: Server={current_app.config.get('MAIL_SERVER')}, Port={current_app.config.get('MAIL_PORT')}")
+        print(f"Username: {current_app.config.get('MAIL_USERNAME')}, Sender: {current_app.config.get('MAIL_DEFAULT_SENDER')}")
+        
+        # Send emails to all recipients
+        successful_sends = 0
+        failed_sends = 0
+        
+        if not mail:
+            print("Warning: mail object is not initialized")
+            return jsonify({'error': 'Email service is not configured properly'}), 500
+        
+        for recipient in recipients:
+            try:
+                print(f"Sending email to {recipient}")
+                # Send email using Flask-Mail
+                msg = Message(
+                    subject=subject,
+                    recipients=[recipient],
+                    html=template_html,
+                    sender=current_app.config['MAIL_DEFAULT_SENDER']
+                )
+                mail.send(msg)
+                successful_sends += 1
+                print(f"Successfully sent email to {recipient}")
+            except Exception as e:
+                failed_sends += 1
+                print(f"Error sending to {recipient}: {str(e)}")
+        
+        # Update the sent_at timestamp for the associated summary
+        if template.summary:
+            print(f"Updating sent_at timestamp for summary ID: {template.summary.id}")
+            template.summary.sent_at = func.now()
+            db.session.commit()
+            print("Successfully updated sent_at timestamp")
+        else:
+            print("Template has no associated summary")
+        
+        # Get the current month's sent count
+        current_month = datetime.now().month
+        current_year = datetime.now().year
+        try:
+            sent_count = SavedSummary.query.filter(
+                extract('month', SavedSummary.sent_at) == current_month,
+                extract('year', SavedSummary.sent_at) == current_year,
+                SavedSummary.user_id == current_user.id
+            ).count()
+            print(f"Sent count for this month: {sent_count}")
+        except Exception as count_error:
+            print(f"Error getting sent count: {str(count_error)}")
+            sent_count = successful_sends
+        
+        return jsonify({
+            'success': True,
+            'message': f'Newsletter sent to {successful_sends} recipients ({failed_sends} failed)',
+            'sent_this_month': sent_count
+        }), 200
+    
+    except Exception as e:
+        print(f"Error in send_newsletter: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500

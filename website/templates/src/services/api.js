@@ -490,3 +490,147 @@ export const getFavoriteArticles = async () => {
     throw error.response?.data || { error: error.message };
   }
 };
+
+/**
+ * Save a template to the database
+ * @param {number} templateId - The ID of the template design
+ * @param {string} templateName - The name of the template design
+ * @param {number} summaryId - The ID of the summary to use
+ * @param {string} headline - The headline for the template
+ * @param {string} content - The content for the template
+ * @param {string} section1 - The content for section 1 (Template3 only)
+ * @param {string} section2 - The content for section 2 (Template3 only)
+ * @param {string} section3 - The content for section 3 (Template3 only)
+ * @param {string} contentLeft - The content for the left column (Template6 only)
+ * @param {string} contentRight - The content for the right column (Template6 only)
+ * @returns {Promise<Object>} - The response with the saved template ID
+ */
+export const saveTemplate = async (templateId, templateName, summaryId, headline, content, section1, section2, section3, contentLeft, contentRight) => {
+  try {
+    // Validate required parameters
+    if (templateId === undefined || templateId === null) {
+      throw new Error("template_id is required");
+    }
+    
+    if (!summaryId) {
+      throw new Error("summary_id is required");
+    }
+    
+    if (!headline || !headline.trim()) {
+      throw new Error("headline is required");
+    }
+    
+    if (!content || !content.trim()) {
+      throw new Error("content is required");
+    }
+    
+    // Create base payload
+    const payload = {
+      template_id: templateId,
+      template_name: templateName,
+      summary_id: summaryId,
+      headline,
+      content
+    };
+    
+    // Add section data for Template3
+    if (templateId === 2) { // Template3 has ID 2
+      // Ensure sections are valid strings
+      payload.section1 = section1 || '';
+      payload.section2 = section2 || '';
+      payload.section3 = section3 || '';
+      
+      // Validate that at least one section has content for Template3
+      if (!payload.section1.trim() && !payload.section2.trim() && !payload.section3.trim()) {
+        console.warn("Warning: All Template3 sections are empty");
+      }
+    }
+    
+    // Add dual column data for Template6
+    if (templateId === 5) { // Template6 has ID 5
+      // Ensure columns are valid strings
+      payload.content_left = contentLeft || '';
+      payload.content_right = contentRight || '';
+      
+      // Validate that at least one column has content for Template6
+      if (!payload.content_left.trim() && !payload.content_right.trim()) {
+        console.warn("Warning: Both Template6 columns are empty");
+      }
+    }
+    
+    // Log the request payload
+    console.log('saveTemplate - Sending request with payload:', {
+      template_id: payload.template_id,
+      template_name: payload.template_name,
+      summary_id: payload.summary_id,
+      headline: payload.headline,
+      content_length: payload.content ? payload.content.length : 0,
+      content_preview: payload.content ? payload.content.substring(0, 100) + '...' : 'null or empty',
+      has_sections: (templateId === 2),
+      has_columns: (templateId === 5),
+      section1_length: payload.section1 ? payload.section1.length : 0,
+      section2_length: payload.section2 ? payload.section2.length : 0,
+      section3_length: payload.section3 ? payload.section3.length : 0,
+      content_left_length: payload.content_left ? payload.content_left.length : 0,
+      content_right_length: payload.content_right ? payload.content_right.length : 0
+    });
+    
+    // Make the API request
+    console.log('saveTemplate - Sending POST request to /api/template/save');
+    const response = await api.post('/api/template/save', payload);
+    console.log('saveTemplate - Received response:', response.data);
+    
+    return response.data;
+  } catch (error) {
+    console.error('Failed to save template:', error);
+    
+    if (error.response) {
+      console.error('Error response status:', error.response.status);
+      console.error('Error response data:', error.response.data);
+      
+      // Log specific information for 500 errors
+      if (error.response.status === 500) {
+        console.error('Server error occurred. This might be due to:');
+        console.error('- Database issues');
+        console.error('- Missing fields in the payload');
+        console.error('- Type conversion errors');
+        console.error('- Section data not being properly formatted');
+      }
+    } else if (error.request) {
+      console.error('No response received from server. Check network connectivity.');
+    } else {
+      console.error('Error preparing the request:', error.message);
+    }
+    
+    throw error.response?.data || { error: error.message };
+  }
+};
+
+/**
+ * Get all saved templates for the current user
+ * @returns {Promise<Object>} - The response with the list of saved templates
+ */
+export const getSavedTemplates = async () => {
+  try {
+    const response = await api.get('/api/template/saved');
+    return response.data;
+  } catch (error) {
+    console.error('Failed to get saved templates:', error);
+    throw error.response?.data || { error: error.message };
+  }
+};
+
+/**
+ * Delete a saved template
+ * @param {number} templateId - The ID of the template to delete
+ * @returns {Promise<Object>} - The response confirming deletion
+ */
+export const deleteTemplate = async (templateId) => {
+  try {
+    const response = await api.delete(`/api/template/${templateId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to delete template:', error);
+    throw error.response?.data || { error: error.message };
+  }
+};

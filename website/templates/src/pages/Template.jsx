@@ -33,7 +33,7 @@ import Template3 from "./Template3";
 import Template4 from "./Template4";
 import Template5 from "./Template5";
 import Template6 from "./Template6";
-import { getSavedSummaries } from "../services/api";
+import { getSavedSummaries, saveTemplate } from "../services/api";
 
 const Template = () => {
   const navigate = useNavigate();
@@ -262,45 +262,303 @@ const Template = () => {
     setActiveView("selection");
   };
 
-  const handleUseTemplate = () => {
+  const handleUseTemplate = async () => {
     if (!selectedSummary) {
       // Show error if no summary is selected
       setError("Please select a summary first");
       return;
     }
 
+    // Ensure summary_id is a valid number
+    if (!selectedSummary.id || isNaN(Number(selectedSummary.id))) {
+      setError("Invalid summary ID. Please select a valid summary.");
+      return;
+    }
+
     try {
-      // Create a data object with selected template and summary
-      // Use the edited content if available
-      const templateData = {
+      // Set loading state
+      setLoading(true);
+      
+      // Log the selected summary for debugging
+      console.log("Selected Summary:", selectedSummary);
+      console.log("Summary ID:", selectedSummary.id, "Type:", typeof selectedSummary.id);
+
+      // Check for potentially empty/null values and provide defaults
+      let headline = "";
+      if (isEditing) {
+        headline = editedHeadline || "";
+      } else {
+        headline = selectedSummary.headline || "";
+      }
+      
+      let content = "";
+      if (isEditing) {
+        content = editedContent || "";
+      } else {
+        // Try content first, then fall back to summary field
+        content = selectedSummary.content || selectedSummary.summary || "";
+      }
+      
+      // Ensure we have required fields
+      if (!headline.trim()) {
+        throw new Error("Headline is required but is empty");
+      }
+      
+      if (!content.trim()) {
+        throw new Error("Content is required but is empty");
+      }
+
+      // Log the template data being sent
+      console.log("Saving template with data:", {
         templateId: selectedTemplate,
         templateName: templates[selectedTemplate].name,
         summaryId: selectedSummary.id,
-        summaryHeadline: editedHeadline || selectedSummary.headline,
-        summaryContent: editedContent || selectedSummary.content,
-      };
-
-      // Store template data in session storage for the editor to use
-      sessionStorage.setItem("templateData", JSON.stringify(templateData));
-
+        headline: headline,
+        content_length: content.length,
+        content_preview: content.substring(0, 100) + "..." // Log just the beginning for brevity
+      });
+      
+      // For Template3, also include section data
+      if (selectedTemplate === 2) { // Template3 has ID 2
+        // Get the section data
+        let section1 = "";
+        let section2 = "";
+        let section3 = "";
+        
+        if (isEditing) {
+          // If we're in editing mode, use the edited section values from form elements
+          // First try to find React state-managed text fields
+          const editedSection1El = document.querySelector('textarea[data-section="1"]');
+          const editedSection2El = document.querySelector('textarea[data-section="2"]');
+          const editedSection3El = document.querySelector('textarea[data-section="3"]');
+          
+          section1 = editedSection1El?.value || "";
+          section2 = editedSection2El?.value || "";
+          section3 = editedSection3El?.value || "";
+          
+          console.log("Using section data from text fields:", {
+            section1_preview: section1.substring(0, 50) + (section1.length > 50 ? "..." : ""),
+            section2_preview: section2.substring(0, 50) + (section2.length > 50 ? "..." : ""),
+            section3_preview: section3.substring(0, 50) + (section3.length > 50 ? "..." : "")
+          });
+        } else {
+          // If not editing, split the content into three sections using Template3's algorithm
+          // This ensures consistency between what's displayed and what's saved
+          const normalizedContent = content.replace(/\r\n/g, "\n").replace(/\n+/g, "\n\n");
+          
+          // Reuse the same splitting logic used in Template3
+          const splitTextEvenly = (text, numParts) => {
+            // Match sentences
+            const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+            
+            if (sentences.length < numParts) {
+              return [text];
+            }
+            
+            const totalLength = text.length;
+            const idealSectionLength = Math.floor(totalLength / numParts);
+            
+            const sections = [];
+            let currentSection = "";
+            let currentSectionIndex = 0;
+            
+            for (let i = 0; i < sentences.length; i++) {
+              const sentence = sentences[i];
+              
+              if (currentSection.length + sentence.length > idealSectionLength * 1.5 && 
+                  currentSection.length > 0 && 
+                  currentSectionIndex < numParts - 1) {
+                sections.push(currentSection.trim());
+                currentSection = sentence;
+                currentSectionIndex++;
+              } else {
+                currentSection += sentence;
+              }
+              
+              if (i === sentences.length - 1 && currentSection.length > 0) {
+                sections.push(currentSection.trim());
+              }
+            }
+            
+            // Ensure we have the exact number of parts needed
+            while (sections.length < numParts) {
+              sections.push("");
+            }
+            
+            // Take only the needed number of sections
+            return sections.slice(0, numParts);
+          };
+          
+          const sections = splitTextEvenly(normalizedContent, 3);
+          section1 = sections[0] || "";
+          section2 = sections[1] || "";
+          section3 = sections[2] || "";
+          
+          console.log("Automatically split content into sections:", {
+            section1_preview: section1.substring(0, 50) + (section1.length > 50 ? "..." : ""),
+            section2_preview: section2.substring(0, 50) + (section2.length > 50 ? "..." : ""),
+            section3_preview: section3.substring(0, 50) + (section3.length > 50 ? "..." : "")
+          });
+        }
+        
+        // Ensure we have valid strings for all sections
+        section1 = section1 || "";
+        section2 = section2 || "";
+        section3 = section3 || "";
+        
+        console.log("Template3 sections:", {
+          section1_length: section1.length,
+          section2_length: section2.length,
+          section3_length: section3.length
+        });
+        
+        // Save the template with section data using the correct API format
+        const result = await saveTemplate(
+          selectedTemplate,
+          templates[selectedTemplate].name,
+          selectedSummary.id,
+          headline,
+          content,
+          section1,
+          section2,
+          section3
+        );
+        
+        console.log("Template3 save result:", result);
+      } 
+      // For Template6, include content_left and content_right columns
+      else if (selectedTemplate === 5) { // Template6 has ID 5
+        // Get the dual-column content data
+        let contentLeft = "";
+        let contentRight = "";
+        
+        if (isEditing) {
+          // If we're in editing mode, use the edited values from form elements
+          const editedLeftEl = document.querySelector('textarea[data-column="left"]');
+          const editedRightEl = document.querySelector('textarea[data-column="right"]');
+          
+          contentLeft = editedLeftEl?.value || "";
+          contentRight = editedRightEl?.value || "";
+          
+          console.log("Using column data from text fields:", {
+            contentLeft_preview: contentLeft.substring(0, 50) + (contentLeft.length > 50 ? "..." : ""),
+            contentRight_preview: contentRight.substring(0, 50) + (contentRight.length > 50 ? "..." : "")
+          });
+        } else {
+          // If not editing, split the content into two sections
+          const normalizedContent = content.replace(/\r\n/g, "\n").replace(/\n+/g, "\n\n");
+          
+          // Split text evenly for dual columns
+          const splitTextEvenly = (text, numParts = 2) => {
+            // Match sentences
+            const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+            
+            if (sentences.length < numParts) {
+              return [text, ""];
+            }
+            
+            const totalLength = text.length;
+            const idealSectionLength = Math.floor(totalLength / numParts);
+            
+            const sections = [];
+            let currentSection = "";
+            let currentSectionIndex = 0;
+            
+            for (let i = 0; i < sentences.length; i++) {
+              const sentence = sentences[i];
+              
+              if (currentSection.length + sentence.length > idealSectionLength * 1.5 && 
+                  currentSection.length > 0 && 
+                  currentSectionIndex < numParts - 1) {
+                sections.push(currentSection.trim());
+                currentSection = sentence;
+                currentSectionIndex++;
+              } else {
+                currentSection += sentence;
+              }
+              
+              if (i === sentences.length - 1 && currentSection.length > 0) {
+                sections.push(currentSection.trim());
+              }
+            }
+            
+            // Ensure we have exactly the number of parts needed
+            while (sections.length < numParts) {
+              sections.push("");
+            }
+            
+            // Take only the first numParts sections if we have more
+            return sections.slice(0, numParts);
+          };
+          
+          const sections = splitTextEvenly(normalizedContent, 2);
+          contentLeft = sections[0] || "";
+          contentRight = sections[1] || "";
+          
+          console.log("Automatically split content into columns:", {
+            contentLeft_preview: contentLeft.substring(0, 50) + (contentLeft.length > 50 ? "..." : ""),
+            contentRight_preview: contentRight.substring(0, 50) + (contentRight.length > 50 ? "..." : "")
+          });
+        }
+        
+        // Ensure we have valid strings for both columns
+        contentLeft = contentLeft || "";
+        contentRight = contentRight || "";
+        
+        console.log("Template6 columns:", {
+          contentLeft_length: contentLeft.length,
+          contentRight_length: contentRight.length
+        });
+        
+        // Save the template with dual-column data
+        const result = await saveTemplate(
+          selectedTemplate,
+          templates[selectedTemplate].name,
+          selectedSummary.id,
+          headline,
+          content,
+          null, // section1
+          null, // section2
+          null, // section3
+          contentLeft, // content_left
+          contentRight // content_right
+        );
+        
+        console.log("Template6 save result:", result);
+      } else {
+        // Save the template to the database (regular templates)
+        const result = await saveTemplate(
+          selectedTemplate,
+          templates[selectedTemplate].name,
+          selectedSummary.id,
+          headline,
+          content
+        );
+        
+        console.log("Regular template save result:", result);
+      }
+      
       // Show success message
       setSnackbar({
         open: true,
-        message: `Template "${templateData.templateName}" selected with summary "${templateData.summaryHeadline}"`,
+        message: `Template "${templates[selectedTemplate].name}" saved successfully`,
         severity: "success",
       });
 
-      // Navigate to the editor page after a short delay to show the snackbar
+      // Navigate to the newsletters page after a short delay to show the snackbar
       setTimeout(() => {
-        navigate("/editor", { state: { templateData } });
+        navigate("/newsletters");
       }, 1000);
-
-      console.log(
-        `Using template: ${templateData.templateName} with summary: ${templateData.summaryHeadline}`
-      );
     } catch (err) {
-      console.error("Error navigating to editor:", err);
-      setError("Failed to use template. Please try again.");
+      console.error("Error saving template:", err);
+      setError(`Failed to save template: ${err.message || "Unknown error"}`);
+      setSnackbar({
+        open: true,
+        message: `Error: ${err.message || "Failed to save template"}`,
+        severity: "error",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -411,6 +669,9 @@ const Template = () => {
         </Box>
       );
     }
+
+    // Log the complete summary object to help debug issues
+    console.log("TemplateWithContent - FULL Summary Object:", JSON.stringify(summary, null, 2));
 
     // Use edited content when editing, otherwise use summary data
     const headline = isEditing ? editedHeadline : summary.headline || "";
@@ -677,44 +938,130 @@ const Template = () => {
 
     // For Template3 (Grid Layout)
     if (Component === Template3) {
-      // Split the content into three sections
+      // Split the content into three sections for editing or display
       const paragraphs = finalContent
         ? finalContent.split("\n\n")
         : ["", "", ""];
-      const section1 = paragraphs[0] || "No content available";
-      const section2 =
-        paragraphs.length > 1 ? paragraphs[1] : "No content available";
-      const section3 =
-        paragraphs.length > 2 ? paragraphs[2] : "No content available";
+
+      // Debug logging to diagnose the content splitting issue
+      console.log("Template.jsx - finalContent for Template3:", finalContent);
+      console.log("Template.jsx - paragraphs after split:", paragraphs);
+      
+      // Ensure we have a string and normalize line breaks
+      const normalizedContent = finalContent ? finalContent.toString().replace(/\r\n/g, "\n").replace(/\n+/g, "\n\n") : "";
+      
+      // Parse the content into balanced sections for editing
+      const splitContentEvenly = (text, numParts) => {
+        // Match sentences
+        const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+        
+        if (sentences.length < numParts) {
+          return new Array(numParts).fill("");
+        }
+        
+        const totalLength = text.length;
+        const idealSectionLength = Math.floor(totalLength / numParts);
+        
+        const sections = [];
+        let currentSection = "";
+        let currentSectionIndex = 0;
+        
+        for (let i = 0; i < sentences.length; i++) {
+          const sentence = sentences[i];
+          
+          if (currentSection.length + sentence.length > idealSectionLength * 1.5 && 
+              currentSection.length > 0 && 
+              currentSectionIndex < numParts - 1) {
+            sections.push(currentSection.trim());
+            currentSection = sentence;
+            currentSectionIndex++;
+          } else {
+            currentSection += sentence;
+          }
+          
+          if (i === sentences.length - 1 && currentSection.length > 0) {
+            sections.push(currentSection.trim());
+          }
+        }
+        
+        // Ensure we have exactly the number of parts needed
+        while (sections.length < numParts) {
+          sections.push("");
+        }
+        
+        // Take only the needed number of sections
+        return sections.slice(0, numParts);
+      };
+      
+      // For editing mode, create three balanced sections
+      const contentSections = splitContentEvenly(normalizedContent, 3);
+      const section1 = contentSections[0] || "";
+      const section2 = contentSections[1] || "";
+      const section3 = contentSections[2] || "";
+      
+      console.log("Template.jsx - Sections prepared for editing:", {
+        section1: section1.substring(0, 50) + (section1.length > 50 ? "..." : ""),
+        section2: section2.substring(0, 50) + (section2.length > 50 ? "..." : ""),
+        section3: section3.substring(0, 50) + (section3.length > 50 ? "..." : "")
+      });
+
+      // For editing mode, provide separate text fields for each section
+      if (isEditing) {
+        // State to track each section's content in edit mode
+        const [editedSection1, setEditedSection1] = React.useState(section1);
+        const [editedSection2, setEditedSection2] = React.useState(section2);
+        const [editedSection3, setEditedSection3] = React.useState(section3);
+        
+        // When component mounts or content changes, update the section states
+        React.useEffect(() => {
+          setEditedSection1(section1);
+          setEditedSection2(section2);
+          setEditedSection3(section3);
+        }, [finalContent]);
+        
+        // Function to update the combined content whenever a section changes
+        const handleSectionChange = (index, value) => {
+          // Update the appropriate section state
+          if (index === 0) setEditedSection1(value);
+          else if (index === 1) setEditedSection2(value);
+          else if (index === 2) setEditedSection3(value);
+          
+          // Combine sections and update the main editedContent state
+          setTimeout(() => {
+            const newContent = [
+              index === 0 ? value : editedSection1,
+              index === 1 ? value : editedSection2,
+              index === 2 ? value : editedSection3
+            ].join("\n\n");
+            console.log("Template.jsx - New combined content after section edit:", newContent);
+            setEditedContent(newContent);
+          }, 0);
+        };
 
       return (
+          <div style={{ width: "100%" }}>
         <div
           style={{
-            fontFamily: "Arial, sans-serif",
-            color: "#333",
-            backgroundColor: "#f5f5f5",
-            padding: "20px",
             display: "grid",
             gridTemplateColumns: "repeat(3, 1fr)",
-            gridGap: "20px",
-            gridTemplateAreas: `
-            "header header header"
-            "section1 section2 section3"
-            "footer footer footer"
-          `,
-          }}
-        >
+                gap: "20px",
+                backgroundColor: "#f5f5f5",
+                padding: "20px",
+                borderRadius: "5px",
+              }}
+            >
+              {/* Header for the editing view */}
           <div
             style={{
-              gridArea: "header",
+                  gridColumn: "1 / span 3",
               backgroundColor: "#4a4a4a",
               color: "white",
               padding: "20px",
               textAlign: "center",
               borderRadius: "5px",
+                  marginBottom: "20px",
             }}
           >
-            {isEditing ? (
               <TextField
                 fullWidth
                 variant="outlined"
@@ -740,17 +1087,11 @@ const Template = () => {
                   },
                 }}
               />
-            ) : (
-              <h1 style={{ margin: "0", fontSize: "36px", fontWeight: "bold" }}>
-                {headline || "Newsletter Title"}
-              </h1>
-            )}
           </div>
 
-          {isEditing ? (
+              {/* Section 1 Edit */}
             <div
               style={{
-                gridArea: "section1 / section1 / section3 / section3",
                 backgroundColor: "white",
                 padding: "20px",
                 borderRadius: "5px",
@@ -761,46 +1102,28 @@ const Template = () => {
                 style={{
                   borderBottom: "2px solid #4a4a4a",
                   paddingBottom: "10px",
+                    fontSize: "20px",
                 }}
               >
-                Content
+                  Section 1
               </h2>
               <TextField
                 fullWidth
                 multiline
-                rows={12}
+                  rows={8}
                 variant="outlined"
-                value={editedContent}
-                onChange={handleContentChange}
-                placeholder="Enter content (separate paragraphs with blank lines for the three-column layout)"
-                helperText="Content will be split into three sections based on paragraphs"
-              />
-            </div>
-          ) : (
-            <>
-              <div
-                style={{
-                  gridArea: "section1",
-                  backgroundColor: "white",
-                  padding: "20px",
-                  borderRadius: "5px",
-                  boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                }}
-              >
-                <h2
-                  style={{
-                    borderBottom: "2px solid #4a4a4a",
-                    paddingBottom: "10px",
+                  value={editedSection1}
+                  onChange={(e) => handleSectionChange(0, e.target.value)}
+                  placeholder="Enter content for section 1"
+                  inputProps={{
+                    "data-section": "1"
                   }}
-                >
-                  Section 1
-                </h2>
-                <p style={{ lineHeight: "1.6" }}>{section1}</p>
+                />
               </div>
 
+              {/* Section 2 Edit */}
               <div
                 style={{
-                  gridArea: "section2",
                   backgroundColor: "white",
                   padding: "20px",
                   borderRadius: "5px",
@@ -811,16 +1134,28 @@ const Template = () => {
                   style={{
                     borderBottom: "2px solid #4a4a4a",
                     paddingBottom: "10px",
+                    fontSize: "20px",
                   }}
                 >
                   Section 2
                 </h2>
-                <p style={{ lineHeight: "1.6" }}>{section2}</p>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={8}
+                  variant="outlined"
+                  value={editedSection2}
+                  onChange={(e) => handleSectionChange(1, e.target.value)}
+                  placeholder="Enter content for section 2"
+                  inputProps={{
+                    "data-section": "2"
+                  }}
+                />
               </div>
 
+              {/* Section 3 Edit */}
               <div
                 style={{
-                  gridArea: "section3",
                   backgroundColor: "white",
                   padding: "20px",
                   borderRadius: "5px",
@@ -831,54 +1166,464 @@ const Template = () => {
                   style={{
                     borderBottom: "2px solid #4a4a4a",
                     paddingBottom: "10px",
+                    fontSize: "20px",
                   }}
                 >
                   Section 3
                 </h2>
-                <p style={{ lineHeight: "1.6" }}>{section3}</p>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={8}
+                  variant="outlined"
+                  value={editedSection3}
+                  onChange={(e) => handleSectionChange(2, e.target.value)}
+                  placeholder="Enter content for section 3"
+                  inputProps={{
+                    "data-section": "3"
+                  }}
+                />
               </div>
-            </>
-          )}
-
-          <div
-            style={{
-              gridArea: "footer",
-              backgroundColor: "#333",
-              color: "#fff",
-              padding: "15px",
-              textAlign: "center",
-              borderRadius: "5px",
-            }}
-          >
-            <p style={{ margin: "0", fontSize: "12px" }}>Follow us on:</p>
-            <p style={{ margin: "5px 0", fontSize: "12px" }}>
-              <a
-                href="https://facebook.com"
-                style={{ color: "#fff", margin: "0 5px" }}
-              >
-                Facebook
-              </a>{" "}
-              |
-              <a
-                href="https://twitter.com"
-                style={{ color: "#fff", margin: "0 5px" }}
-              >
-                Twitter
-              </a>{" "}
-              |
-              <a
-                href="https://linkedin.com"
-                style={{ color: "#fff", margin: "0 5px" }}
-              >
-                LinkedIn
-              </a>
-            </p>
-            <p style={{ margin: "5px 0", fontSize: "12px" }}>
-              © 2024 Your Company Name
-            </p>
           </div>
+          </div>
+        );
+      }
+
+      // For display mode, use the Template3 component directly
+      return (
+        <div style={{ width: "100%" }}>
+          <Template3 
+            headline={headline} 
+            content={finalContent.replace(/\n/g, "\n\n")} // Ensure double line breaks for proper paragraph splitting
+          />
         </div>
       );
+    }
+
+    // For Template4 (Aqua Breeze)
+    if (Component === Template4) {
+      return (
+        <div style={{ width: "100%" }}>
+          {isEditing ? (
+            <div
+              style={{
+                fontFamily: "Montserrat, sans-serif",
+                color: "#444",
+                backgroundColor: "#e0f7fa",
+                padding: "20px",
+                borderRadius: "10px",
+              }}
+            >
+              <div
+                style={{
+                  backgroundColor: "#00796b",
+                  color: "#fff",
+                  padding: "20px",
+                  textAlign: "center",
+                  borderRadius: "10px 10px 0 0",
+                }}
+              >
+                <TextField
+                  fullWidth
+                  variant="outlined"
+                  value={editedHeadline}
+                  onChange={handleHeadlineChange}
+                  placeholder="Enter headline"
+                  inputProps={{
+                    style: {
+                      fontSize: "28px",
+                      fontWeight: "bold",
+                      textAlign: "center",
+                      color: "white",
+                    },
+                  }}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      "& fieldset": {
+                        borderColor: "white",
+                      },
+                    },
+                    "& .MuiInputBase-input": {
+                      color: "white",
+                    },
+                  }}
+                />
+              </div>
+              <div
+                style={{
+                  padding: "20px",
+                  backgroundColor: "#fff",
+                  borderRadius: "0 0 10px 10px",
+                }}
+              >
+                <h2 style={{ borderBottom: "2px solid #00796b", paddingBottom: "10px" }}>
+                  Summary
+                </h2>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={8}
+                  variant="outlined"
+                  value={editedContent}
+                  onChange={handleContentChange}
+                  placeholder="Enter content"
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      "& fieldset": {
+                        borderColor: "#00796b",
+                      },
+                      "&:hover fieldset": {
+                        borderColor: "#004d40",
+                      },
+                    },
+                  }}
+                />
+              </div>
+            </div>
+          ) : (
+            <Template4 headline={headline} content={finalContent} />
+          )}
+        </div>
+      );
+    }
+
+    // For Template5 (Vibrant Purple)
+    if (Component === Template5) {
+      return (
+        <div style={{ width: "100%" }}>
+          {isEditing ? (
+            <div
+              style={{
+                fontFamily: "Poppins, sans-serif",
+                color: "#333",
+                backgroundColor: "#f0f0f0",
+                padding: "20px",
+                borderRadius: "10px",
+                boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+              }}
+            >
+              <div
+                style={{
+                  backgroundColor: "#6200ea",
+                  color: "#fff",
+                  padding: "20px",
+                  textAlign: "center",
+                  borderRadius: "10px 10px 0 0",
+                }}
+              >
+                <TextField
+                  fullWidth
+                  variant="outlined"
+                  value={editedHeadline}
+                  onChange={handleHeadlineChange}
+                  placeholder="Enter headline"
+                  inputProps={{
+                    style: {
+                      fontSize: "28px",
+                      fontWeight: "bold",
+                      textAlign: "center",
+                      color: "white",
+                    },
+                  }}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      "& fieldset": {
+                        borderColor: "white",
+                      },
+                    },
+                    "& .MuiInputBase-input": {
+                      color: "white",
+                    },
+                  }}
+                />
+              </div>
+              <div
+                style={{
+                  padding: "20px",
+                  backgroundColor: "#fff",
+                  borderRadius: "0 0 10px 10px",
+                }}
+              >
+                <h2 style={{ borderBottom: "2px solid #6200ea", paddingBottom: "10px" }}>
+                  Summary
+                </h2>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={8}
+                  variant="outlined"
+                  value={editedContent}
+                  onChange={handleContentChange}
+                  placeholder="Enter content"
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      "& fieldset": {
+                        borderColor: "#6200ea",
+                      },
+                      "&:hover fieldset": {
+                        borderColor: "#3700b3",
+                      },
+                    },
+                  }}
+                />
+              </div>
+            </div>
+          ) : (
+            <Template5 headline={headline} content={finalContent} />
+          )}
+        </div>
+      );
+    }
+
+    // For Template6 (Dual Column Layout)
+    if (Component === Template6) {
+      // Split the content into two columns for editing or display
+      const normalizedContent = finalContent ? finalContent.toString().replace(/\r\n/g, "\n").replace(/\n+/g, "\n\n") : "";
+      
+      // Parse the content into balanced sections for the two columns
+      const splitContentEvenly = (text, numParts = 2) => {
+        // Match sentences
+        const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+        
+        if (sentences.length < numParts) {
+          return new Array(numParts).fill("");
+        }
+        
+        const totalLength = text.length;
+        const idealSectionLength = Math.floor(totalLength / numParts);
+        
+        const sections = [];
+        let currentSection = "";
+        let currentSectionIndex = 0;
+        
+        for (let i = 0; i < sentences.length; i++) {
+          const sentence = sentences[i];
+          
+          if (currentSection.length + sentence.length > idealSectionLength * 1.5 && 
+              currentSection.length > 0 && 
+              currentSectionIndex < numParts - 1) {
+            sections.push(currentSection.trim());
+            currentSection = sentence;
+            currentSectionIndex++;
+          } else {
+            currentSection += sentence;
+          }
+          
+          if (i === sentences.length - 1 && currentSection.length > 0) {
+            sections.push(currentSection.trim());
+          }
+        }
+        
+        // Ensure we have exactly the number of parts needed
+        while (sections.length < numParts) {
+          sections.push("");
+        }
+        
+        // Take only the needed number of sections
+        return sections.slice(0, numParts);
+      };
+      
+      // For editing mode, create two balanced sections
+      const contentColumns = splitContentEvenly(normalizedContent, 2);
+      const contentLeft = contentColumns[0] || "";
+      const contentRight = contentColumns[1] || "";
+      
+      console.log("Template.jsx - Columns prepared for Template6:", {
+        contentLeft: contentLeft.substring(0, 50) + (contentLeft.length > 50 ? "..." : ""),
+        contentRight: contentRight.substring(0, 50) + (contentRight.length > 50 ? "..." : "")
+      });
+
+      // For editing mode, provide separate text fields for each column
+      if (isEditing) {
+        // State to track each column's content in edit mode
+        const [editedLeftColumn, setEditedLeftColumn] = React.useState(contentLeft);
+        const [editedRightColumn, setEditedRightColumn] = React.useState(contentRight);
+        
+        // When component mounts or content changes, update the column states
+        React.useEffect(() => {
+          setEditedLeftColumn(contentLeft);
+          setEditedRightColumn(contentRight);
+        }, [finalContent]);
+        
+        // Function to update the combined content whenever a column changes
+        const handleColumnChange = (column, value) => {
+          // Update the appropriate column state
+          if (column === "left") setEditedLeftColumn(value);
+          else if (column === "right") setEditedRightColumn(value);
+          
+          // Combine columns and update the main editedContent state
+          setTimeout(() => {
+            const newContent = [
+              column === "left" ? value : editedLeftColumn,
+              column === "right" ? value : editedRightColumn
+            ].join("\n\n");
+            console.log("Template.jsx - New combined content after column edit:", newContent);
+            setEditedContent(newContent);
+          }, 0);
+        };
+
+        return (
+          <div style={{ width: "100%" }}>
+            <div
+              style={{
+                backgroundColor: "#2C2C54",
+                padding: "40px",
+                color: "#fff",
+                borderRadius: "5px",
+              }}
+            >
+              {/* Header for the editing view */}
+              <div
+                style={{
+                  border: "2px solid #fff",
+                  padding: "20px",
+                  textAlign: "center",
+                  marginBottom: "20px",
+                }}
+              >
+                <TextField
+                  fullWidth
+                  variant="outlined"
+                  value={editedHeadline}
+                  onChange={handleHeadlineChange}
+                  placeholder="Enter headline"
+                  inputProps={{
+                    style: {
+                      fontSize: "28px",
+                      fontWeight: "bold",
+                      textAlign: "center",
+                      color: "white",
+                    },
+                  }}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      "& fieldset": {
+                        borderColor: "white",
+                      },
+                    },
+                    "& .MuiInputBase-input": {
+                      color: "white",
+                    },
+                  }}
+                />
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gridGap: "20px",
+                }}
+              >
+                {/* Left Column Edit */}
+                <div
+                  style={{
+                    backgroundColor: "#40407A",
+                    padding: "20px",
+                    borderRadius: "5px",
+                  }}
+                >
+                  <h3 style={{ 
+                    borderBottom: "1px solid #fff", 
+                    paddingBottom: "8px", 
+                    fontSize: "16px",
+                    marginTop: 0 
+                  }}>
+                    Part 1
+                  </h3>
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={12}
+                    variant="outlined"
+                    value={editedLeftColumn}
+                    onChange={(e) => handleColumnChange("left", e.target.value)}
+                    placeholder="Enter content for the left column"
+                    inputProps={{
+                      "data-column": "left",
+                      style: {
+                        fontSize: "14px",
+                        lineHeight: "1.6",
+                        color: "white",
+                      },
+                    }}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        "& fieldset": {
+                          borderColor: "rgba(255,255,255,0.3)",
+                        },
+                        "&:hover fieldset": {
+                          borderColor: "rgba(255,255,255,0.5)",
+                        },
+                        "&.Mui-focused fieldset": {
+                          borderColor: "white",
+                        },
+                      },
+                      "& .MuiInputBase-input": {
+                        color: "white",
+                      },
+                    }}
+                  />
+                </div>
+                
+                {/* Right Column Edit */}
+                <div
+                  style={{
+                    backgroundColor: "#40407A",
+                    padding: "20px",
+                    borderRadius: "5px",
+                  }}
+                >
+                  <h3 style={{ 
+                    borderBottom: "1px solid #fff", 
+                    paddingBottom: "8px", 
+                    fontSize: "16px",
+                    marginTop: 0 
+                  }}>
+                    Part 2
+                  </h3>
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={12}
+                    variant="outlined"
+                    value={editedRightColumn}
+                    onChange={(e) => handleColumnChange("right", e.target.value)}
+                    placeholder="Enter content for the right column"
+                    inputProps={{
+                      "data-column": "right",
+                      style: {
+                        fontSize: "14px",
+                        lineHeight: "1.6",
+                        color: "white",
+                      },
+                    }}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        "& fieldset": {
+                          borderColor: "rgba(255,255,255,0.3)",
+                        },
+                        "&:hover fieldset": {
+                          borderColor: "rgba(255,255,255,0.5)",
+                        },
+                        "&.Mui-focused fieldset": {
+                          borderColor: "white",
+                        },
+                      },
+                      "& .MuiInputBase-input": {
+                        color: "white",
+                      },
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // For display mode, pass the content to the Template6 component
+      return <Template6 headline={headline} content={finalContent} />;
     }
 
     // Fallback case

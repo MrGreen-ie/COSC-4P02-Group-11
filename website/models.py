@@ -35,6 +35,8 @@ class User(db.Model, UserMixin):
     subscribers = db.relationship('Subscriber', backref='user', lazy=True)
     # Relationship with favorite articles
     favorite_articles = db.relationship('FavoriteArticle', backref='user', lazy=True)
+    # Relationship with saved templates
+    saved_templates = db.relationship("SavedTemplate", backref="user", lazy=True)
 
 
 # Social media post scheduling model
@@ -119,3 +121,24 @@ class FavoriteArticle(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     # Prevent duplicate favorites
     __table_args__ = (db.UniqueConstraint('user_id', 'article_id', name='unique_user_article'),)
+
+# SavedTemplate model for newsletter templates
+class SavedTemplate(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    template_id = db.Column(db.Integer, nullable=False)  # ID of the template design
+    template_name = db.Column(db.String(200))  # Name of the template design
+    summary_id = db.Column(db.Integer, db.ForeignKey("saved_summary.id"), nullable=False)
+    headline = db.Column(db.String(200))  # Can be edited from the original summary headline
+    content = db.Column(db.Text)  # Can be edited from the original summary content
+    # Template3 specific columns
+    section1 = db.Column(db.Text, nullable=True)  # First section content for Template3
+    section2 = db.Column(db.Text, nullable=True)  # Second section content for Template3
+    section3 = db.Column(db.Text, nullable=True)  # Third section content for Template3
+    # Template6 specific columns
+    content_left = db.Column(db.Text, nullable=True)  # Left column content for Template6
+    content_right = db.Column(db.Text, nullable=True)  # Right column content for Template6
+    created_at = db.Column(db.DateTime(timezone=True), default=func.now())
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    
+    # Relationship with the summary
+    summary = db.relationship("SavedSummary", backref="templates")

@@ -145,7 +145,7 @@ const quickActions = [
 // Placeholder data for features
 const features = [
   { title: 'Templates', icon: <TemplateIcon />, description: 'Browse and use content templates.', path: '/templates' },
-  { title: 'Favourites', icon: <FavoritesIcon />, description: 'View your favourites content.', path: '/favourites' },
+  { title: 'Articles', icon: <FavoritesIcon />, description: 'View news and saved articles.', path: '/articles' },
   { title: 'History', icon: <HistoryIcon />, description: 'Review your content history.', path: '/history' },
 ];
 

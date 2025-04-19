@@ -187,7 +187,7 @@ const Newsletters = () => {
           variant="contained"
           color="primary"
           startIcon={<TemplateIcon />}
-          onClick={() => navigate('/template')}
+          onClick={() => navigate('/templates?skipOverlay=true')}
           sx={{
             background: 'var(--primary)',
             '&:hover': {
@@ -243,7 +243,7 @@ const Newsletters = () => {
                 variant="contained"
                 color="primary"
                 startIcon={<TemplateIcon />}
-                onClick={() => navigate('/template')}
+                onClick={() => navigate('/templates')}
                 sx={{ mt: 2 }}
               >
                 Create Template

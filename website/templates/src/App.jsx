@@ -8,7 +8,7 @@ import Editor from './pages/Editor';
 import Template from './pages/Template';
 import AISummary from './pages/AISummary';
 import PostSystem from './pages/PostSystem';
-import Favourites from './pages/Favourites';
+import Articles from './pages/Articles';
 import Newsletters from './pages/Newsletters';
 import History from './pages/History';
 import Translation from './pages/Translation';
@@ -103,8 +103,8 @@ const App = () => {
             element={user ? <PostSystem /> : <Navigate to="/login" replace />}
           />
           <Route
-            path="/favourites"
-            element={user ? <Favourites /> : <Navigate to="/login" replace />}
+            path="/articles"
+            element={user ? <Articles /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/newsletters"
@@ -121,6 +121,12 @@ const App = () => {
           <Route
             path="/post-hub"
             element={user ? <PostHub /> : <Navigate to="/login" replace />}
+          />
+
+          {/* Redirect old favourites route to the new articles route */}
+          <Route
+            path="/favourites" 
+            element={<Navigate to="/articles" replace />}
           />
 
           {/* Default redirect */}

@@ -65,7 +65,7 @@ function NavBar({ user, onLogout }) {
     { label: "Editor", path: "/editor", icon: <EditIcon /> },
     { label: "AI Summary", path: "/ai-summary", icon: <AIIcon /> },
     { label: "Post HUB", path: "/post-hub", icon: <PostIcon /> },
-    { label: "Favourites", path: "/favourites", icon: <FavoritesIcon /> },
+    { label: "Articles", path: "/articles", icon: <FavoritesIcon /> },
     { label: "History", path: "/history", icon: <HistoryIcon /> },
     { label: "Translation", path: "/translation", icon: <TranslateIcon /> },
   ];

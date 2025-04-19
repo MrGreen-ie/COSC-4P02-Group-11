@@ -23,7 +23,7 @@ import {
   Alert,
   TextField,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
@@ -37,6 +37,7 @@ import { getSavedSummaries, saveTemplate } from "../services/api";
 
 const Template = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [showOverlay, setShowOverlay] = useState(true); // Overlay state
   const [selectedTemplate, setSelectedTemplate] = useState(0);
   const [activeView, setActiveView] = useState("selection"); // 'selection' or 'preview'
@@ -52,6 +53,16 @@ const Template = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedHeadline, setEditedHeadline] = useState("");
   const [editedContent, setEditedContent] = useState("");
+
+  // Check for skipOverlay query parameter
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const skipOverlay = queryParams.get('skipOverlay');
+    
+    if (skipOverlay === 'true') {
+      setShowOverlay(false);
+    }
+  }, [location]);
 
   // Fetch summaries from the API
   const fetchSummaries = async () => {

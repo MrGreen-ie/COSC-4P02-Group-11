@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Joyride from 'react-joyride';
 import TranslatedText from '../components/TranslatedText';
+import { useNavigate } from 'react-router-dom';
 
 import {
   Alert,
@@ -49,7 +50,8 @@ import {
   Save as SaveIcon,
   TextFields as TextFieldsIcon,
   Warning as WarningIcon,
-  Twitter as TwitterIcon
+  Twitter as TwitterIcon,
+  DesignServices as TemplateIcon
 } from '@mui/icons-material';
 
 import { generateSummary, saveSummary } from '../services/api';
@@ -75,6 +77,7 @@ function TabPanel(props) {
 }
 
 const AISummary = () => {
+  const navigate = useNavigate();
   // State management
   const [length, setLength] = useState(50);
   const [tone, setTone] = useState('professional');
@@ -365,14 +368,10 @@ const AISummary = () => {
     // Check if there's an article URL to summarize
     const articleUrl = localStorage.getItem('articleToSummarize');
     if (articleUrl) {
+      console.log('Found article URL in localStorage:', articleUrl);
       setUrl(articleUrl);
       setInputTab(1); // Switch to URL tab
       localStorage.removeItem('articleToSummarize'); // Clear after use
-      
-      // Auto-generate the summary if a URL is provided
-      setTimeout(() => {
-        handleGenerateSummary();
-      }, 500);
     }
   }, []);
 
@@ -408,6 +407,10 @@ const AISummary = () => {
     {
       target: '.edit-button',
       content: 'You can now edit your summary! Click the Edit button to make changes to both the headline and summary text, then click Save Edits when done.',
+    },
+    {
+      target: 'button:has([data-testid="DesignServicesIcon"])',
+      content: 'Click the Template button to save your summary and create a newsletter template with it. You will be redirected to the template editor.',
     },
   ];
 
@@ -609,6 +612,50 @@ const AISummary = () => {
     }
   };
 
+  const handleSaveAndCreateTemplate = async () => {
+    if (!summary) {
+      setSnackbar({
+        open: true,
+        message: 'No summary to use for template',
+        severity: 'error'
+      });
+      return;
+    }
+  
+    setSaving(true);
+  
+    try {
+      const response = await axios.post('/api/newsletter', {
+        headline,
+        summary
+      });
+  
+      if (response.data.success) {
+        setSnackbar({
+          open: true,
+          message: 'Summary saved successfully. Redirecting to template editor...',
+          severity: 'success'
+        });
+        
+        // Navigate to templates after a short delay to show the snackbar
+        setTimeout(() => {
+          navigate('/templates?skipOverlay=true');
+        }, 1500);
+      } else {
+        throw new Error(response.data.error || 'Failed to save summary');
+      }
+    } catch (err) {
+      console.error('Error saving summary:', err);
+      setSnackbar({
+        open: true,
+        message: err.message || 'Failed to save summary',
+        severity: 'error'
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
   };
@@ -645,6 +692,12 @@ const AISummary = () => {
       // Determine if we're using content or URL
       const content = inputTab === 0 ? originalContent : '';
       const urlToUse = inputTab === 1 ? url : '';
+      
+      console.log('Generating summary with:', { 
+        inputTab, 
+        content: content ? `${content.substring(0, 20)}...` : '[empty]', 
+        urlToUse 
+      });
       
       if (!content && !urlToUse) {
         throw new Error('Please provide content or a URL to summarize.');
@@ -939,7 +992,7 @@ const AISummary = () => {
               >
                 Copy
               </Button>
-              
+
               <Button
                 startIcon={<SaveIcon />}
                 onClick={handleSaveSummary}
@@ -965,6 +1018,16 @@ const AISummary = () => {
                 sx={{ mr: 1 }}
               >
                 Translate
+              </Button>
+
+              <Button
+                startIcon={<TemplateIcon data-testid="DesignServicesIcon" />}
+                onClick={handleSaveAndCreateTemplate}
+                disabled={saving}
+                color="secondary"
+                sx={{ mr: 1 }}
+              >
+                {saving ? <CircularProgress size={24} color="inherit" /> : 'Template'}
               </Button>
 
               <Button

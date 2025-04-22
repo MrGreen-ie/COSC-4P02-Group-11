@@ -123,11 +123,6 @@ const App = () => {
             path="/post-hub"
             element={user ? <PostHub /> : <Navigate to="/login" replace />}
           />
-
-          <Route
-            path="/templates"
-            element={user ? <PostHub /> : <Navigate to="/login" replace />}
-          />
           
 
           

@@ -134,8 +134,6 @@ const FeatureCard = ({ title, icon, description, path }) => {
   );
 };
 
-const navigate = useNavigate(); // Ensure navigate is defined here
-
 // Placeholder data for quick actions
 const quickActions = [
   
@@ -225,18 +223,18 @@ const Dashboard = () => {
       }
     };
 
-    // const fetchTwitterPostCount = async () => {
-    //   try {
-    //     const response = await axios.get('/api/twitter/posts-count');
-    //     setTwitterPostCount(response.data.count);
-    //   } catch (error) {
-    //     console.error('Error fetching Twitter post count:', error);
-    //     if (error.response && error.response.status === 400) {
-    //       alert('Twitter authentication required. Please log in to Twitter.');
-    //       // Optionally, redirect the user to the Twitter authentication page
-    //     }
-    //   }
-    // };
+    const fetchTwitterPostCount = async () => {
+      try {
+        const response = await axios.get('/api/twitter/posts-count');
+        setTwitterPostCount(response.data.count);
+      } catch (error) {
+        console.error('Error fetching Twitter post count:', error);
+        if (error.response && error.response.status === 400) {
+          alert('Twitter authentication required. Please log in to Twitter.');
+          // Optionally, redirect the user to the Twitter authentication page
+        }
+      }
+    };
 
     fetchUserInfo();
     fetchNewsletterCount();
@@ -273,12 +271,11 @@ const Dashboard = () => {
       : []),
   ];
 
-  // Update the analytics array dynamically
   const analytics = [
-    { title: 'Summary', value: newsletterCount.toLocaleString(), icon: <TrendingUpIcon />},
-    { title: 'X Post', value: twitterPostCount.toLocaleString(), icon: <ArticleIcon />}, // Updated to use twitterPostCount
+    { title: 'Summary', value: newsletterCount.toLocaleString(), icon: <TrendingUpIcon /> },
     { title: 'Newsletter Post', value: sentNewsletterCount.toLocaleString(), icon: <PeopleIcon /> },
-    { title: 'Subscribers', value: subscriberCount.toLocaleString(), icon: <SpeedIcon />},
+    { title: 'Subscribers', value: subscriberCount.toLocaleString(), icon: <SpeedIcon /> },
+    { title: 'Current Plan', value: plan, icon: <ArticleIcon /> }, // Updated to show the user's current plan
   ];
 
   return (
@@ -307,25 +304,6 @@ const Dashboard = () => {
           }
         }}
       />
-
-      {/* Plan Box */}
-      <Box
-        sx={{
-          position: 'absolute',
-          top: '20px',
-          right: '20px',
-          background: 'var(--bg-primary)',
-          color: 'var(--text-primary)',
-          padding: 'var(--spacing-md)',
-          borderRadius: 'var(--border-radius-md)',
-          boxShadow: 'var(--shadow-md)',
-          border: '1px solid rgba(var(--primary), 0.1)',
-        }}
-      >
-        <Typography variant="body2" sx={{ fontWeight: 'var(--font-weight-bold)' }}>
-          Current Plan: <span style={{ color: 'var(--primary)' }}>{plan}</span>
-        </Typography>
-      </Box>
 
       {/* Welcome Section */}
       <Typography
@@ -359,26 +337,6 @@ const Dashboard = () => {
         ))}
       </Grid>
 
-      {/* Quick Actions Section */}
-      <Typography
-        variant="h5"
-        gutterBottom
-        className="quick-actions-section"
-        sx={{
-          color: 'var(--text-primary)',
-          mb: 'var(--spacing-lg)',
-          fontWeight: 'var(--font-weight-bold)',
-        }}
-      >
-        Quick Actions
-      </Typography>
-      <Grid container spacing={3} sx={{ mb: 'var(--spacing-xxl)' }}>
-        {quickActions.map((action) => (
-          <Grid item xs={12} sm={6} md={3} key={action.label}>
-            <QuickActionButton {...action} />
-          </Grid>
-        ))}
-      </Grid>
 
       {/* Features Section */}
       <Typography

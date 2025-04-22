@@ -12,6 +12,26 @@ const Template = () => {
   const [selectedSummary, setSelectedSummary] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [plan, setPlan] = useState('Free'); // Default to 'Free'
+
+  // Fetch user plan on component mount
+  useEffect(() => {
+    const fetchUserPlan = async () => {
+      try {
+        const response = await fetch('/api/user-info'); // Backend API to fetch user info
+        const data = await response.json();
+        if (response.ok) {
+          setPlan(data.role); // Update the plan state (e.g., 'Free', 'Pro', 'Admin')
+        } else {
+          console.error('Failed to fetch user plan:', data.error);
+        }
+      } catch (error) {
+        console.error('Error fetching user plan:', error);
+      }
+    };
+
+    fetchUserPlan();
+  }, []);
 
   // Fetch summaries on component mount
   useEffect(() => {
@@ -73,25 +93,33 @@ const Template = () => {
       name: 'Business Template',
       description: 'A professional newsletter template with traditional styling, perfect for business updates and corporate communications.',
       features: ['Clean and professional layout', 'Traditional black and white styling', 'Ideal for business communications'],
-      component: Template1
+      component: Template1,
+      restricted: false, // Available to all users
     },
     {
       id: 1,
       name: 'Modern Green',
       description: 'A fresh, modern template with green accents, suitable for environmental organizations, wellness companies, and sustainability initiatives.',
       features: ['Earth-friendly green color scheme', 'Modern typography', 'Warm and inviting design'],
-      component: Template2
+      component: Template2,
+      restricted: false, // Available to all users
     },
     {
       id: 2,
       name: 'Grid Layout',
       description: 'A clean, organized grid-based template that allows for multiple sections of content in a modern, responsive layout.',
       features: ['Responsive grid design', 'Multiple content areas', 'Modern and minimal aesthetic'],
-      component: Template3
-    }
+      component: Template3,
+      restricted: true, // Restricted to Pro users
+    },
   ];
 
   const handleTemplateSelect = (id) => {
+    const selected = templates.find((template) => template.id === id);
+    if (selected.restricted && plan.toLowerCase() === 'free') {
+      alert('This template is only available for Pro users. Upgrade your plan to access it.');
+      return;
+    }
     setSelectedTemplate(id);
     setActiveView('preview');
   };
@@ -422,12 +450,20 @@ const Template = () => {
                 flexDirection: 'column',
                 transition: 'transform 0.3s ease, box-shadow 0.3s ease',
                 '&:hover': {
-                  transform: 'translateY(-5px)',
-                  boxShadow: 'var(--shadow-lg)',
+                  transform: template.restricted && plan.toLowerCase() === 'free' ? 'none' : 'translateY(-5px)',
+                  boxShadow: template.restricted && plan.toLowerCase() === 'free' ? 'none' : 'var(--shadow-lg)',
                 },
+                opacity: template.restricted && plan.toLowerCase() === 'free' ? 0.5 : 1, // Dim restricted templates for Free users
               }}
             >
-              <CardActionArea onClick={() => handleTemplateSelect(template.id)}>
+              <CardActionArea
+                onClick={() => {
+                  if (!(template.restricted && plan.toLowerCase() === 'free')) {
+                    handleTemplateSelect(template.id);
+                  }
+                }}
+                disabled={template.restricted && plan.toLowerCase() === 'free'} // Disable interaction for restricted templates
+              >
                 <Box 
                   sx={{ 
                     height: '200px', 
@@ -589,4 +625,4 @@ const Template = () => {
   );
 };
 
-export default Template; 
+export default Template;

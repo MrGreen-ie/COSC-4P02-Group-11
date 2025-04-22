@@ -492,3 +492,34 @@ class TwitterAPI:
                 'success': False,
                 'error': str(e)
             }
+
+    @staticmethod
+    def get_post_count(credentials):
+        """
+        Fetch the count of Twitter posts for a user.
+
+        Args:
+            credentials (dict): Twitter credentials with access_token and access_token_secret.
+
+        Returns:
+            int: Count of Twitter posts.
+        """
+        try:
+            import tweepy
+
+            # Authenticate with Twitter API
+            auth = tweepy.OAuth1UserHandler(
+                consumer_key=TWITTER_API_KEY,
+                consumer_secret=TWITTER_API_SECRET,
+                access_token=credentials['access_token'],
+                access_token_secret=credentials['access_token_secret']
+            )
+            api = tweepy.API(auth)
+
+            # Fetch user timeline and count posts
+            tweets = api.user_timeline(count=200)  # Adjust count as needed
+            return len(tweets)
+
+        except Exception as e:
+            print(f"Error fetching Twitter posts: {str(e)}")
+            raise

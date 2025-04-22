@@ -20,6 +20,7 @@ import NavBar from './components/NavBar';
 import './styles/theme.css';
 import PostHub from './pages/PostHub';
 
+
 const App = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(() => {
@@ -122,6 +123,14 @@ const App = () => {
             path="/post-hub"
             element={user ? <PostHub /> : <Navigate to="/login" replace />}
           />
+
+          <Route
+            path="/templates"
+            element={user ? <PostHub /> : <Navigate to="/login" replace />}
+          />
+          
+
+          
 
           {/* Redirect old favourites route to the new articles route */}
           <Route

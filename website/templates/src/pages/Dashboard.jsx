@@ -18,6 +18,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import '../styles/theme.css';
 
+
 // Analytics Card Component
 const AnalyticsCard = ({ title, value, icon, trend }) => (
   <Paper
@@ -91,7 +92,6 @@ const QuickActionButton = ({ icon, label, onClick }) => (
 // Feature Card Component
 const FeatureCard = ({ title, icon, description, path }) => {
   const navigate = useNavigate();
-  
   return (
     <Paper
       sx={{
@@ -134,12 +134,32 @@ const FeatureCard = ({ title, icon, description, path }) => {
   );
 };
 
+const navigate = useNavigate(); // Ensure navigate is defined here
+
 // Placeholder data for quick actions
 const quickActions = [
-  { icon: <PostIcon />, label: 'Create Post', onClick: () => alert('Create Post clicked') },
-  { icon: <AIIcon />, label: 'Generate Summary', onClick: () => alert('Generate Summary clicked') },
-  { icon: <NewsletterIcon />, label: 'Send Newsletter', onClick: () => alert('Send Newsletter clicked') },
-  { icon: <TemplateIcon />, label: 'Explore Templates', onClick: () => alert('Explore Templates clicked') },
+  
+  {
+    icon: <PostIcon />,
+    label: 'Create Post',
+    onClick: () => navigate('/post-hub'), // Navigate to the Create Post page
+  },
+  {
+    icon: <AIIcon />,
+    label: 'Generate Summary',
+    onClick: () => navigate('/summaries/generate'), // Navigate to the Generate Summary page
+  },
+  {
+    icon: <NewsletterIcon />,
+    label: 'Send Newsletter',
+  
+    onClick: () => navigate('/post-hub'), // Navigate to the Send Newsletter page
+  },
+  {
+    icon: <TemplateIcon />,
+    label: 'Explore Templates',
+    onClick: () => navigate('/templates'), // Navigate to the Templates page
+  },
 ];
 
 // Placeholder data for features
@@ -155,11 +175,12 @@ const Dashboard = () => {
   const [plan, setPlan] = useState('Free');
   const [newsletterCount, setNewsletterCount] = useState(0);
   const [sentNewsletterCount, setSentNewsletterCount] = useState(0);
-  const [subscriberCount, setSubscriberCount] = useState(0); // New state for subscribers
+  const [subscriberCount, setSubscriberCount] = useState(0);
+  const [twitterPostCount, setTwitterPostCount] = useState(0); // New state for Twitter post count
   const [isAdmin, setIsAdmin] = useState(false);
   const [runTutorial, setRunTutorial] = useState(true);
 
-  // Fetch user info, newsletter count and sent newsletters count
+  // Fetch user info, newsletter count, sent newsletters count, and Twitter post count
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
@@ -178,10 +199,10 @@ const Dashboard = () => {
 
     const fetchNewsletterCount = async () => {
       try {
-        const response = await axios.get('/api/newsletter');
-        setNewsletterCount(response.data.summaries.length);
+        const response = await axios.get('/api/template/saved'); // Use the same endpoint as in Newsletters.jsx
+        setNewsletterCount(response.data.templates.length); // Set the count based on the templates array length
       } catch (error) {
-        console.error('Error fetching newsletters:', error);
+        console.error('Error fetching templates:', error);
       }
     };
 
@@ -204,10 +225,24 @@ const Dashboard = () => {
       }
     };
 
+    // const fetchTwitterPostCount = async () => {
+    //   try {
+    //     const response = await axios.get('/api/twitter/posts-count');
+    //     setTwitterPostCount(response.data.count);
+    //   } catch (error) {
+    //     console.error('Error fetching Twitter post count:', error);
+    //     if (error.response && error.response.status === 400) {
+    //       alert('Twitter authentication required. Please log in to Twitter.');
+    //       // Optionally, redirect the user to the Twitter authentication page
+    //     }
+    //   }
+    // };
+
     fetchUserInfo();
     fetchNewsletterCount();
     fetchSentNewsletterCount();
     fetchSubscribers();
+    //fetchTwitterPostCount(); // Fetch Twitter post count
   }, []);
 
   const steps = [
@@ -241,7 +276,7 @@ const Dashboard = () => {
   // Update the analytics array dynamically
   const analytics = [
     { title: 'Summary', value: newsletterCount.toLocaleString(), icon: <TrendingUpIcon />},
-    { title: 'X Post', value: '56', icon: <ArticleIcon />},
+    { title: 'X Post', value: twitterPostCount.toLocaleString(), icon: <ArticleIcon />}, // Updated to use twitterPostCount
     { title: 'Newsletter Post', value: sentNewsletterCount.toLocaleString(), icon: <PeopleIcon /> },
     { title: 'Subscribers', value: subscriberCount.toLocaleString(), icon: <SpeedIcon />},
   ];

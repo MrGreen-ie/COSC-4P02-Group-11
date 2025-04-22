@@ -2632,3 +2632,32 @@ def send_newsletter():
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
+
+@views.route('/api/twitter/posts-count', methods=['GET'])
+@login_required
+def get_twitter_posts_count():
+    """
+    Fetch the count of Twitter posts for the current user.
+    """
+    try:
+        # Simulate fetching Twitter post count
+        # Replace this with actual logic to fetch the count from Twitter API
+        from .twitter_api import TwitterAPI
+
+        # Assuming TwitterAPI has a method to fetch post count
+        twitter_credentials = {
+            'access_token': session.get('twitter_access_token'),
+            'access_token_secret': session.get('twitter_access_token_secret')
+        }
+
+        if not twitter_credentials['access_token'] or not twitter_credentials['access_token_secret']:
+            return jsonify({'error': 'Twitter credentials not found'}), 400
+
+        post_count = TwitterAPI.get_post_count(twitter_credentials)
+
+        return jsonify({'count': post_count}), 200
+
+    except Exception as e:
+        print(f"Error fetching Twitter post count: {str(e)}")
+        return jsonify({'error': 'Failed to fetch Twitter post count'}), 500

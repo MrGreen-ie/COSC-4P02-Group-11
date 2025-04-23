@@ -170,14 +170,16 @@ const features = [
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem('user'));
-  const [plan, setPlan] = useState('Free');
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
+  const [isAdmin, setIsAdmin] = useState(false);
   const [newsletterCount, setNewsletterCount] = useState(0);
   const [sentNewsletterCount, setSentNewsletterCount] = useState(0);
   const [subscriberCount, setSubscriberCount] = useState(0);
-  const [twitterPostCount, setTwitterPostCount] = useState(0); // New state for Twitter post count
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [runTutorial, setRunTutorial] = useState(true);
+  const [plan, setPlan] = useState('Free'); // Default to Free plan
+  const [runTutorial, setRunTutorial] = useState(false); // Don't start tutorial automatically
 
   // Fetch user info, newsletter count, sent newsletters count, and Twitter post count
   useEffect(() => {
@@ -247,26 +249,26 @@ const Dashboard = () => {
   const steps = [
     {
       target: '.welcome-section',
-      content: 'Welcome to your dashboard! This is your main hub for managing content and analytics.',
+      content: <TranslatedText>Welcome to your dashboard! This is your main hub for managing content and analytics.</TranslatedText>,
       disableBeacon: true,
     },
     {
       target: '.analytics-section',
-      content: 'Here you can view key metrics about your content performance.',
+      content: <TranslatedText>Here you can view key metrics about your content performance.</TranslatedText>,
     },
     {
       target: '.quick-actions-section',
-      content: 'Use these buttons to quickly create posts, summaries, or newsletters.',
+      content: <TranslatedText>Use these buttons to quickly create posts, summaries, or newsletters.</TranslatedText>,
     },
     {
       target: '.features-section',
-      content: 'Explore templates, favorites, and history to manage your content.',
+      content: <TranslatedText>Explore templates, favorites, and history to manage your content.</TranslatedText>,
     },
     ...(isAdmin
       ? [
           {
             target: '.admin-panel-section',
-            content: 'As an admin, you can manage users and system settings here.',
+            content: <TranslatedText>As an admin, you can manage users and system settings here.</TranslatedText>,
           },
         ]
       : []),
@@ -294,6 +296,13 @@ const Dashboard = () => {
         run={runTutorial}
         continuous
         showSkipButton
+        locale={{
+          back: <TranslatedText>Back</TranslatedText>,
+          close: <TranslatedText>Close</TranslatedText>,
+          last: <TranslatedText>Finish</TranslatedText>,
+          next: <TranslatedText>Next</TranslatedText>,
+          skip: <TranslatedText>Skip</TranslatedText>
+        }}
         styles={{
           options: {
             zIndex: 1000,
@@ -307,18 +316,37 @@ const Dashboard = () => {
       />
 
       {/* Welcome Section */}
-      <Typography
-        variant="h3"
-        gutterBottom
-        className="welcome-section"
-        sx={{
-          color: 'var(--text-primary)',
-          mb: 'var(--spacing-xs)',
-          fontWeight: 'var(--font-weight-bold)',
-        }}
-      >
-        <TranslatedText>Welcome back,</TranslatedText> {user?.firstName || <TranslatedText>User</TranslatedText>}
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 'var(--spacing-xs)' }}>
+        <Typography
+          variant="h3"
+          gutterBottom
+          className="welcome-section"
+          sx={{
+            color: 'var(--text-primary)',
+            fontWeight: 'var(--font-weight-bold)',
+            m: 0,
+          }}
+        >
+          <TranslatedText>Welcome back,</TranslatedText> {user?.firstName || <TranslatedText>User</TranslatedText>}
+        </Typography>
+        <Button
+          variant="outlined"
+          color="primary"
+          startIcon={<TemplateIcon />}
+          onClick={() => setRunTutorial(true)}
+          sx={{
+            borderRadius: 'var(--border-radius-md)',
+            borderColor: 'var(--primary)',
+            color: 'var(--primary)',
+            '&:hover': {
+              borderColor: 'var(--primary-dark)',
+              backgroundColor: 'rgba(var(--primary-rgb), 0.04)',
+            }
+          }}
+        >
+          <TranslatedText>Start Tutorial</TranslatedText>
+        </Button>
+      </Box>
       <Typography
         variant="subtitle1"
         sx={{

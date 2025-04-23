@@ -298,7 +298,6 @@ const Articles = () => {
               </Typography>
             </Box>
           </Grow>
-
           <Box sx={{ pl: 'var(--spacing-md)', pr: 'var(--spacing-md)', mb: 4 }}>
             <FormControl sx={{ m: 1, width: '100%' }}>
               <InputLabel id="category-select-label"><TranslatedText>Categories</TranslatedText></InputLabel>
@@ -377,83 +376,6 @@ const Articles = () => {
             </Button>
           </Box>
 
-          <Box sx={{ pl: 'var(--spacing-md)', pr: 'var(--spacing-md)', mb: 4 }}>
-            <FormControl sx={{ m: 1, width: '100%' }}>
-              <InputLabel id="category-select-label"><TranslatedText>Categories</TranslatedText></InputLabel>
-              <Select
-                labelId="category-select-label"
-                multiple
-                value={categories}
-                onChange={handleCategoryChange}
-                input={<OutlinedInput label="Categories" />}
-                renderValue={(selected) => (
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {selected.map((value) => (
-                      <Chip 
-                        key={value} 
-                        label={value} 
-                        sx={{
-                          transition: 'all 0.2s ease',
-                          '&:hover': {
-                            backgroundColor: 'var(--primary-light)',
-                            color: 'white',
-                          }
-                        }}
-                      />
-                    ))}
-                  </Box>
-                )}
-              >
-                {AVAILABLE_CATEGORIES.map((category) => (
-                  <MenuItem key={category} value={category}>
-                    <TranslatedText>{category.charAt(0).toUpperCase() + category.slice(1)}</TranslatedText>
-                  </MenuItem>
-                ))}
-              </Select>
-              <FormHelperText><TranslatedText>Select up to 2 categories</TranslatedText></FormHelperText>
-            </FormControl>
-            
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={articleLoading ? null : <SearchIcon />}
-              onClick={handleSearchArticles}
-              disabled={articleLoading}
-              sx={{ 
-                mt: 2, 
-                mb: 2, 
-                minWidth: 150,
-                position: 'relative',
-                overflow: 'hidden',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: 'var(--shadow-md)',
-                },
-                '&:after': articleLoading ? {
-                  content: '""',
-                  position: 'absolute',
-                  bottom: 0,
-                  left: 0,
-                  width: '100%',
-                  height: 3,
-                  backgroundColor: 'rgba(255, 255, 255, 0.5)',
-                  animation: 'loading 1.5s infinite linear',
-                  '@keyframes loading': {
-                    '0%': { transform: 'translateX(-100%)' },
-                    '100%': { transform: 'translateX(100%)' }
-                  }
-                } : {}
-              }}
-            >
-              {articleLoading ? (
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <CircularProgress size={20} sx={{ mr: 1, color: 'white' }} />
-                  <TranslatedText>Searching...</TranslatedText>
-                </Box>
-              ) : <TranslatedText>Search Articles</TranslatedText>}
-            </Button>
-          </Box>
 
         {/* Article Results with improved loading and empty states */}
         {showArticles && (

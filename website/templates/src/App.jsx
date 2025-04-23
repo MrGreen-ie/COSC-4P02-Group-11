@@ -19,7 +19,7 @@ import { Box } from '@mui/material';
 import NavBar from './components/NavBar';
 import './styles/theme.css';
 import PostHub from './pages/PostHub';
-
+import { LanguageProvider } from './contexts/LanguageContext';
 
 const App = () => {
   const navigate = useNavigate();
@@ -57,90 +57,89 @@ const App = () => {
   };
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      <NavBar user={user} onLogout={handleLogout} />
-      <Box 
-        component="main"
-        sx={{
-          flexGrow: 1,
-          minHeight: '100vh',
-          width: '100%',
-          paddingTop: { 
-            xs: 'var(--nav-height-mobile)',
-            sm: 'var(--nav-height)'
-          },
-          background: 'var(--bg-secondary)',
-          overflowX: 'hidden'
-        }}
-      >
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/home" element={user ? <Navigate to="/dashboard" replace /> : <Home />} />
-          <Route path="/login" element={<Login onLogin={handleLogin} />} />
-          <Route path="/register" element={<Register onLogin={handleLogin} />} />
-          <Route path="/aboutus" element={<AboutUs />} />  
-          <Route path="/contact" element={<Contact />} />  
-          <Route path="/pricing" element={<Pricing />} />
+    <LanguageProvider>
+      <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+        <NavBar user={user} onLogout={handleLogout} />
+        <Box 
+          component="main"
+          sx={{
+            flexGrow: 1,
+            minHeight: '100vh',
+            width: '100%',
+            paddingTop: { 
+              xs: 'var(--nav-height-mobile)',
+              sm: 'var(--nav-height)'
+            },
+            background: 'var(--bg-secondary)',
+            overflowX: 'hidden'
+          }}
+        >
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/home" element={user ? <Navigate to="/dashboard" replace /> : <Home />} />
+            <Route path="/login" element={<Login onLogin={handleLogin} />} />
+            <Route path="/register" element={<Register onLogin={handleLogin} />} />
+            <Route path="/aboutus" element={<AboutUs />} />  
+            <Route path="/contact" element={<Contact />} />  
+            <Route path="/pricing" element={<Pricing />} />
 
-          {/* Protected Routes */}
-          <Route
-            path="/dashboard"
-            element={user ? <Dashboard /> : <Navigate to="/login" replace />}
-          />
-          <Route
-            path="/editor"
-            element={user ? <Editor /> : <Navigate to="/login" replace />}
-          />
-          <Route
-            path="/templates"
-            element={user ? <Template /> : <Navigate to="/login" replace />}
-          />
-          <Route
-            path="/ai-summary"
-            element={user ? <AISummary /> : <Navigate to="/login" replace />}
-          />
-          <Route
-            path="/post-system"
-            element={user ? <PostSystem /> : <Navigate to="/login" replace />}
-          />
-          <Route
-            path="/articles"
-            element={user ? <Articles /> : <Navigate to="/login" replace />}
-          />
-          <Route
-            path="/newsletters"
-            element={user ? <Newsletters /> : <Navigate to="/login" replace />}
-          />
-          <Route
-            path="/history"
-            element={user ? <History /> : <Navigate to="/login" replace />}
-          />
-          <Route
-            path="/translation"
-            element={user ? <Translation /> : <Navigate to="/login" replace />}
-          />
-          <Route
-            path="/post-hub"
-            element={user ? <PostHub /> : <Navigate to="/login" replace />}
-          />
-          
+            {/* Protected Routes */}
+            <Route
+              path="/dashboard"
+              element={user ? <Dashboard /> : <Navigate to="/login" replace />}
+            />
+            <Route
+              path="/editor"
+              element={user ? <Editor /> : <Navigate to="/login" replace />}
+            />
+            <Route
+              path="/templates"
+              element={user ? <Template /> : <Navigate to="/login" replace />}
+            />
+            <Route
+              path="/ai-summary"
+              element={user ? <AISummary /> : <Navigate to="/login" replace />}
+            />
+            <Route
+              path="/post-system"
+              element={user ? <PostSystem /> : <Navigate to="/login" replace />}
+            />
+            <Route
+              path="/articles"
+              element={user ? <Articles /> : <Navigate to="/login" replace />}
+            />
+            <Route
+              path="/newsletters"
+              element={user ? <Newsletters /> : <Navigate to="/login" replace />}
+            />
+            <Route
+              path="/history"
+              element={user ? <History /> : <Navigate to="/login" replace />}
+            />
+            <Route
+              path="/translation"
+              element={user ? <Translation /> : <Navigate to="/login" replace />}
+            />
+            <Route
+              path="/post-hub"
+              element={user ? <PostHub /> : <Navigate to="/login" replace />}
+            />
 
-          
+            {/* Redirect old favourites route to the new articles route */}
+            <Route
+              path="/favourites" 
+              element={<Navigate to="/articles" replace />}
+            />
 
-          {/* Redirect old favourites route to the new articles route */}
-          <Route
-            path="/favourites" 
-            element={<Navigate to="/articles" replace />}
-          />
-
-          {/* Default redirect */}
-          <Route path="/" element={<Navigate to={user ? "/dashboard" : "/home"} replace />} />
-          
-          {/* Catch all for 404 pages - add this at the end of your routes */}
-          <Route path="*" element={<Navigate to={user ? "/dashboard" : "/home"} replace />} />
-        </Routes>
+            {/* Default redirect */}
+            <Route path="/" element={<Navigate to={user ? "/dashboard" : "/home"} replace />} />
+            
+            {/* Catch all for 404 pages - add this at the end of your routes */}
+            <Route path="*" element={<Navigate to={user ? "/dashboard" : "/home"} replace />} />
+          </Routes>
+        </Box>
       </Box>
-    </Box>
+    </LanguageProvider>
   );
 };
 

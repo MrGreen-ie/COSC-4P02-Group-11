@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import TranslatedText from '../components/TranslatedText';
 import {
   Box,
   Typography,
@@ -238,7 +239,7 @@ const History = () => {
     }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb="var(--spacing-xl)">
         <Typography variant="h4" component="h1" className="heading-primary">
-          Content History
+          <TranslatedText>Content History</TranslatedText>
         </Typography>
       </Box>
 
@@ -252,17 +253,17 @@ const History = () => {
         borderRadius: 'var(--border-radius-lg)'
       }}>
         <Box flex={1} textAlign="center">
-          <Typography variant="h6" className="heading-secondary">Total Posts</Typography>
+          <Typography variant="h6" className="heading-secondary"><TranslatedText>Total Posts</TranslatedText></Typography>
           <Typography variant="h4" className="text-primary">0</Typography>
         </Box>
         <Divider orientation="vertical" flexItem />
         <Box flex={1} textAlign="center">
-          <Typography variant="h6" className="heading-secondary">Total Newsletters</Typography>
+          <Typography variant="h6" className="heading-secondary"><TranslatedText>Total Newsletters</TranslatedText></Typography>
           <Typography variant="h4" className="text-primary">{templates.length}</Typography>
         </Box>
         <Divider orientation="vertical" flexItem />
         <Box flex={1} textAlign="center">
-          <Typography variant="h6" className="heading-secondary">AI Summaries</Typography>
+          <Typography variant="h6" className="heading-secondary"><TranslatedText>AI Summaries</TranslatedText></Typography>
           <Typography variant="h4" className="text-primary">{savedSummaries.length}</Typography>
         </Box>
       </Paper>
@@ -289,10 +290,10 @@ const History = () => {
             },
           }}
         >
-          <Tab label="All Content" />
-          <Tab label="Posts" />
-          <Tab label="Newsletters" />
-          <Tab label="AI Summaries" />
+          <Tab label={<TranslatedText>All Content</TranslatedText>} />
+          <Tab label={<TranslatedText>Posts</TranslatedText>} />
+          <Tab label={<TranslatedText>Newsletters</TranslatedText>} />
+          <Tab label={<TranslatedText>AI Summaries</TranslatedText>} />
         </Tabs>
       </Paper>
 
@@ -306,7 +307,7 @@ const History = () => {
           loading ? (
             <Box p="var(--spacing-xl)" textAlign="center">
               <Typography variant="body1" className="text-secondary">
-                Loading content...
+                <TranslatedText>Loading content...</TranslatedText>
               </Typography>
             </Box>
           ) : error ? (
@@ -318,10 +319,10 @@ const History = () => {
           ) : getAllContent().length === 0 ? (
             <Box p="var(--spacing-xl)" textAlign="center">
               <Typography variant="h6" className="text-secondary">
-                No content history available
+                <TranslatedText>No content history available</TranslatedText>
               </Typography>
               <Typography variant="body1" className="text-secondary" sx={{ mt: 'var(--spacing-md)' }}>
-                Your newsletters and AI summaries will appear here
+                <TranslatedText>Your newsletters and AI summaries will appear here</TranslatedText>
               </Typography>
             </Box>
           ) : (
@@ -352,7 +353,7 @@ const History = () => {
                             {item.headline}
                           </Typography>
                           <Typography variant="body2" className="text-secondary">
-                            {item.type === 'summary' ? 'AI Summary' : `Template: ${item.template_name}`} • Created: {formatDate(item.created_at)}
+                            {item.type === 'summary' ? <TranslatedText>AI Summary</TranslatedText> : <><TranslatedText>Template</TranslatedText>: {item.template_name}</>} • <TranslatedText>Created</TranslatedText>: {formatDate(item.created_at)}
                           </Typography>
                         </Box>
                       </Box>
@@ -460,10 +461,10 @@ const History = () => {
           // Posts Tab
           <Box p="var(--spacing-xl)" textAlign="center">
             <Typography variant="h6" className="text-secondary">
-              No posts available
+              <TranslatedText>No posts available</TranslatedText>
             </Typography>
             <Typography variant="body1" className="text-secondary" sx={{ mt: 'var(--spacing-md)' }}>
-              Your published posts will appear here
+              <TranslatedText>Your published posts will appear here</TranslatedText>
             </Typography>
           </Box>
         ) : tabValue === 2 ? (
@@ -471,7 +472,7 @@ const History = () => {
           loading ? (
             <Box p="var(--spacing-xl)" textAlign="center">
               <Typography variant="body1" className="text-secondary">
-                Loading templates...
+                <TranslatedText>Loading templates...</TranslatedText>
               </Typography>
             </Box>
           ) : error ? (
@@ -483,10 +484,10 @@ const History = () => {
           ) : !Array.isArray(templates) || templates.length === 0 ? (
             <Box p="var(--spacing-xl)" textAlign="center">
               <Typography variant="h6" className="text-secondary">
-                No newsletter templates
+                <TranslatedText>No newsletter templates</TranslatedText>
               </Typography>
               <Typography variant="body1" className="text-secondary" sx={{ mt: 'var(--spacing-md)' }}>
-                Create templates in the Newsletter section to see them here
+                <TranslatedText>Create templates in the Newsletter section to see them here</TranslatedText>
               </Typography>
               <Button
                 variant="contained"
@@ -495,7 +496,7 @@ const History = () => {
                 onClick={() => navigate('/templates?skipOverlay=true')}
                 sx={{ mt: 2 }}
               >
-                Create Template
+                <TranslatedText>Create Template</TranslatedText>
               </Button>
             </Box>
           ) : (
@@ -541,7 +542,7 @@ const History = () => {
                           {template.headline}
                         </Typography>
                         <Typography variant="body2" color="textSecondary" gutterBottom className="text-secondary">
-                          Created: {formatDate(template.created_at)}
+                          <TranslatedText>Created</TranslatedText>: {formatDate(template.created_at)}
                         </Typography>
                         <Typography variant="body2" noWrap className="text-primary" sx={{ mb: 1 }}>
                           {template.template_id === 2 && template.hasSections ? (
@@ -549,7 +550,7 @@ const History = () => {
                               <Box sx={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                   <Chip 
-                                    label="Multi-Section" 
+                                    label={<TranslatedText>Multi-Section</TranslatedText>} 
                                     size="small" 
                                     color="primary" 
                                     variant="outlined" 
@@ -583,7 +584,7 @@ const History = () => {
           loading ? (
             <Box p="var(--spacing-xl)" textAlign="center">
               <Typography variant="body1" className="text-secondary">
-                Loading summaries...
+                <TranslatedText>Loading summaries...</TranslatedText>
               </Typography>
             </Box>
           ) : error ? (
@@ -595,10 +596,10 @@ const History = () => {
           ) : !Array.isArray(savedSummaries) || savedSummaries.length === 0 ? (
             <Box p="var(--spacing-xl)" textAlign="center">
               <Typography variant="h6" className="text-secondary">
-                No saved AI summaries
+                <TranslatedText>No saved AI summaries</TranslatedText>
               </Typography>
               <Typography variant="body1" className="text-secondary" sx={{ mt: 'var(--spacing-md)' }}>
-                Generate and save summaries in the AI Summary tool to see them here
+                <TranslatedText>Generate and save summaries in the AI Summary tool to see them here</TranslatedText>
               </Typography>
             </Box>
           ) : (
@@ -625,7 +626,7 @@ const History = () => {
                             {summary.headline}
                           </Typography>
                           <Typography variant="body2" className="text-secondary">
-                            Created: {formatDate(summary.created_at)}
+                            <TranslatedText>Created</TranslatedText>: {formatDate(summary.created_at)}
                           </Typography>
                         </Box>
                       </Box>
@@ -692,7 +693,7 @@ const History = () => {
           // Default/fallback content
           <Box p="var(--spacing-xl)" textAlign="center">
             <Typography variant="h6" className="text-secondary">
-              No content available
+              <TranslatedText>No content available</TranslatedText>
             </Typography>
           </Box>
         )}

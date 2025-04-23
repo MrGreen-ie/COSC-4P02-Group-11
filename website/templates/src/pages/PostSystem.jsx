@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, Component } from 'react';
+import TranslatedText from '../components/TranslatedText';
 
 import {
   Alert,
@@ -99,17 +100,17 @@ class ErrorBoundary extends Component {
           }}
         >
           <Typography variant="h5" color="error" gutterBottom>
-            Something went wrong in the Post System
+            <TranslatedText>Something went wrong in the Post System</TranslatedText>
           </Typography>
           <Typography variant="body1" paragraph>
-            Please try refreshing the page. If the problem persists, contact support.
+            <TranslatedText>Please try refreshing the page. If the problem persists, contact support.</TranslatedText>
           </Typography>
           <Button 
             variant="contained" 
             color="primary" 
             onClick={() => window.location.reload()}
           >
-            Refresh Page
+            <TranslatedText>Refresh Page</TranslatedText>
           </Button>
         </Box>
       );
@@ -583,7 +584,7 @@ useEffect(() => {
                       '&:hover': { background: 'var(--primary-light)' }
                     }}
                   >
-                    Post Now
+                    <TranslatedText>Post Now</TranslatedText>
                   </Button>
                   <IconButton
                     size="small"
@@ -802,13 +803,16 @@ useEffect(() => {
         setContent('');
         setMediaFiles([]);
         
-        // Show detailed results
-        setStatusDialog({
-          open: true,
-          title: 'Post Results',
-          content: 'Your post has been processed with the following results:',
-          results: data.results
-        });
+        // Show detailed results if available
+        if (data.results) {
+          console.log('Post results:', data.results);
+          setStatusDialog({
+            open: true,
+            title: 'Post Results',
+            content: 'Your post has been processed with the following results:',
+            results: data.results
+          });
+        }
         
         // Reset Twitter rate limit status if it was previously limited
         if (twitterRateLimit.isLimited) {
@@ -828,7 +832,7 @@ useEffect(() => {
         
         // For Twitter rate limit errors, set the rate limit state
         if (isRateLimitError && platforms.twitter) {
-          // Extract reset time if available (default to 15 minutes from now if not specified)
+          // Extract reset time if available (default to 15 minutes from now)
           const resetTime = new Date();
           resetTime.setMinutes(resetTime.getMinutes() + 15);
           
@@ -838,12 +842,14 @@ useEffect(() => {
             resetTime: resetTime
           });
           
+          // Show a rate limit specific alert
           setAlert({
             open: true,
             message: 'Twitter rate limit exceeded. Please try again later.',
             severity: 'warning'
           });
         } else {
+          // Regular error alert
           setAlert({
             open: true,
             message: data.error || 'Failed to publish post',
@@ -1070,7 +1076,7 @@ useEffect(() => {
                   fontWeight: 600,
                   color: '#000000'
                 }}>
-                  X Authentication
+                  <TranslatedText>X Authentication</TranslatedText>
                 </Typography>
               </Box>
               
@@ -1097,14 +1103,14 @@ useEffect(() => {
               textAlign: 'center',
               fontSize: { xs: '1.5rem', sm: '2rem' }
             }}>
-              Social Media Post System
+              <TranslatedText>Social Media Post System</TranslatedText>
             </Typography>
             <Typography variant="body1" gutterBottom className="text-secondary" sx={{ 
               textAlign: 'center', 
               mb: 'var(--spacing-xl)',
               fontSize: { xs: '0.875rem', sm: '1rem' }
             }}>
-              Create, schedule, and manage your social media posts across multiple platforms.
+              <TranslatedText>Create, schedule, and manage your social media posts across multiple platforms.</TranslatedText>
             </Typography>
             
             {/* Twitter Rate Limit Warning Banner */}
@@ -1121,15 +1127,17 @@ useEffect(() => {
                   }
                 }}
               >
-                <AlertTitle sx={{ fontWeight: 'bold', fontSize: '1.1rem' }}>Twitter Rate Limit Exceeded</AlertTitle>
+                <AlertTitle sx={{ fontWeight: 'bold', fontSize: '1.1rem' }}>
+                  <TranslatedText>Twitter Rate Limit Exceeded</TranslatedText>
+                </AlertTitle>
                 <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                  Your Twitter account has reached its API rate limit. 
+                  <TranslatedText>Your Twitter account has reached its API rate limit.</TranslatedText>
                   {twitterRateLimit.resetTime && (
                     <>Try again after <strong>{twitterRateLimit.resetTime.toLocaleTimeString()}</strong>.</>
                   )}
                 </Typography>
                 <Typography variant="body2" sx={{ mt: 1, color: '#d32f2f' }}>
-                  Error: {twitterRateLimit.message}
+                  <TranslatedText>Error:</TranslatedText> {twitterRateLimit.message}
                 </Typography>
               </Alert>
             )}
@@ -1156,12 +1164,13 @@ useEffect(() => {
               '&.Mui-focused': { color: 'var(--primary)' }
             }
           }}
+          helperText={contentError || `${content.length}/280 <TranslatedText>characters</TranslatedText>`}
         />
         
         {/* Media attachments section */}
         <Box sx={{ mt: 'var(--spacing-md)', mb: 'var(--spacing-md)' }}>
           <Typography variant="subtitle1" gutterBottom sx={{ color: 'var(--text-primary)' }}>
-            Media Attachments
+            <TranslatedText>Media Attachments</TranslatedText>
           </Typography>
           
           {mediaError && (
@@ -1193,7 +1202,7 @@ useEffect(() => {
                     </Box>
                   )}
                   <CardContent sx={{ p: 'var(--spacing-sm)' }}>
-                    <Typography variant="caption" noWrap sx={{ color: 'var(--text-primary)' }}>
+                    <Typography variant="caption" sx={{ color: 'var(--text-primary)' }}>
                       {file.name}
                     </Typography>
                   </CardContent>
@@ -1241,13 +1250,13 @@ useEffect(() => {
                 }
               }}
             >
-              Attach Media
+              <TranslatedText>Add Media</TranslatedText>
             </Button>
           </label>
           {mediaFiles.length > 0 && (
             <Box sx={{ mt: 'var(--spacing-sm)' }}>
               <Typography variant="body2" sx={{ color: 'var(--text-secondary)' }}>
-                Selected files: {mediaFiles.map(file => file.name).join(', ')}
+                <TranslatedText>Selected files:</TranslatedText> {mediaFiles.map(file => file.name).join(', ')}
               </Typography>
             </Box>
           )}
@@ -1256,7 +1265,7 @@ useEffect(() => {
         {/* Platform selection */}
         <FormControl component="fieldset" sx={{ mb: 'var(--spacing-lg)' }}>
           <Typography variant="subtitle1" gutterBottom sx={{ color: 'var(--text-primary)' }}>
-            Select Platforms
+            <TranslatedText>Select Platforms</TranslatedText>
           </Typography>
           <FormGroup row>
             <FormControlLabel
@@ -1276,10 +1285,10 @@ useEffect(() => {
               }
               label={
                 <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'var(--text-primary)' }}>
-                  X
+                  <TranslatedText>Twitter</TranslatedText>
                   {!isTwitterAuthenticated && (
                     <Typography variant="caption" color="error" sx={{ ml: 'var(--spacing-sm)' }}>
-                      (Authentication required)
+                      <TranslatedText>(Authentication required)</TranslatedText>
                     </Typography>
                   )}
                 </Box>
@@ -1321,7 +1330,7 @@ useEffect(() => {
                   }
                 }}
               >
-                Post Now
+                <TranslatedText>Post Now</TranslatedText>
               </Button>
               
               <Button
@@ -1346,7 +1355,7 @@ useEffect(() => {
                   }
                 }}
               >
-                Schedule Post
+                <TranslatedText>Schedule Post</TranslatedText>
               </Button>
             </>
           ) : (
@@ -1373,13 +1382,13 @@ useEffect(() => {
                 }}>
                   <ScheduleIcon sx={{ color: 'var(--primary)', mr: 1.5, fontSize: 28 }} />
                   <Typography variant="h6" sx={{ color: 'var(--text-primary)', fontWeight: 'bold' }}>
-                    Schedule Your Post
+                    <TranslatedText>Schedule Your Post</TranslatedText>
                   </Typography>
                 </Box>
                 
                 <Box sx={{ mt: 1 }}>
                   <Typography variant="subtitle2" sx={{ mb: 1, color: 'var(--text-secondary)' }}>
-                    Precise Timing (12-hour format)
+                    <TranslatedText>Precise Timing (12-hour format)</TranslatedText>
                   </Typography>
                   <Box sx={{ 
                     display: 'flex', 
@@ -1388,7 +1397,7 @@ useEffect(() => {
                     flexWrap: 'wrap'
                   }}>
                     <DatePicker
-                      label="Date"
+                      label={<TranslatedText>Date</TranslatedText>}
                       value={scheduledTime}
                       onChange={(newValue) => setScheduledTime(newValue)}
                       minDate={new Date()}
@@ -1397,11 +1406,11 @@ useEffect(() => {
                     />
                       
                       <TextField
-                        label="Hours"
+                        label={<TranslatedText>Hours</TranslatedText>}
                         type="number"
                         InputProps={{ 
                           inputProps: { min: 1, max: 12 },
-                          endAdornment: <InputAdornment position="end">hr</InputAdornment>
+                          endAdornment: <InputAdornment position="end"><TranslatedText>hr</TranslatedText></InputAdornment>
                         }}
                         size="small"
                         value={scheduledTime ? (scheduledTime.getHours() % 12 === 0 ? 12 : scheduledTime.getHours() % 12) : 12}
@@ -1419,11 +1428,11 @@ useEffect(() => {
                         sx={{ width: '100px' }}
                       />
                       <TextField
-                        label="Minutes"
+                        label={<TranslatedText>Minutes</TranslatedText>}
                         type="number"
                         InputProps={{ 
                           inputProps: { min: 0, max: 59 },
-                          endAdornment: <InputAdornment position="end">min</InputAdornment>
+                          endAdornment: <InputAdornment position="end"><TranslatedText>min</TranslatedText></InputAdornment>
                         }}
                         size="small"
                         value={scheduledTime ? scheduledTime.getMinutes() : 0}
@@ -1438,11 +1447,11 @@ useEffect(() => {
                         sx={{ width: '100px' }}
                       />
                       <TextField
-                        label="Seconds"
+                        label={<TranslatedText>Seconds</TranslatedText>}
                         type="number"
                         InputProps={{ 
                           inputProps: { min: 0, max: 59 },
-                          endAdornment: <InputAdornment position="end">sec</InputAdornment>
+                          endAdornment: <InputAdornment position="end"><TranslatedText>sec</TranslatedText></InputAdornment>
                         }}
                         size="small"
                         value={scheduledTime ? scheduledTime.getSeconds() : 0}
@@ -1458,13 +1467,13 @@ useEffect(() => {
                       />
                       
                       <FormControl sx={{ minWidth: 100 }}>
-                        <InputLabel id="ampm-select-label">AM/PM</InputLabel>
+                        <InputLabel id="ampm-select-label"><TranslatedText>AM/PM</TranslatedText></InputLabel>
                         <Select
                           labelId="ampm-select-label"
                           id="ampm-select"
                           size="small"
                           value={scheduledTime ? (scheduledTime.getHours() >= 12 ? 'PM' : 'AM') : 'AM'}
-                          label="AM/PM"
+                          label={<TranslatedText>AM/PM</TranslatedText>}
                           onChange={(e) => {
                             const newTime = new Date(scheduledTime || new Date());
                             const currentHours = newTime.getHours();
@@ -1481,8 +1490,8 @@ useEffect(() => {
                             setScheduledTime(newTime);
                           }}
                         >
-                          <MenuItem value="AM">AM</MenuItem>
-                          <MenuItem value="PM">PM</MenuItem>
+                          <MenuItem value="AM"><TranslatedText>AM</TranslatedText></MenuItem>
+                          <MenuItem value="PM"><TranslatedText>PM</TranslatedText></MenuItem>
                         </Select>
                       </FormControl>
                     </Box>
@@ -1497,7 +1506,7 @@ useEffect(() => {
                 }}>
                   <Chip 
                     icon={<ScheduleIcon />} 
-                    label={scheduledTime ? `Scheduled for: ${scheduledTime.toLocaleString(undefined, {
+                    label={scheduledTime ? <TranslatedText>Scheduled for:</TranslatedText> + ` ${scheduledTime.toLocaleString(undefined, {
                       year: 'numeric',
                       month: 'short',
                       day: 'numeric',
@@ -1505,13 +1514,13 @@ useEffect(() => {
                       minute: '2-digit',
                       second: '2-digit',
                       hour12: true
-                    })}` : 'Select a time'}
+                    })}` : <TranslatedText>Select a time</TranslatedText>}
                     color="primary" 
                     variant="outlined" 
                     sx={{ marginRight: 'auto' }} 
                   />
                   <Typography variant="caption" sx={{ color: 'var(--text-secondary)', fontStyle: 'italic', ml: 1 }}>
-                    Includes seconds precision
+                    <TranslatedText>Includes seconds precision</TranslatedText>
                   </Typography>
                 </Box>
                 
@@ -1542,7 +1551,7 @@ useEffect(() => {
                       }
                     }}
                   >
-                    Confirm Schedule
+                    <TranslatedText>Confirm Schedule</TranslatedText>
                   </Button>
                   <Button
                     variant="outlined"
@@ -1557,7 +1566,7 @@ useEffect(() => {
                       }
                     }}
                   >
-                    Cancel
+                    <TranslatedText>Cancel</TranslatedText>
                   </Button>
                 </Box>
               </Box>
@@ -1586,7 +1595,7 @@ useEffect(() => {
               textAlign: 'center'
             }}
           >
-            Scheduled Posts
+            <TranslatedText>Scheduled Posts</TranslatedText>
           </Typography>
           <Divider sx={{ mb: 2 }} />
           
@@ -1639,10 +1648,10 @@ useEffect(() => {
                         size="small"
                         sx={{ mr: 1, height: 24, minWidth: 32 }}
                       />
-                      Scheduled: {new Date(post.scheduled_time).toLocaleString()}
+                      <TranslatedText>Scheduled:</TranslatedText> {new Date(post.scheduled_time).toLocaleString()}
                       {new Date(post.scheduled_time) < new Date() && post.status === 'scheduled' && (
                         <Chip 
-                          label="Past Due" 
+                          label={<TranslatedText>Past Due</TranslatedText>} 
                           color="warning"
                           size="small"
                           sx={{ ml: 1 }}
@@ -1660,7 +1669,7 @@ useEffect(() => {
                     borderRadius: '4px' 
                   }}>
                     <Chip 
-                      label={post.status === 'scheduled' ? 'Scheduled' : 'Completed'} 
+                      label={post.status === 'scheduled' ? <TranslatedText>Scheduled</TranslatedText> : <TranslatedText>Completed</TranslatedText>} 
                       color={post.status === 'scheduled' ? 'primary' : 'success'}
                       size="small"
                       sx={{ mr: 1 }}
@@ -1709,7 +1718,7 @@ useEffect(() => {
                           startIcon={<SendIcon />}
                           sx={{ mr: 1 }}
                         >
-                          Post Now
+                          <TranslatedText>Post Now</TranslatedText>
                         </Button>
                         <Button
                           variant="outlined"
@@ -1719,14 +1728,14 @@ useEffect(() => {
                           disabled={isLoading}
                           startIcon={<DeleteIcon />}
                         >
-                          Delete
+                          <TranslatedText>Delete</TranslatedText>
                         </Button>
                       </>
                     )}
                     {post.status === 'completed' && (
                       <Chip
                         icon={<CheckIcon />}
-                        label="Posted Successfully"
+                        label={<TranslatedText>Posted Successfully</TranslatedText>}
                         color="success"
                         variant="outlined"
                       />
@@ -1745,10 +1754,10 @@ useEffect(() => {
             }}>
               <ScheduleIcon sx={{ fontSize: 48, color: 'var(--text-secondary)', opacity: 0.5, mb: 1 }} />
               <Typography variant="body1" sx={{ color: 'var(--text-secondary)' }}>
-                No scheduled posts yet
+                <TranslatedText>No scheduled posts yet</TranslatedText>
               </Typography>
               <Typography variant="body2" sx={{ color: 'var(--text-secondary)', mt: 1 }}>
-                Use the form above to schedule your first post
+                <TranslatedText>Use the form above to schedule your first post</TranslatedText>
               </Typography>
             </Box>
           )}
@@ -1832,7 +1841,7 @@ useEffect(() => {
                       rel="noopener noreferrer"
                       sx={{ ml: 2 }}
                     >
-                      View Post
+                      <TranslatedText>View Post</TranslatedText>
                     </Button>
                   )}
                 </ListItem>
@@ -1848,7 +1857,7 @@ useEffect(() => {
               borderTop: '1px solid rgba(0, 0, 0, 0.12)' 
             }}>
               <Button onClick={handleCloseStatusDialog} sx={{ color: 'var(--primary)' }}>
-                Close
+                <TranslatedText>Close</TranslatedText>
               </Button>
             </Box>
           </Paper>

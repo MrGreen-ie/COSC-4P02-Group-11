@@ -4,20 +4,23 @@ import {
   TextField,
   Button,
   Typography,
-  Paper,
   MenuItem,
   Select,
   FormControl,
-  InputLabel,
   CircularProgress,
   Alert,
   Switch,
   FormControlLabel,
+  IconButton,
+  Card,
+  Container,
 } from '@mui/material';
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import axios from 'axios';
 import TranslatedText from '../components/TranslatedText';
 
 const Translation = () => {
+  // State management
   const [inputText, setInputText] = useState('');
   const [outputText, setOutputText] = useState('');
   const [sourceLanguage, setSourceLanguage] = useState('en');
@@ -167,207 +170,271 @@ const Translation = () => {
     return language ? language.name : code;
   };
 
+  // Common styling constants for reuse
+  const commonSelectStyles = {
+    color: '#333',
+    backgroundColor: 'white',
+    '.MuiOutlinedInput-notchedOutline': { borderColor: '#ccc' },
+    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#aaa' },
+    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#1976d2' },
+    '.MuiSvgIcon-root': { color: '#666' },
+    borderRadius: 4,
+  };
+
+  const commonTextFieldStyles = {
+    backgroundColor: 'white',
+    borderRadius: '4px',
+    textarea: { color: '#333' },
+    '& .MuiOutlinedInput-root': {
+      '& fieldset': { borderColor: '#ccc' },
+      '&:hover fieldset': { borderColor: '#aaa' },
+      '&.Mui-focused fieldset': { borderColor: '#1976d2' },
+    },
+    '& .MuiInputBase-input': { 
+      fontSize: '1rem',
+      lineHeight: 1.5
+    }
+  };
+
   return (
     <Box
       sx={{
         minHeight: '100vh',
-        width: '100vw',
-        background: 'linear-gradient(135deg, #8B0000, #FF4C4C)',
+        width: '100%',
+        background: '#f5f5f5',
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 3,
+        padding: { xs: 2, sm: 3 },
+        overflow: 'hidden'
       }}
     >
-      <Paper
-        elevation={6}
-        sx={{
-          padding: 4,
-          maxWidth: 900,
-          width: '100%',
-          background: 'rgba(255, 255, 255, 0.1)',
-          backdropFilter: 'blur(10px)',
-          color: 'white',
-          borderRadius: '15px',
-        }}
-      >
-        <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ textAlign: 'center', mb: 4 }}>
-          <TranslatedText>Text Translation</TranslatedText>
-        </Typography>
-
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            <TranslatedText>{error}</TranslatedText>
-          </Alert>
-        )}
-
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2, mb: 3 }}>
-          <Box sx={{ flex: 1 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <FormControl sx={{ width: autoDetect ? '60%' : '100%' }}>
-                <InputLabel id="source-language-label" sx={{ color: 'white' }}>
-                  <TranslatedText>Source Language</TranslatedText>
-                </InputLabel>
-                <Select
-                  labelId="source-language-label"
-                  value={sourceLanguage}
-                  onChange={(e) => setSourceLanguage(e.target.value)}
-                  disabled={autoDetect}
-                  sx={{
-                    color: 'white',
-                    '.MuiOutlinedInput-notchedOutline': { borderColor: 'white' },
-                    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#ffdd57' },
-                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#ffdd57' },
-                    '.MuiSvgIcon-root': { color: 'white' }
-                  }}
-                >
-                  {languages.map((lang) => (
-                    <MenuItem key={lang.code} value={lang.code}>
-                      {lang.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControlLabel
-                control={
-                  <Switch 
-                    checked={autoDetect}
-                    onChange={handleAutoDetectChange}
-                    sx={{
-                      '& .MuiSwitch-switchBase.Mui-checked': {
-                        color: '#ffdd57',
-                        '&:hover': {
-                          backgroundColor: 'rgba(255, 221, 87, 0.08)',
-                        },
-                      },
-                      '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                        backgroundColor: '#ffdd57',
-                      },
-                    }}
-                  />
-                }
-                label={<TranslatedText>Auto Detect</TranslatedText>}
-                sx={{ 
-                  color: 'white',
-                  ml: 1,
-                  display: { xs: 'none', sm: 'flex' }
-                }}
-              />
-            </Box>
-            
-            {autoDetect && detectedLanguage && (
-              <Typography variant="body2" sx={{ mb: 1, color: '#ffdd57', textAlign: 'left' }}>
-                <TranslatedText>Detected:</TranslatedText> {getLanguageName(detectedLanguage)}
-              </Typography>
-            )}
-            
-            <TextField
-              fullWidth
-              multiline
-              rows={6}
-              placeholder="Enter text to translate"
-              value={inputText}
-              onChange={handleInputChange}
-              sx={{
-                textarea: { color: 'white' },
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': { borderColor: 'white' },
-                  '&:hover fieldset': { borderColor: '#ffdd57' },
-                  '&.Mui-focused fieldset': { borderColor: '#ffdd57' },
-                },
-              }}
-            />
-          </Box>
-
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', p: 1 }}>
-            <Button
-              onClick={handleSwapLanguages}
-              sx={{
-                minWidth: { xs: '100%', md: 'auto' },
-                background: 'rgba(255, 255, 255, 0.2)',
-                color: 'white',
-                '&:hover': { background: 'rgba(255, 255, 255, 0.3)' },
-                borderRadius: '50%',
-                width: '40px',
-                height: '40px',
-                p: 0,
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
-            >
-              ⇄
-            </Button>
-          </Box>
-
-          <Box sx={{ flex: 1 }}>
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel id="target-language-label" sx={{ color: 'white' }}>
-                <TranslatedText>Target Language</TranslatedText>
-              </InputLabel>
-              <Select
-                labelId="target-language-label"
-                value={targetLanguage}
-                onChange={(e) => setTargetLanguage(e.target.value)}
-                sx={{
-                  color: 'white',
-                  '.MuiOutlinedInput-notchedOutline': { borderColor: 'white' },
-                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#ffdd57' },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#ffdd57' },
-                  '.MuiSvgIcon-root': { color: 'white' }
-                }}
-              >
-                {languages.map((lang) => (
-                  <MenuItem key={lang.code} value={lang.code}>
-                    {lang.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <TextField
-              fullWidth
-              multiline
-              rows={6}
-              placeholder="Translation will appear here"
-              value={outputText}
-              InputProps={{
-                readOnly: true,
-              }}
-              sx={{
-                textarea: { color: 'white' },
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': { borderColor: 'white' },
-                  '&:hover fieldset': { borderColor: '#ffdd57' },
-                  '&.Mui-focused fieldset': { borderColor: '#ffdd57' },
-                },
-              }}
-            />
-          </Box>
-        </Box>
-
-        <Button
-          onClick={handleTranslate}
-          disabled={loading}
-          fullWidth
-          variant="contained"
+      <Container maxWidth="lg">
+        <Card
+          elevation={1}
           sx={{
-            mt: 2,
-            mb: 2,
-            background: 'linear-gradient(135deg, #ffdd57, #FFD700)',
-            color: '#8B0000',
-            fontWeight: 'bold',
-            borderRadius: '30px',
-            '&:hover': { background: '#fff', color: '#8B0000' },
-            height: '50px',
+            padding: { xs: 2, sm: 3, md: 4 },
+            width: '100%',
+            background: 'white',
+            color: '#333',
+            borderRadius: '8px',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
           }}
         >
-          {loading ? <CircularProgress size={24} /> : <TranslatedText>Translate</TranslatedText>}
-        </Button>
+          {/* Header Section */}
+          <Box sx={{ mb: 5 }}>
+            <Typography variant="h5" fontWeight="500" sx={{ textAlign: 'center', color: '#333' }}>
+              <TranslatedText>Text Translation</TranslatedText>
+            </Typography>
+          </Box>
 
-        <Typography variant="caption" sx={{ display: 'block', mt: 2, color: 'rgba(255, 255, 255, 0.7)' }}>
-          <TranslatedText>Powered by Google Translate API</TranslatedText>
-        </Typography>
-      </Paper>
+          {/* Error Alert */}
+          {error && (
+            <Alert severity="error" sx={{ mb: 3, borderRadius: '4px' }}>
+              <TranslatedText>{error}</TranslatedText>
+            </Alert>
+          )}
+
+          {/* Main Translation Interface */}
+          <Box sx={{ width: '100%' }}>
+            {/* Language Controls Row */}
+            <Box sx={{ width: '100%', mb: 4, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
+              {/* Left Column - Source Language */}
+              <Box sx={{ flex: 1 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                  {/* Source Language Label */}
+                  <Typography variant="body2" sx={{ color: '#666', fontWeight: 500 }}>
+                    <TranslatedText>Source Language</TranslatedText>
+                  </Typography>
+                  
+                  {/* Auto Detect Option */}
+                  <FormControlLabel
+                    control={
+                      <Switch 
+                        checked={autoDetect}
+                        onChange={handleAutoDetectChange}
+                        size="small"
+                        sx={{
+                          '& .MuiSwitch-switchBase.Mui-checked': {
+                            color: '#1976d2',
+                          },
+                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                            backgroundColor: '#1976d2',
+                          },
+                        }}
+                      />
+                    }
+                    label={<Typography variant="body2" sx={{ color: '#666' }}><TranslatedText>Auto Detect</TranslatedText></Typography>}
+                    sx={{ 
+                      color: '#666',
+                      m: 0,
+                    }}
+                  />
+                </Box>
+                
+                {/* Source Language Dropdown */}
+                <FormControl fullWidth sx={{ mb: 1 }}>
+                  <Select
+                    value={sourceLanguage}
+                    onChange={(e) => setSourceLanguage(e.target.value)}
+                    disabled={autoDetect}
+                    displayEmpty
+                    sx={{
+                      ...commonSelectStyles,
+                      height: 40,
+                    }}
+                  >
+                    {languages.map((lang) => (
+                      <MenuItem key={lang.code} value={lang.code}>
+                        {lang.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                
+                {/* Detected Language Indicator */}
+                {autoDetect && detectedLanguage && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        color: '#1976d2',
+                        fontWeight: 500,
+                      }}
+                    >
+                      <TranslatedText>Detected:</TranslatedText> {getLanguageName(detectedLanguage)}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+              
+              {/* Swap Button - Center */}
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start', mt: { xs: 0, md: 4 } }}>
+                <IconButton
+                  onClick={handleSwapLanguages}
+                  disabled={loading}
+                  sx={{
+                    background: '#1976d2',
+                    color: 'white',
+                    '&:hover': { background: '#1565c0' },
+                    width: 40,
+                    height: 40,
+                  }}
+                >
+                  <SwapHorizIcon />
+                </IconButton>
+              </Box>
+              
+              {/* Right Column - Target Language */}
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="body2" sx={{ color: '#666', fontWeight: 500, mb: 1 }}>
+                  <TranslatedText>Target Language</TranslatedText>
+                </Typography>
+                
+                {/* Target Language Dropdown */}
+                <FormControl fullWidth>
+                  <Select
+                    value={targetLanguage}
+                    onChange={(e) => setTargetLanguage(e.target.value)}
+                    displayEmpty
+                    sx={{
+                      ...commonSelectStyles,
+                      height: 40,
+                    }}
+                  >
+                    {languages.map((lang) => (
+                      <MenuItem key={lang.code} value={lang.code}>
+                        {lang.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+            </Box>
+            
+            {/* Text Areas Row */}
+            <Box sx={{ display: 'flex', width: '100%', mb: 3 }}>
+              {/* Left Column - Source Text Input */}
+              <Box sx={{ flex: 1, pr: { xs: 0, md: 1.5 } }}>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={6}
+                  placeholder="Enter text to translate"
+                  value={inputText}
+                  onChange={handleInputChange}
+                  sx={{
+                    ...commonTextFieldStyles,
+                    '& .MuiOutlinedInput-root': {
+                      ...commonTextFieldStyles['& .MuiOutlinedInput-root'],
+                      borderRadius: '4px',
+                    }
+                  }}
+                />
+              </Box>
+              
+              {/* Center Space for Swap Button */}
+              <Box sx={{ width: { xs: 0, md: '40px' }, display: { xs: 'none', md: 'block' } }} />
+              
+              {/* Right Column - Translation Output */}
+              <Box sx={{ flex: 1, pl: { xs: 0, md: 1.5 }, mt: { xs: 3, md: 0 } }}>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={6}
+                  placeholder="Translation will appear here"
+                  value={outputText}
+                  InputProps={{
+                    readOnly: true,
+                  }}
+                  sx={{
+                    ...commonTextFieldStyles,
+                    '& .MuiOutlinedInput-root': {
+                      ...commonTextFieldStyles['& .MuiOutlinedInput-root'],
+                      borderRadius: '4px',
+                    }
+                  }}
+                />
+              </Box>
+            </Box>
+          </Box>
+
+          {/* Translate Button */}
+          <Button
+            onClick={handleTranslate}
+            disabled={loading}
+            fullWidth
+            variant="contained"
+            sx={{
+              mt: 2,
+              mb: 3,
+              backgroundColor: '#1976d2',
+              color: 'white',
+              fontWeight: 'normal',
+              borderRadius: '4px',
+              '&:hover': { backgroundColor: '#1565c0' },
+              height: '45px',
+              textTransform: 'none',
+              fontSize: '1rem',
+            }}
+          >
+            {loading ? <CircularProgress size={24} /> : <TranslatedText>Translate</TranslatedText>}
+          </Button>
+
+          {/* Footer */}
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              display: 'block', 
+              mt: 2, 
+              color: '#666',
+              textAlign: 'center',
+            }}
+          >
+            <TranslatedText>Powered by Google Translate API</TranslatedText>
+          </Typography>
+        </Card>
+      </Container>
     </Box>
   );
 };

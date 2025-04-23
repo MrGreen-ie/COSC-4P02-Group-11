@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import {
   AppBar,
   Toolbar,
@@ -13,6 +13,8 @@ import {
   Divider,
   Typography,
 } from "@mui/material";
+import TranslatedText from "./TranslatedText";
+import { LanguageContext } from "../contexts/LanguageContext";
 import {
   Menu as MenuIcon,
   Close as CloseIcon,
@@ -40,6 +42,7 @@ function NavBar({ user, onLogout }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  const { language, availableLanguages, changeLanguage } = useContext(LanguageContext);
 
   const toggleSidebar = () => setOpen(!open);
 
@@ -129,92 +132,91 @@ function NavBar({ user, onLogout }) {
                 onClick={() => handleNavigation(item.path)}
                 sx={{
                   color: "var(--text-light)",
-                  fontWeight: "var(--font-weight-bold)",
+                  fontWeight: location.pathname === item.path ? 'var(--font-weight-bold)' : 'var(--font-weight-medium)',
                   textTransform: "none",
                   transition: "var(--transition-normal)",
-                  "&:hover": { color: "var(--accent)" },
+                  borderBottom: location.pathname === item.path ? '2px solid var(--accent)' : 'none',
+                  '&:hover': { color: 'var(--accent)' }
                 }}
               >
-                {item.label}
+                <TranslatedText>{item.label}</TranslatedText>
               </Button>
             ))}
           </Box>
 
-          {/* Right Side: Auth Buttons */}
-          <Box
-            sx={{
-              display: { xs: "none", md: "flex" },
-              gap: "var(--spacing-md)",
-            }}
-          >
+          {/* Right Side: Language Toggle and Auth Buttons */}
+          <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
             {/* Language Toggle */}
-            <LanguageToggle />
-
-            {!user && (
+            <Box sx={{ 
+              mr: 2, 
+              display: { xs: 'none', md: 'flex' },
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: '120px',
+            }}>
+              <LanguageToggle isInSidebar={false} />
+            </Box>
+            
+            {!user ? (
               <>
                 <Button
-                  onClick={() => handleNavigation("/register")}
+                  onClick={() => handleNavigation('/register')}
                   sx={{
-                    color: "var(--text-light)",
-                    fontWeight: "var(--font-weight-bold)",
-                    border: "1px solid var(--text-light)",
-                    borderRadius: "var(--border-radius-pill)",
-                    px: "var(--spacing-md)",
-                    transition: "var(--transition-normal)",
-                    "&:hover": {
-                      background: "var(--text-light)",
-                      color: "var(--primary)",
-                    },
+                    color: 'var(--text-light)',
+                    fontWeight: 'var(--font-weight-bold)',
+                    textTransform: 'none',
+                    transition: 'var(--transition-normal)',
+                    '&:hover': { color: 'var(--accent)' },
+                    display: { xs: 'none', md: 'flex' },
                   }}
                 >
-                  Sign Up
+                  <TranslatedText>Sign Up</TranslatedText>
                 </Button>
                 <Button
-                  onClick={() => handleNavigation("/login")}
+                  onClick={() => handleNavigation('/login')}
+                  variant="contained"
                   sx={{
-                    color: "var(--text-light)",
-                    fontWeight: "var(--font-weight-bold)",
-                    border: "1px solid var(--text-light)",
-                    borderRadius: "var(--border-radius-pill)",
-                    px: "var(--spacing-md)",
-                    transition: "var(--transition-normal)",
-                    "&:hover": {
-                      background: "var(--text-light)",
-                      color: "var(--primary)",
+                    backgroundColor: 'var(--accent)',
+                    color: 'var(--text-dark)',
+                    fontWeight: 'var(--font-weight-bold)',
+                    textTransform: 'none',
+                    borderRadius: 'var(--border-radius)',
+                    padding: 'var(--spacing-xs) var(--spacing-md)',
+                    '&:hover': {
+                      backgroundColor: 'var(--accent-hover)',
                     },
+                    display: { xs: 'none', md: 'flex' },
+                    ml: 'var(--spacing-sm)',
                   }}
                 >
-                  Login
+                  <TranslatedText>Login</TranslatedText>
                 </Button>
               </>
-            )}
-            {user && (
+            ) : (
               <>
                 <Typography
                   sx={{
                     color: "var(--text-light)",
                     alignSelf: "center",
                     fontWeight: "var(--font-weight-medium)",
+                    display: { xs: 'none', md: 'block' },
+                    mr: 2
                   }}
                 >
-                  Welcome, {user.firstName}
+                  <TranslatedText>Welcome,</TranslatedText> {user.firstName}
                 </Typography>
                 <Button
                   onClick={onLogout}
                   sx={{
-                    color: "var(--text-light)",
-                    fontWeight: "var(--font-weight-bold)",
-                    border: "1px solid var(--text-light)",
-                    borderRadius: "var(--border-radius-pill)",
-                    px: "var(--spacing-md)",
-                    transition: "var(--transition-normal)",
-                    "&:hover": {
-                      background: "var(--text-light)",
-                      color: "var(--primary)",
-                    },
+                    color: 'var(--text-light)',
+                    fontWeight: 'var(--font-weight-bold)',
+                    textTransform: 'none',
+                    transition: 'var(--transition-normal)',
+                    '&:hover': { color: 'var(--accent)' },
+                    display: { xs: 'none', md: 'flex' },
                   }}
                 >
-                  Logout
+                  <TranslatedText>Logout</TranslatedText>
                 </Button>
               </>
             )}
@@ -279,7 +281,7 @@ function NavBar({ user, onLogout }) {
               <ListItemIcon sx={{ color: "var(--text-light)" }}>
                 {item.icon}
               </ListItemIcon>
-              <ListItemText primary={item.label} />
+              <ListItemText primary={<TranslatedText>{item.label}</TranslatedText>} />
             </ListItem>
           ))}
 
@@ -310,12 +312,69 @@ function NavBar({ user, onLogout }) {
                   <ListItemIcon sx={{ color: "var(--text-light)" }}>
                     {item.icon}
                   </ListItemIcon>
-                  <ListItemText primary={item.label} />
+                  <ListItemText primary={<TranslatedText>{item.label}</TranslatedText>} />
                 </ListItem>
               ))}
             </>
           )}
 
+          {/* Language Toggle for Mobile */}
+          <Divider
+            sx={{
+              my: "var(--spacing-sm)",
+              backgroundColor: "var(--border-light)",
+            }}
+          />
+          {/* Language header item */}
+          <ListItem 
+            sx={{ 
+              borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+              py: 1.5,
+              backgroundColor: 'rgba(0, 0, 0, 0.2)'
+            }}
+          >
+            <ListItemIcon sx={{ color: "var(--accent)" }}>
+              <TranslateIcon />
+            </ListItemIcon>
+            <ListItemText 
+              primary={<TranslatedText>Language</TranslatedText>} 
+              sx={{ '& .MuiTypography-root': { fontWeight: 'bold' } }}
+            />
+          </ListItem>
+          
+          {/* Language options as separate list items */}
+          {availableLanguages && availableLanguages.map((lang) => (
+            <ListItem 
+              button 
+              key={lang.code}
+              onClick={() => changeLanguage(lang.code)}
+              sx={{
+                pl: 6,
+                py: 1.5,
+                borderLeft: language === lang.code ? '4px solid var(--accent)' : '4px solid transparent',
+                '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.1)' },
+                ...(language === lang.code && {
+                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                }),
+              }}
+            >
+              <ListItemText 
+                primary={lang.name} 
+                sx={{ 
+                  '& .MuiTypography-root': { 
+                    fontSize: '0.9rem',
+                    fontWeight: language === lang.code ? 'bold' : 'normal',
+                  } 
+                }}
+              />
+              {language === lang.code && (
+                <ListItemIcon sx={{ minWidth: 'auto' }}>
+                  <span>✓</span>
+                </ListItemIcon>
+              )}
+            </ListItem>
+          ))}
+          
           {/* Authentication Items */}
           <Divider
             sx={{
@@ -329,13 +388,13 @@ function NavBar({ user, onLogout }) {
                 <ListItemIcon sx={{ color: "var(--text-light)" }}>
                   <PersonAddIcon />
                 </ListItemIcon>
-                <ListItemText primary="Sign Up" />
+                <ListItemText primary={<TranslatedText>Sign Up</TranslatedText>} />
               </ListItem>
               <ListItem button onClick={() => handleNavigation("/login")}>
                 <ListItemIcon sx={{ color: "var(--text-light)" }}>
                   <LoginIcon />
                 </ListItemIcon>
-                <ListItemText primary="Login" />
+                <ListItemText primary={<TranslatedText>Login</TranslatedText>} />
               </ListItem>
             </>
           ) : (
@@ -343,7 +402,7 @@ function NavBar({ user, onLogout }) {
               <ListItemIcon sx={{ color: "var(--text-light)" }}>
                 <LogoutIcon />
               </ListItemIcon>
-              <ListItemText primary="Logout" />
+              <ListItemText primary={<TranslatedText>Logout</TranslatedText>} />
             </ListItem>
           )}
         </List>

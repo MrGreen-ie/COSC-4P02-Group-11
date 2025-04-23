@@ -4,6 +4,7 @@ import Template1 from './Template1';
 import Template2 from './Template2';
 import Template3 from './Template3';
 import { getSavedSummaries } from '../services/api';
+import TranslatedText from '../components/TranslatedText';
 
 const Template = () => {
   const [selectedTemplate, setSelectedTemplate] = useState(0);
@@ -90,25 +91,25 @@ const Template = () => {
   const templates = [
     {
       id: 0,
-      name: 'Business Template',
-      description: 'A professional newsletter template with traditional styling, perfect for business updates and corporate communications.',
-      features: ['Clean and professional layout', 'Traditional black and white styling', 'Ideal for business communications'],
+      name: "Business Template",
+      description: "A professional newsletter template with traditional styling, perfect for business updates and corporate communications.",
+      features: ["Clean and professional layout", "Traditional black and white styling", "Ideal for business communications"],
       component: Template1,
       restricted: false, // Available to all users
     },
     {
       id: 1,
-      name: 'Modern Green',
-      description: 'A fresh, modern template with green accents, suitable for environmental organizations, wellness companies, and sustainability initiatives.',
-      features: ['Earth-friendly green color scheme', 'Modern typography', 'Warm and inviting design'],
+      name: "Modern Green",
+      description: "A fresh, modern template with green accents, suitable for environmental organizations, wellness companies, and sustainability initiatives.",
+      features: ["Earth-friendly green color scheme", "Modern typography", "Warm and inviting design"],
       component: Template2,
       restricted: false, // Available to all users
     },
     {
       id: 2,
-      name: 'Grid Layout',
-      description: 'A clean, organized grid-based template that allows for multiple sections of content in a modern, responsive layout.',
-      features: ['Responsive grid design', 'Multiple content areas', 'Modern and minimal aesthetic'],
+      name: "Grid Layout",
+      description: "A clean, organized grid-based template that allows for multiple sections of content in a modern, responsive layout.",
+      features: ["Responsive grid design", "Multiple content areas", "Modern and minimal aesthetic"],
       component: Template3,
       restricted: true, // Restricted to Pro users
     },
@@ -142,7 +143,7 @@ const Template = () => {
   // Custom templates that accept content as props
   const TemplateWithContent = ({ Component, summary }) => {
     if (!summary) {
-      return <div style={{ padding: '20px', textAlign: 'center' }}>No summary selected</div>;
+      return <div style={{ padding: '20px', textAlign: 'center' }}><TranslatedText>No summary selected</TranslatedText></div>;
     }
 
     const { headline, content } = summary;
@@ -176,20 +177,20 @@ const Template = () => {
             }}
           >
             <h1 style={{ margin: "0", fontSize: "36px", fontWeight: "bold" }}>
-              {headline || "BUSINESS"}
+              {headline || <TranslatedText>BUSINESS</TranslatedText>}
             </h1>
             <h2 style={{ margin: "0", fontSize: "24px", fontWeight: "bold" }}>
-              NEWSLETTER
+              <TranslatedText>NEWSLETTER</TranslatedText>
             </h2>
           </div>
           <div style={{ padding: "20px", backgroundColor: "#fff" }}>
             <div style={{ display: "flex", marginBottom: "20px" }}>
               <div>
                 <h2 style={{ fontSize: "18px", fontWeight: "bold" }}>
-                  Latest Updates
+                  <TranslatedText>Latest Updates</TranslatedText>
                 </h2>
                 <p className="par1" style={{ fontSize: "15px" }}>
-                  {content || "No content available"}
+                  {content || <TranslatedText>No content available</TranslatedText>}
                 </p>
               </div>
             </div>
@@ -202,30 +203,30 @@ const Template = () => {
               textAlign: "center",
             }}
           >
-            <p style={{ margin: "0", fontSize: "12px" }}>Follow us on:</p>
+            <p style={{ margin: "0", fontSize: "12px" }}><TranslatedText>Follow us on:</TranslatedText></p>
             <p style={{ margin: "0", fontSize: "12px" }}>
               <a
                 href="https://facebook.com"
                 style={{ color: "#fff", margin: "0 5px" }}
               >
-                Facebook
+                <TranslatedText>Facebook</TranslatedText>
               </a>{" "}
               |
               <a
                 href="https://twitter.com"
                 style={{ color: "#fff", margin: "0 5px" }}
               >
-                Twitter
+                <TranslatedText>Twitter</TranslatedText>
               </a>{" "}
               |
               <a
                 href="https://linkedin.com"
                 style={{ color: "#fff", margin: "0 5px" }}
               >
-                LinkedIn
+                <TranslatedText>LinkedIn</TranslatedText>
               </a>
             </p>
-            <p style={{ margin: "0", fontSize: "12px" }}>Footer information</p>
+            <p style={{ margin: "0", fontSize: "12px" }}><TranslatedText>Footer information</TranslatedText></p>
           </div>
         </div>
       );
@@ -261,24 +262,24 @@ const Template = () => {
           </div>
           <div style={{ textAlign: "center", padding: "20px 0" }}>
             <h1 style={{ fontSize: "36px", color: "#1B5E20", margin: "0" }}>
-              {headline || "Your title"}
+              {headline || <TranslatedText>Your title</TranslatedText>}
             </h1>
             <p style={{ fontSize: "14px", color: "#1B5E20", margin: "5px 0" }}>
-              Official newsletter
+              <TranslatedText>Official newsletter</TranslatedText>
             </p>
           </div>
 
           <div style={{ padding: "20px 0" }}>
             <h2 style={{ fontSize: "24px", color: "#1B5E20" }}>
-              Featured Content
+              <TranslatedText>Featured Content</TranslatedText>
             </h2>
             <p className="par1" style={{ fontSize: "16px", color: "#1B5E20" }}>
-              {content || "No content available"}
+              {content || <TranslatedText>No content available</TranslatedText>}
             </p>
           </div>
           <div style={{ padding: "20px 0", backgroundColor: "#C8E6C9" }}>
             <h3 style={{ fontSize: "18px", color: "#1B5E20" }}>
-              Connect with us
+              <TranslatedText>Connect with us</TranslatedText>
             </h3>
             <div
               style={{
@@ -286,21 +287,21 @@ const Template = () => {
                 textAlign: "center",
               }}
             >
-              <p style={{ margin: "0", fontSize: "12px" }}>Follow us on:</p>
+              <p style={{ margin: "0", fontSize: "12px" }}><TranslatedText>Follow us on:</TranslatedText></p>
               <p style={{ margin: "0", fontSize: "12px" }}>
                 <a href="https://facebook.com" style={{ margin: "0 5px" }}>
-                  Facebook
+                  <TranslatedText>Facebook</TranslatedText>
                 </a>{" "}
                 |
                 <a href="https://twitter.com" style={{ margin: "0 5px" }}>
-                  Twitter
+                  <TranslatedText>Twitter</TranslatedText>
                 </a>{" "}
                 |
                 <a href="https://linkedin.com" style={{ margin: "0 5px" }}>
-                  LinkedIn
+                  <TranslatedText>LinkedIn</TranslatedText>
                 </a>
               </p>
-              <p style={{ margin: "0", fontSize: "12px" }}>Footer information</p>
+              <p style={{ margin: "0", fontSize: "12px" }}><TranslatedText>Footer information</TranslatedText></p>
             </div>
           </div>
         </div>
@@ -311,9 +312,9 @@ const Template = () => {
     if (Component === Template3) {
       // Split the content into three sections
       const paragraphs = content ? content.split('\n\n') : ['', '', ''];
-      const section1 = paragraphs[0] || "No content available";
-      const section2 = paragraphs.length > 1 ? paragraphs[1] : "No content available";
-      const section3 = paragraphs.length > 2 ? paragraphs[2] : "No content available";
+      const section1 = paragraphs[0] || <TranslatedText>No content available</TranslatedText>;
+      const section2 = paragraphs.length > 1 ? paragraphs[1] : <TranslatedText>No content available</TranslatedText>;
+      const section3 = paragraphs.length > 2 ? paragraphs[2] : <TranslatedText>No content available</TranslatedText>;
       
       return (
         <div style={{
@@ -338,7 +339,9 @@ const Template = () => {
             textAlign: "center",
             borderRadius: "5px"
           }}>
-            <h1 style={{ margin: "0", fontSize: "36px", fontWeight: "bold" }}>{headline || "Newsletter Title"}</h1>
+            <h1 style={{ margin: "0", fontSize: "36px", fontWeight: "bold" }}>
+              {headline || <TranslatedText>Newsletter Title</TranslatedText>}
+            </h1>
           </div>
           
           <div style={{
@@ -348,7 +351,9 @@ const Template = () => {
             borderRadius: "5px",
             boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
           }}>
-            <h2 style={{ borderBottom: "2px solid #4a4a4a", paddingBottom: "10px" }}>Section 1</h2>
+            <h2 style={{ borderBottom: "2px solid #4a4a4a", paddingBottom: "10px" }}>
+              <TranslatedText>Section 1</TranslatedText>
+            </h2>
             <p style={{ lineHeight: "1.6" }}>
               {section1}
             </p>
@@ -361,7 +366,9 @@ const Template = () => {
             borderRadius: "5px",
             boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
           }}>
-            <h2 style={{ borderBottom: "2px solid #4a4a4a", paddingBottom: "10px" }}>Section 2</h2>
+            <h2 style={{ borderBottom: "2px solid #4a4a4a", paddingBottom: "10px" }}>
+              <TranslatedText>Section 2</TranslatedText>
+            </h2>
             <p style={{ lineHeight: "1.6" }}>
               {section2}
             </p>
@@ -374,7 +381,9 @@ const Template = () => {
             borderRadius: "5px",
             boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
           }}>
-            <h2 style={{ borderBottom: "2px solid #4a4a4a", paddingBottom: "10px" }}>Section 3</h2>
+            <h2 style={{ borderBottom: "2px solid #4a4a4a", paddingBottom: "10px" }}>
+              <TranslatedText>Section 3</TranslatedText>
+            </h2>
             <p style={{ lineHeight: "1.6" }}>
               {section3}
             </p>
@@ -388,30 +397,30 @@ const Template = () => {
             textAlign: "center",
             borderRadius: "5px"
           }}>
-            <p style={{ margin: "0", fontSize: "12px" }}>Follow us on:</p>
+            <p style={{ margin: "0", fontSize: "12px" }}><TranslatedText>Follow us on:</TranslatedText></p>
             <p style={{ margin: "5px 0", fontSize: "12px" }}>
               <a
                 href="https://facebook.com"
                 style={{ color: "#fff", margin: "0 5px" }}
               >
-                Facebook
+                <TranslatedText>Facebook</TranslatedText>
               </a>{" "}
               |
               <a
                 href="https://twitter.com"
                 style={{ color: "#fff", margin: "0 5px" }}
               >
-                Twitter
+                <TranslatedText>Twitter</TranslatedText>
               </a>{" "}
               |
               <a
                 href="https://linkedin.com"
                 style={{ color: "#fff", margin: "0 5px" }}
               >
-                LinkedIn
+                <TranslatedText>LinkedIn</TranslatedText>
               </a>
             </p>
-            <p style={{ margin: "5px 0", fontSize: "12px" }}>© 2024 Your Company Name</p>
+            <p style={{ margin: "5px 0", fontSize: "12px" }}><TranslatedText>&copy; 2024 Your Company Name</TranslatedText></p>
           </div>
         </div>
       );
@@ -432,11 +441,11 @@ const Template = () => {
           mb: 'var(--spacing-lg)'
         }}
       >
-        Newsletter Templates
+        <TranslatedText>Newsletter Templates</TranslatedText>
       </Typography>
       
       <Typography variant="body1" sx={{ mb: 'var(--spacing-lg)' }}>
-        Choose a template format for your newsletter. You can customize colors, content, and layout after selection.
+        <TranslatedText>Choose a template format for your newsletter. You can customize colors, content, and layout after selection.</TranslatedText>
       </Typography>
       
       <Grid container spacing={4}>
@@ -477,15 +486,15 @@ const Template = () => {
                 </Box>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
-                    {template.name}
+                    <TranslatedText>{template.name}</TranslatedText>
                   </Typography>
                   <Typography variant="body2" color="text.secondary" paragraph>
-                    {template.description}
+                    <TranslatedText>{template.description}</TranslatedText>
                   </Typography>
                   <Box component="ul" sx={{ pl: 2, mt: 1 }}>
                     {template.features.map((feature, idx) => (
                       <Typography component="li" variant="body2" key={idx} sx={{ mb: 0.5 }}>
-                        {feature}
+                        <TranslatedText>{feature}</TranslatedText>
                       </Typography>
                     ))}
                   </Box>
@@ -506,10 +515,10 @@ const Template = () => {
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 'var(--spacing-lg)' }}>
           <Box>
             <Typography variant="h4" className="heading-primary">
-              {templates[selectedTemplate].name}
+              <TranslatedText>{templates[selectedTemplate].name}</TranslatedText>
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Preview the template with your recent summaries
+              <TranslatedText>Preview the template with your recent summaries</TranslatedText>
             </Typography>
           </Box>
           <Button 
@@ -524,13 +533,13 @@ const Template = () => {
               }
             }}
           >
-            Back to Templates
+            <TranslatedText>Back to Templates</TranslatedText>
           </Button>
         </Box>
         
         {/* Summary Selection */}
         <FormControl fullWidth sx={{ mb: 'var(--spacing-lg)' }}>
-          <InputLabel id="summary-select-label">Select a Summary</InputLabel>
+          <InputLabel id="summary-select-label"><TranslatedText>Select a Summary</TranslatedText></InputLabel>
           <Select
             labelId="summary-select-label"
             id="summary-select"
@@ -541,7 +550,7 @@ const Template = () => {
           >
             {summaries.map((summary) => (
               <MenuItem key={summary.id} value={summary.id}>
-                {summary.headline || `Summary #${summary.id}`}
+                {summary.headline || <TranslatedText>Summary #{summary.id}</TranslatedText>}
               </MenuItem>
             ))}
           </Select>
@@ -553,7 +562,7 @@ const Template = () => {
           </Box>
         ) : error ? (
           <Typography color="error" sx={{ my: 2 }}>
-            {error}
+            <TranslatedText>{error}</TranslatedText>
           </Typography>
         ) : (
           <Box sx={{ 
@@ -585,7 +594,7 @@ const Template = () => {
                 },
               }}
             >
-              Use This Template
+              <TranslatedText>Use This Template</TranslatedText>
             </Button>
           </Grid>
         </Grid>

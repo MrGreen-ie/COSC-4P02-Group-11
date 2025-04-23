@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Joyride from 'react-joyride';
 import { Box, Typography, Grid, Paper, Button, Stack } from '@mui/material';
+import TranslatedText from '../components/TranslatedText';
 import {
   Edit as EditIcon,
   Description as TemplateIcon,
@@ -45,7 +46,7 @@ const AnalyticsCard = ({ title, value, icon, trend }) => (
       </Box>
       <Box>
         <Typography variant="body2" sx={{ color: 'var(--text-secondary)' }}>
-          {title}
+          <TranslatedText>{title}</TranslatedText>
         </Typography>
         <Typography variant="h5" sx={{ fontWeight: 'var(--font-weight-bold)', color: 'var(--text-primary)' }}>
           {value}
@@ -55,7 +56,7 @@ const AnalyticsCard = ({ title, value, icon, trend }) => (
             color: trend.startsWith('+') ? 'var(--success)' : 'var(--error)', 
             fontWeight: 'var(--font-weight-bold)' 
           }}>
-            {trend} this month
+            {trend} <TranslatedText>this month</TranslatedText>
           </Typography>
         )}
       </Box>
@@ -85,7 +86,7 @@ const QuickActionButton = ({ icon, label, onClick }) => (
       transition: 'var(--transition-normal)'
     }}
   >
-    {label}
+    <TranslatedText>{label}</TranslatedText>
   </Button>
 );
 
@@ -125,10 +126,10 @@ const FeatureCard = ({ title, icon, description, path }) => {
         color: 'var(--text-primary)', 
         fontWeight: 'var(--font-weight-bold)' 
       }}>
-        {title}
+        <TranslatedText>{title}</TranslatedText>
       </Typography>
       <Typography variant="body2" textAlign="center" sx={{ color: 'var(--text-secondary)' }}>
-        {description}
+        <TranslatedText>{description}</TranslatedText>
       </Typography>
     </Paper>
   );
@@ -316,7 +317,7 @@ const Dashboard = () => {
           fontWeight: 'var(--font-weight-bold)',
         }}
       >
-        Welcome back, {user?.firstName || 'User'}
+        <TranslatedText>Welcome back,</TranslatedText> {user?.firstName || <TranslatedText>User</TranslatedText>}
       </Typography>
       <Typography
         variant="subtitle1"
@@ -325,7 +326,7 @@ const Dashboard = () => {
           mb: 'var(--spacing-xl)',
         }}
       >
-        Here's what's happening with your content
+        <TranslatedText>Here's what's happening with your content</TranslatedText>
       </Typography>
 
       {/* Analytics Section */}
@@ -336,7 +337,6 @@ const Dashboard = () => {
           </Grid>
         ))}
       </Grid>
-
 
       {/* Features Section */}
       <Typography
@@ -349,7 +349,7 @@ const Dashboard = () => {
           fontWeight: 'var(--font-weight-bold)',
         }}
       >
-        Features
+        <TranslatedText>Features</TranslatedText>
       </Typography>
       <Grid container spacing={3}>
         {features.map((feature) => (
@@ -371,7 +371,7 @@ const Dashboard = () => {
             fontWeight: 'var(--font-weight-bold)',
           }}
         >
-          Admin Panel
+          <TranslatedText>Admin Panel</TranslatedText>
         </Typography>
       )}
     </Box>

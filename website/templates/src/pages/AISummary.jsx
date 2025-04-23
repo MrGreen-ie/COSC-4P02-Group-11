@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Joyride from 'react-joyride';
 import TranslatedText from '../components/TranslatedText';
+import XIcon from '../components/XIcon'; // Change to default import (remove curly braces)
 import { useNavigate } from 'react-router-dom';
 
 import {
@@ -50,9 +51,11 @@ import {
   Save as SaveIcon,
   TextFields as TextFieldsIcon,
   Warning as WarningIcon,
-  Twitter as TwitterIcon,
-  DesignServices as TemplateIcon
+  DesignServices as TemplateIcon,
+  SwapHoriz as SwapHorizIcon
 } from '@mui/icons-material';
+
+import IconButton from '@mui/material/IconButton';
 
 import { generateSummary, saveSummary } from '../services/api';
 
@@ -759,7 +762,7 @@ const AISummary = () => {
         }}
       />
       <Typography variant="h4" gutterBottom className="heading-primary">
-        AI Content Summary
+        <TranslatedText>AI Content Summary</TranslatedText>
       </Typography>
       
       <Paper sx={{ 
@@ -769,12 +772,12 @@ const AISummary = () => {
         borderRadius: 'var(--border-radius-lg)'
       }}>
         <Typography variant="h6" gutterBottom className="heading-secondary">
-          Configuration
+          <TranslatedText>Configuration</TranslatedText>
         </Typography>
         
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
-            <Typography gutterBottom>Summary Length: {length}%</Typography>
+            <Typography gutterBottom><TranslatedText>Summary Length</TranslatedText>: {length}%</Typography>
             <Slider
               value={length}
               onChange={handleLengthChange}
@@ -801,7 +804,7 @@ const AISummary = () => {
           
           <Grid item xs={12} md={6}>
             <FormControl fullWidth>
-              <InputLabel id="tone-select-label">Tone</InputLabel>
+              <InputLabel id="tone-select-label"><TranslatedText>Tone</TranslatedText></InputLabel>
               {String(plan).toLowerCase() === 'free' ? (
                 <Select
                   labelId="tone-select-label"
@@ -810,7 +813,7 @@ const AISummary = () => {
                   label="Tone"
                   disabled
                 >
-                  <MenuItem value="professional">Professional</MenuItem>
+                  <MenuItem value="professional"><TranslatedText>Professional</TranslatedText></MenuItem>
                 </Select>
               ) : (
                 <Select
@@ -821,12 +824,12 @@ const AISummary = () => {
                   onChange={handleToneChange}
                   disabled={loading}
                 >
-                  <MenuItem value="professional">Professional</MenuItem>
-                  <MenuItem value="casual">Casual</MenuItem>
-                  <MenuItem value="academic">Academic</MenuItem>
-                  <MenuItem value="friendly">Friendly</MenuItem>
-                  <MenuItem value="promotional">Promotional</MenuItem>
-                  <MenuItem value="informative">Informative</MenuItem>
+                  <MenuItem value="professional"><TranslatedText>Professional</TranslatedText></MenuItem>
+                  <MenuItem value="casual"><TranslatedText>Casual</TranslatedText></MenuItem>
+                  <MenuItem value="academic"><TranslatedText>Academic</TranslatedText></MenuItem>
+                  <MenuItem value="friendly"><TranslatedText>Friendly</TranslatedText></MenuItem>
+                  <MenuItem value="promotional"><TranslatedText>Promotional</TranslatedText></MenuItem>
+                  <MenuItem value="informative"><TranslatedText>Informative</TranslatedText></MenuItem>
                 </Select>
               )}
             </FormControl>
@@ -850,13 +853,13 @@ const AISummary = () => {
               },
             }}
           >
-            <Tab icon={<TextFieldsIcon />} label="Text" />
-            <Tab icon={<LinkIcon />} label="URL" />
+            <Tab icon={<TextFieldsIcon />} label={<TranslatedText>Text</TranslatedText>} />
+            <Tab icon={<LinkIcon />} label={<TranslatedText>URL</TranslatedText>} />
           </Tabs>
           
           <TabPanel value={inputTab} index={0}>
             <TextField
-              label="Content to Summarize"
+              label={<TranslatedText>Content to Summarize</TranslatedText>}
               multiline
               rows={6}
               fullWidth
@@ -873,13 +876,13 @@ const AISummary = () => {
                   disabled={loading}
                 />
               }
-              label="Content contains HTML"
+              label={<TranslatedText>Content contains HTML</TranslatedText>}
             />
           </TabPanel>
           
           <TabPanel value={inputTab} index={1}>
             <TextField
-              label="URL to Summarize"
+              label={<TranslatedText>URL to Summarize</TranslatedText>}
               fullWidth
               value={url}
               onChange={handleUrlChange}
@@ -898,7 +901,7 @@ const AISummary = () => {
                 disabled={loading}
               />
             }
-            label="Strict content filtering"
+            label={<TranslatedText>Strict content filtering</TranslatedText>}
           />
         </Box>
         
@@ -919,7 +922,7 @@ const AISummary = () => {
             {loading ? (
               <CircularProgress size={24} color="inherit" />
             ) : (
-              'Generate Summary'
+              <TranslatedText>Generate Summary</TranslatedText>
             )}
           </Button>
         </Box>
@@ -945,7 +948,7 @@ const AISummary = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={handleToggleWarnings}>
             <WarningIcon color="warning" sx={{ mr: 1 }} />
             <Typography variant="subtitle1">
-              Content Warnings ({warnings.length})
+              <TranslatedText>Content Warnings</TranslatedText> ({warnings.length})
             </Typography>
             {showWarnings ? <ExpandLessIcon /> : <ExpandMoreIcon />}
           </Box>
@@ -973,7 +976,7 @@ const AISummary = () => {
         }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h6">
-              Generated Summary
+              <TranslatedText>Generated Summary</TranslatedText>
             </Typography>
             
             <Box>
@@ -982,7 +985,7 @@ const AISummary = () => {
                 onClick={handleRegenerate}
                 sx={{ mr: 1 }}
               >
-                Regenerate
+                <TranslatedText>Regenerate</TranslatedText>
               </Button>
               
               <Button
@@ -990,7 +993,7 @@ const AISummary = () => {
                 onClick={handleCopyToClipboard}
                 sx={{ mr: 1 }}
               >
-                Copy
+                <TranslatedText>Copy</TranslatedText>
               </Button>
 
               <Button
@@ -1000,16 +1003,16 @@ const AISummary = () => {
                 color="secondary"
                 sx={{ mr: 1 }}
               >
-                {saving ? <CircularProgress size={24} color="inherit" /> : 'Save'}
+                {saving ? <CircularProgress size={24} color="inherit" /> : <TranslatedText>Save</TranslatedText>}
               </Button>
 
               <Button
-                startIcon={<TwitterIcon />}
+                startIcon={<XIcon />} // Replace TwitterIcon here
                 onClick={handleTwitterShare}
                 color="info"
                 sx={{ mr: 1 }}
               >
-                Tweet
+                <TranslatedText>Tweet</TranslatedText>
               </Button>
 
               <Button
@@ -1017,7 +1020,7 @@ const AISummary = () => {
                 color="primary"
                 sx={{ mr: 1 }}
               >
-                Translate
+                <TranslatedText>Translate</TranslatedText>
               </Button>
 
               <Button
@@ -1027,7 +1030,7 @@ const AISummary = () => {
                 color="secondary"
                 sx={{ mr: 1 }}
               >
-                {saving ? <CircularProgress size={24} color="inherit" /> : 'Template'}
+                {saving ? <CircularProgress size={24} color="inherit" /> : <TranslatedText>Template</TranslatedText>}
               </Button>
 
               <Button
@@ -1036,7 +1039,7 @@ const AISummary = () => {
                 className="edit-button"
                 startIcon={isEditing ? <SaveIcon /> : <EditIcon />}
               >
-                {isEditing ? "Save Edits" : "Edit"}
+                {isEditing ? <TranslatedText>Save Edits</TranslatedText> : <TranslatedText>Edit</TranslatedText>}
               </Button>
             </Box>
           </Box>
@@ -1143,80 +1146,61 @@ const AISummary = () => {
               </Alert>
             )}
 
-            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2, mb: 3 }}>
+            {/* Language Controls Row */}
+            <Box sx={{ width: '100%', mb: 4, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
+              {/* Left Column - Source Language */}
               <Box sx={{ flex: 1 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <FormControl sx={{ width: autoDetect ? '60%' : '100%' }}>
-                    <InputLabel id="source-language-label">
-                      <TranslatedText>Source Language</TranslatedText>
-                    </InputLabel>
-                    <Select
-                      labelId="source-language-label"
-                      value={sourceLanguage}
-                      onChange={(e) => setSourceLanguage(e.target.value)}
-                      disabled={autoDetect}
-                    >
-                      {languages.map((lang) => (
-                        <MenuItem key={lang.code} value={lang.code}>
-                          {lang.name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                  {/* Source Language Label */}
+                  <Typography variant="body2" sx={{ color: '#666', fontWeight: 500 }}>
+                    <TranslatedText>Source Language</TranslatedText>
+                  </Typography>
+                  
+                  {/* Auto Detect Option */}
                   <FormControlLabel
                     control={
                       <Switch 
                         checked={autoDetect}
                         onChange={handleAutoDetectChange}
+                        size="small"
+                        sx={{
+                          '& .MuiSwitch-switchBase.Mui-checked': {
+                            color: '#1976d2',
+                          },
+                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                            backgroundColor: '#1976d2',
+                          },
+                        }}
                       />
                     }
-                    label={<TranslatedText>Auto Detect</TranslatedText>}
-                    sx={{ ml: 1 }}
+                    label={<Typography variant="body2" sx={{ color: '#666' }}><TranslatedText>Auto Detect</TranslatedText></Typography>}
+                    sx={{ 
+                      color: '#666',
+                      m: 0,
+                    }}
                   />
                 </Box>
                 
-                {autoDetect && detectedLanguage && (
-                  <Typography variant="body2" sx={{ mb: 1, color: 'primary.main', textAlign: 'left' }}>
-                    <TranslatedText>Detected:</TranslatedText> {getLanguageName(detectedLanguage)}
-                    {detectingLanguage && <CircularProgress size={12} sx={{ ml: 1 }} />}
-                  </Typography>
-                )}
-                
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={6}
-                  placeholder="Enter text to translate"
-                  value={inputText}
-                  onChange={handleInputChange}
-                />
-              </Box>
-
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', p: 1 }}>
-                <Button
-                  onClick={handleSwapLanguages}
-                  variant="contained"
-                  sx={{
-                    minWidth: { xs: '100%', md: 'auto' },
-                    borderRadius: '50%',
-                    width: '40px',
-                    height: '40px',
-                    p: 0,
-                  }}
-                >
-                  ⇄
-                </Button>
-              </Box>
-
-              <Box sx={{ flex: 1 }}>
-                <FormControl fullWidth sx={{ mb: 2 }}>
-                  <InputLabel id="target-language-label">
-                    <TranslatedText>Target Language</TranslatedText>
-                  </InputLabel>
+                {/* Source Language Dropdown */}
+                <FormControl fullWidth sx={{ mb: 1 }}>
                   <Select
-                    labelId="target-language-label"
-                    value={targetLanguage}
-                    onChange={(e) => setTargetLanguage(e.target.value)}
+                    value={sourceLanguage}
+                    onChange={(e) => setSourceLanguage(e.target.value)}
+                    disabled={autoDetect}
+                    displayEmpty
+                    sx={{
+                      height: 40,
+                      '.MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#ddd',
+                      },
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#aaa',
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#1976d2',
+                      },
+                      borderRadius: '4px',
+                    }}
                   >
                     {languages.map((lang) => (
                       <MenuItem key={lang.code} value={lang.code}>
@@ -1225,6 +1209,110 @@ const AISummary = () => {
                     ))}
                   </Select>
                 </FormControl>
+                
+                {/* Detected Language Indicator */}
+                {autoDetect && detectedLanguage && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        color: '#1976d2',
+                        fontWeight: 500,
+                      }}
+                    >
+                      <TranslatedText>Detected:</TranslatedText> {getLanguageName(detectedLanguage)}
+                      {detectingLanguage && <CircularProgress size={12} sx={{ ml: 1 }} />}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+              
+              {/* Swap Button - Center */}
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start', mt: { xs: 0, md: 4 } }}>
+                <IconButton
+                  onClick={handleSwapLanguages}
+                  disabled={translationLoading}
+                  sx={{
+                    background: '#1976d2',
+                    color: 'white',
+                    '&:hover': { background: '#1565c0' },
+                    width: 40,
+                    height: 40,
+                  }}
+                >
+                  <SwapHorizIcon />
+                </IconButton>
+              </Box>
+              
+              {/* Right Column - Target Language */}
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="body2" sx={{ color: '#666', fontWeight: 500, mb: 1 }}>
+                  <TranslatedText>Target Language</TranslatedText>
+                </Typography>
+                
+                {/* Target Language Dropdown */}
+                <FormControl fullWidth>
+                  <Select
+                    value={targetLanguage}
+                    onChange={(e) => setTargetLanguage(e.target.value)}
+                    displayEmpty
+                    sx={{
+                      height: 40,
+                      '.MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#ddd',
+                      },
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#aaa',
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#1976d2',
+                      },
+                      borderRadius: '4px',
+                    }}
+                  >
+                    {languages.map((lang) => (
+                      <MenuItem key={lang.code} value={lang.code}>
+                        {lang.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+            </Box>
+
+            {/* Text Areas Row */}
+            <Box sx={{ display: 'flex', width: '100%', mb: 3 }}>
+              {/* Left Column - Source Text Input */}
+              <Box sx={{ flex: 1, pr: { xs: 0, md: 1.5 } }}>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={6}
+                  placeholder="Enter text to translate"
+                  value={inputText}
+                  onChange={handleInputChange}
+                  sx={{
+                    '.MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#ddd',
+                    },
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#aaa',
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#1976d2',
+                    },
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: '4px',
+                    }
+                  }}
+                />
+              </Box>
+              
+              {/* Center Space for Swap Button */}
+              <Box sx={{ width: { xs: 0, md: '40px' }, display: { xs: 'none', md: 'block' } }} />
+              
+              {/* Right Column - Translation Output */}
+              <Box sx={{ flex: 1, pl: { xs: 0, md: 1.5 }, mt: { xs: 3, md: 0 } }}>
                 <TextField
                   fullWidth
                   multiline
@@ -1233,6 +1321,20 @@ const AISummary = () => {
                   value={outputText}
                   InputProps={{
                     readOnly: true,
+                  }}
+                  sx={{
+                    '.MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#ddd',
+                    },
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#aaa',
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#1976d2',
+                    },
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: '4px',
+                    }
                   }}
                 />
               </Box>
@@ -1246,7 +1348,10 @@ const AISummary = () => {
               sx={{
                 mt: 2,
                 mb: 2,
-                height: '50px',
+                height: '45px',
+                borderRadius: '4px',
+                textTransform: 'none',
+                fontSize: '16px',
               }}
             >
               {translationLoading ? <CircularProgress size={24} /> : <TranslatedText>Translate</TranslatedText>}
@@ -1277,17 +1382,17 @@ const AISummary = () => {
         aria-describedby="alert-dialog-description"
       >
         <DialogTitle id="alert-dialog-title">
-          {"Regenerate Summary?"}
+          <TranslatedText>Regenerate Summary?</TranslatedText>
         </DialogTitle>
         <DialogContent>
           <DialogContentText id="alert-dialog-description">
-            You have made edits to the summary. Regenerating will replace your edited content with a new AI-generated summary. Are you sure you want to continue?
+            <TranslatedText>You have made edits to the summary. Regenerating will replace your edited content with a new AI-generated summary. Are you sure you want to continue?</TranslatedText>
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCancelRegenerate}>Cancel</Button>
+          <Button onClick={handleCancelRegenerate}><TranslatedText>Cancel</TranslatedText></Button>
           <Button onClick={handleConfirmRegenerate} autoFocus>
-            Regenerate
+            <TranslatedText>Regenerate</TranslatedText>
           </Button>
         </DialogActions>
       </Dialog>

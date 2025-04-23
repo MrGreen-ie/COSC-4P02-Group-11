@@ -1,4 +1,5 @@
 import React from "react";
+import TranslatedText from "../components/TranslatedText";
 
 const Template6 = ({ headline, content }) => {
   // Log the received content for debugging
@@ -112,15 +113,15 @@ const Template6 = ({ headline, content }) => {
         }}
       >
         <h1 style={{ margin: "0", fontSize: "28px", fontWeight: "bold" }}>
-          {headline || "Newsletter Title"}
+          {headline || <TranslatedText>Newsletter Title</TranslatedText>}
         </h1>
         <h2
           style={{ margin: "10px 0 0", fontSize: "18px", fontWeight: "normal" }}
         >
-          {new Date().toLocaleDateString("en-US", {
+          <TranslatedText>{new Date().toLocaleDateString("en-US", {
             month: "long",
             year: "numeric",
-          })}
+          })}</TranslatedText>
         </h2>
       </div>
 
@@ -144,10 +145,10 @@ const Template6 = ({ headline, content }) => {
             paddingBottom: "8px", 
             fontSize: "16px" 
           }}>
-            Part 1
+            <TranslatedText>Part 1</TranslatedText>
           </h3>
           <p style={{ fontSize: "14px", lineHeight: "1.6", whiteSpace: "pre-line" }}>
-            {contentLeft}
+            {typeof contentLeft === 'string' ? <TranslatedText>{contentLeft}</TranslatedText> : contentLeft}
           </p>
         </div>
         <div
@@ -162,10 +163,10 @@ const Template6 = ({ headline, content }) => {
             paddingBottom: "8px", 
             fontSize: "16px" 
           }}>
-            Part 2
+            <TranslatedText>Part 2</TranslatedText>
           </h3>
           <p style={{ fontSize: "14px", lineHeight: "1.6", whiteSpace: "pre-line" }}>
-            {contentRight}
+            {typeof contentRight === 'string' ? <TranslatedText>{contentRight}</TranslatedText> : contentRight}
           </p>
         </div>
       </div>
@@ -181,30 +182,30 @@ const Template6 = ({ headline, content }) => {
           border: "1px solid rgba(255,255,255,0.2)"
         }}
       >
-        <p style={{ margin: "0", fontSize: "12px" }}>Follow us on:</p>
+        <p style={{ margin: "0", fontSize: "12px" }}><TranslatedText>Follow us on:</TranslatedText></p>
         <p style={{ margin: "5px 0", fontSize: "12px" }}>
           <a
             href="https://facebook.com"
             style={{ color: "#fff", margin: "0 5px" }}
           >
-            Facebook
+            <TranslatedText>Facebook</TranslatedText>
           </a>{" "}
           |
           <a
             href="https://twitter.com"
             style={{ color: "#fff", margin: "0 5px" }}
           >
-            Twitter
+            <TranslatedText>Twitter</TranslatedText>
           </a>{" "}
           |
           <a
             href="https://linkedin.com"
             style={{ color: "#fff", margin: "0 5px" }}
           >
-            LinkedIn
+            <TranslatedText>LinkedIn</TranslatedText>
           </a>
         </p>
-        <p style={{ margin: "5px 0", fontSize: "12px" }}>© {new Date().getFullYear()} SUMMIT</p>
+        <p style={{ margin: "5px 0", fontSize: "12px" }}><TranslatedText>© {new Date().getFullYear()} SUMMIT</TranslatedText></p>
       </div>
     </div>
   );

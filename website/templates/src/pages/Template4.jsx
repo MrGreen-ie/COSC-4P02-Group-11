@@ -1,4 +1,5 @@
 import React from "react";
+import TranslatedText from "../components/TranslatedText";
 
 const Template4 = ({ headline, content }) => {
   // Ensure content is a string
@@ -26,12 +27,12 @@ const Template4 = ({ headline, content }) => {
           borderRadius: "10px 10px 0 0",
         }}
       >
-        <h1 style={{ margin: "0", fontSize: "32px" }}>{headline || "Newsletter Title"}</h1>
+        <h1 style={{ margin: "0", fontSize: "32px" }}>{headline || <TranslatedText>Newsletter Title</TranslatedText>}</h1>
         <p style={{ margin: "8px 0 0 0", fontSize: "14px" }}>
-          {new Date().toLocaleDateString("en-US", {
+          <TranslatedText>{new Date().toLocaleDateString("en-US", {
             month: "long",
             year: "numeric",
-          })}
+          })}</TranslatedText>
         </p>
       </div>
 
@@ -43,10 +44,10 @@ const Template4 = ({ headline, content }) => {
         }}
       >
         <h2 style={{ borderBottom: "2px solid #00796b", paddingBottom: "10px" }}>
-          Summary
+          <TranslatedText>Summary</TranslatedText>
         </h2>
         <p style={{ lineHeight: "1.6", fontSize: "16px", whiteSpace: "pre-line" }}>
-          {normalizedContent || "No content available"}
+          {normalizedContent ? <TranslatedText>{normalizedContent}</TranslatedText> : <TranslatedText>No content available</TranslatedText>}
         </p>
       </div>
 
@@ -60,30 +61,30 @@ const Template4 = ({ headline, content }) => {
           marginTop: "20px",
         }}
       >
-        <p style={{ margin: "0", fontSize: "12px" }}>Follow us on:</p>
+        <p style={{ margin: "0", fontSize: "12px" }}><TranslatedText>Follow us on:</TranslatedText></p>
         <p style={{ margin: "5px 0", fontSize: "12px" }}>
           <a
             href="https://facebook.com"
             style={{ color: "#fff", margin: "0 5px" }}
           >
-            Facebook
+            <TranslatedText>Facebook</TranslatedText>
           </a>{" "}
           |
           <a
             href="https://twitter.com"
             style={{ color: "#fff", margin: "0 5px" }}
           >
-            Twitter
+            <TranslatedText>Twitter</TranslatedText>
           </a>{" "}
           |
           <a
             href="https://linkedin.com"
             style={{ color: "#fff", margin: "0 5px" }}
           >
-            LinkedIn
+            <TranslatedText>LinkedIn</TranslatedText>
           </a>
         </p>
-        <p style={{ margin: "5px 0", fontSize: "12px" }}>© {new Date().getFullYear()} SUMMIT</p>
+        <p style={{ margin: "5px 0", fontSize: "12px" }}><TranslatedText>© {new Date().getFullYear()} SUMMIT</TranslatedText></p>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Box, Typography, TextField, Button, Snackbar, Alert, Checkbox, FormControlLabel, List, ListItem, ListItemText } from '@mui/material';
 import axios from 'axios';
+import TranslatedText from './TranslatedText';
 
 const SendModal = ({ open, handleClose, newsletter, onSend }) => {
   const [manualEmail, setManualEmail] = useState('');
@@ -88,12 +89,12 @@ const SendModal = ({ open, handleClose, newsletter, onSend }) => {
           borderRadius: 1,
         }}>
           <Typography variant="h6" component="h2" gutterBottom>
-            Send Newsletter
+            <TranslatedText>Send Newsletter</TranslatedText>
           </Typography>
           
           <TextField
             fullWidth
-            label="Recipient Email (manual entry)"
+            label={<TranslatedText>Recipient Email (manual entry)</TranslatedText>}
             value={manualEmail}
             onChange={(e) => setManualEmail(e.target.value)}
             sx={{ mt: 2, mb: 2 }}
@@ -102,7 +103,7 @@ const SendModal = ({ open, handleClose, newsletter, onSend }) => {
           {subscribers.length > 0 ? (
             <>
               <Typography variant="subtitle1" gutterBottom>
-                Select from your subscriber list:
+                <TranslatedText>Select from your subscriber list:</TranslatedText>
               </Typography>
               <List sx={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #eee', borderRadius: 1 }}>
                 {subscribers.map((subscriber) => (
@@ -122,13 +123,13 @@ const SendModal = ({ open, handleClose, newsletter, onSend }) => {
             </>
           ) : (
             <Typography variant="body2" color="textSecondary" sx={{ mt: 2, mb: 2 }}>
-              No subscribers found. Add some subscribers first or use manual entry.
+              <TranslatedText>No subscribers found. Add some subscribers first or use manual entry.</TranslatedText>
             </Typography>
           )}
           
           <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between' }}>
             <Button variant="outlined" onClick={handleClose}>
-              Cancel
+              <TranslatedText>Cancel</TranslatedText>
             </Button>
             <Button 
               variant="contained" 
@@ -136,7 +137,7 @@ const SendModal = ({ open, handleClose, newsletter, onSend }) => {
               onClick={handleSend}
               disabled={selectedEmails.length === 0 && manualEmail.trim() === ''}
             >
-              Send Newsletter
+              <TranslatedText>Send Newsletter</TranslatedText>
             </Button>
           </Box>
         </Box>
@@ -149,7 +150,7 @@ const SendModal = ({ open, handleClose, newsletter, onSend }) => {
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
         <Alert onClose={() => setSnackbarOpen(false)} severity="success" variant="filled">
-          Newsletter sent successfully!
+          <TranslatedText>Newsletter sent successfully!</TranslatedText>
         </Alert>
       </Snackbar>
     </>

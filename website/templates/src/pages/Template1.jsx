@@ -1,4 +1,5 @@
 import React from "react";
+import TranslatedText from "../components/TranslatedText";
 
 const Template1 = () => (
   <div
@@ -27,26 +28,20 @@ const Template1 = () => (
       }}
     >
       <h2 style={{ margin: "0", fontSize: "36px", fontWeight: "bold" }}>
-        BUSINESS NEWSLETTER
+        <TranslatedText>BUSINESS NEWSLETTER</TranslatedText>
       </h2>
     </div>
     <div style={{ padding: "20px", backgroundColor: "#fff" }}>
       <div style={{ display: "flex", marginBottom: "20px" }}>
         <div>
           <h2 style={{ fontSize: "18px", fontWeight: "bold" }}>
-            Business Stock
+            <TranslatedText>Business Stock</TranslatedText>
           </h2>
           <p className="par1" style={{ fontSize: "15px" }}>
-            A newsletter is a regularly distributed publication that is
-            generally about one main topic of interest to its subscribers.
-            Newspapers and leaflets are types of newsletters. For Newspapers and
-            leaflets are types of newsletters.
+            <TranslatedText>A newsletter is a regularly distributed publication that is generally about one main topic of interest to its subscribers. Newspapers and leaflets are types of newsletters. For Newspapers and leaflets are types of newsletters.</TranslatedText>
           </p>
           <p className="par2" style={{ fontSize: "15px" }}>
-            A newsletter is a regularly distributed publication that is
-            generally about one main topic of interest to its subscribers.
-            Newspapers and leaflets are types of newsletters. For Newspapers and
-            leaflets are types of newsletters.
+            <TranslatedText>A newsletter is a regularly distributed publication that is generally about one main topic of interest to its subscribers. Newspapers and leaflets are types of newsletters. For Newspapers and leaflets are types of newsletters.</TranslatedText>
           </p>
         </div>
       </div>
@@ -59,30 +54,30 @@ const Template1 = () => (
         textAlign: "center",
       }}
     >
-      <p style={{ margin: "0", fontSize: "12px" }}>Follow us on:</p>
+      <p style={{ margin: "0", fontSize: "12px" }}><TranslatedText>Follow us on:</TranslatedText></p>
       <p style={{ margin: "0", fontSize: "12px" }}>
         <a
           href="https://facebook.com"
           style={{ color: "#fff", margin: "0 5px" }}
         >
-          Facebook
+          <TranslatedText>Facebook</TranslatedText>
         </a>{" "}
         |
         <a
           href="https://twitter.com"
           style={{ color: "#fff", margin: "0 5px" }}
         >
-          Twitter
+          <TranslatedText>Twitter</TranslatedText>
         </a>{" "}
         |
         <a
           href="https://linkedin.com"
           style={{ color: "#fff", margin: "0 5px" }}
         >
-          LinkedIn
+          <TranslatedText>LinkedIn</TranslatedText>
         </a>
       </p>
-      <p style={{ margin: "0", fontSize: "12px" }}>Footer information</p>
+      <p style={{ margin: "0", fontSize: "12px" }}><TranslatedText>Footer information</TranslatedText></p>
     </div>
   </div>
 );

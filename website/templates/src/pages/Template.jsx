@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import TranslatedText from "../components/TranslatedText";
 import {
   Box,
   Typography,
@@ -194,11 +195,11 @@ const Template = () => {
       id: 0,
       name: "Business Template",
       description:
-        "A professional newsletter template with traditional styling, perfect for business updates and corporate communications.",
+        <TranslatedText>A professional newsletter template with traditional styling, perfect for business updates and corporate communications.</TranslatedText>,
       features: [
-        "Clean and professional layout",
-        "Traditional black and white styling",
-        "Ideal for business communications",
+        <TranslatedText>Clean and professional layout</TranslatedText>,
+        <TranslatedText>Traditional black and white styling</TranslatedText>,
+        <TranslatedText>Ideal for business communications</TranslatedText>,
       ],
       component: Template1,
     },
@@ -206,11 +207,11 @@ const Template = () => {
       id: 1,
       name: "Modern Green",
       description:
-        "A fresh, modern template with green accents, suitable for environmental organizations, wellness companies, and sustainability initiatives.",
+        <TranslatedText>A fresh, modern template with green accents, suitable for environmental organizations, wellness companies, and sustainability initiatives.</TranslatedText>,
       features: [
-        "Earth-friendly green color scheme",
-        "Modern typography",
-        "Warm and inviting design",
+        <TranslatedText>Earth-friendly green color scheme</TranslatedText>,
+        <TranslatedText>Modern typography</TranslatedText>,
+        <TranslatedText>Warm and inviting design</TranslatedText>,
       ],
       component: Template2,
     },
@@ -218,11 +219,11 @@ const Template = () => {
       id: 2,
       name: "Grid Layout",
       description:
-        "A clean, organized grid-based template that allows for multiple sections of content in a modern, responsive layout.",
+        <TranslatedText>A clean, organized grid-based template that allows for multiple sections of content in a modern, responsive layout.</TranslatedText>,
       features: [
-        "Responsive grid design",
-        "Multiple content areas",
-        "Modern and minimal aesthetic",
+        <TranslatedText>Responsive grid design</TranslatedText>,
+        <TranslatedText>Multiple content areas</TranslatedText>,
+        <TranslatedText>Modern and minimal aesthetic</TranslatedText>,
       ],
       component: Template3,
     },
@@ -230,11 +231,11 @@ const Template = () => {
       id: 3,
       name: "Aqua Breeze",
       description:
-        "A refreshing template with a modern aqua theme, perfect for tech or lifestyle newsletters.",
+        <TranslatedText>A refreshing template with a modern aqua theme, perfect for tech or lifestyle newsletters.</TranslatedText>,
       features: [
-        "Aqua color scheme",
-        "Modern typography",
-        "Clean and minimal design",
+        <TranslatedText>Aqua color scheme</TranslatedText>,
+        <TranslatedText>Modern typography</TranslatedText>,
+        <TranslatedText>Clean and minimal design</TranslatedText>,
       ],
       component: Template4,
     },
@@ -242,11 +243,11 @@ const Template = () => {
       id: 4,
       name: "Vibrant Purple",
       description:
-        "A bold and vibrant template with a purple theme, ideal for creative industries.",
+        <TranslatedText>A bold and vibrant template with a purple theme, ideal for creative industries.</TranslatedText>,
       features: [
-        "Vibrant purple color scheme",
-        "Dynamic layout",
-        "Eye-catching design",
+        <TranslatedText>Vibrant purple color scheme</TranslatedText>,
+        <TranslatedText>Dynamic layout</TranslatedText>,
+        <TranslatedText>Eye-catching design</TranslatedText>,
       ],
       component: Template5,
     },
@@ -254,11 +255,11 @@ const Template = () => {
       id: 5,
       name: "Dual Column Layout",
       description:
-        "A professional dual-column layout, great for B2B newsletters or detailed content.",
+        <TranslatedText>A professional dual-column layout, great for B2B newsletters or detailed content.</TranslatedText>,
       features: [
-        "Dual-column design",
-        "Professional look",
-        "Ideal for detailed content",
+        <TranslatedText>Dual-column design</TranslatedText>,
+        <TranslatedText>Professional look</TranslatedText>,
+        <TranslatedText>Ideal for detailed content</TranslatedText>,
       ],
       component: Template6,
     },
@@ -659,15 +660,13 @@ const Template = () => {
           }}
         >
           <Typography variant="h5" gutterBottom>
-            No Summary Selected
+            <TranslatedText>No Summary Selected</TranslatedText>
           </Typography>
           <Typography variant="body1" paragraph>
-            Please select a summary from the dropdown above to preview in this
-            template.
+            <TranslatedText>Please select a summary from the dropdown above to preview in this template.</TranslatedText>
           </Typography>
           <Typography variant="body2">
-            If you haven't created any summaries yet, go to the AI Summary page
-            first.
+            <TranslatedText>If you haven't created any summaries yet, go to the AI Summary page first.</TranslatedText>
           </Typography>
           <Button
             variant="contained"
@@ -675,7 +674,7 @@ const Template = () => {
             onClick={() => navigate("/ai-summary")}
             sx={{ mt: 2 }}
           >
-            Create Summary
+            <TranslatedText>Create Summary</TranslatedText>
           </Button>
         </Box>
       );
@@ -747,18 +746,18 @@ const Template = () => {
               />
             ) : (
               <h1 style={{ margin: "0", fontSize: "36px", fontWeight: "bold" }}>
-                {headline || "BUSINESS"}
+                {headline ? <TranslatedText>{headline}</TranslatedText> : <TranslatedText>Newsletter Title</TranslatedText>}
               </h1>
             )}
             <h2 style={{ margin: "0", fontSize: "24px", fontWeight: "bold" }}>
-              NEWSLETTER
+              <TranslatedText>NEWSLETTER</TranslatedText>
             </h2>
           </div>
           <div style={{ padding: "20px", backgroundColor: "#fff" }}>
             <div style={{ display: "flex", marginBottom: "20px" }}>
               <div style={{ width: "100%" }}>
                 <h2 style={{ fontSize: "18px", fontWeight: "bold" }}>
-                  Latest Updates
+                  <TranslatedText>Latest Updates</TranslatedText>
                 </h2>
                 {isEditing ? (
                   <TextField
@@ -775,7 +774,7 @@ const Template = () => {
                     className="par1"
                     style={{ fontSize: "15px", whiteSpace: "pre-line" }}
                   >
-                    {finalContent || "No content available"}
+                    {finalContent ? <TranslatedText>{finalContent}</TranslatedText> : <TranslatedText>No content available</TranslatedText>}
                   </p>
                 )}
               </div>
@@ -789,30 +788,30 @@ const Template = () => {
               textAlign: "center",
             }}
           >
-            <p style={{ margin: "0", fontSize: "12px" }}>Follow us on:</p>
+            <p style={{ margin: "0", fontSize: "12px" }}><TranslatedText>Follow us on:</TranslatedText></p>
             <p style={{ margin: "0", fontSize: "12px" }}>
               <a
                 href="https://facebook.com"
                 style={{ color: "#fff", margin: "0 5px" }}
               >
-                Facebook
+                <TranslatedText>Facebook</TranslatedText>
               </a>{" "}
               |
               <a
                 href="https://twitter.com"
                 style={{ color: "#fff", margin: "0 5px" }}
               >
-                Twitter
+                <TranslatedText>Twitter</TranslatedText>
               </a>{" "}
               |
               <a
                 href="https://linkedin.com"
                 style={{ color: "#fff", margin: "0 5px" }}
               >
-                LinkedIn
+                <TranslatedText>LinkedIn</TranslatedText>
               </a>
             </p>
-            <p style={{ margin: "0", fontSize: "12px" }}>Footer information</p>
+            <p style={{ margin: "0", fontSize: "12px" }}><TranslatedText>Footer information</TranslatedText></p>
           </div>
         </div>
       );
@@ -869,17 +868,17 @@ const Template = () => {
               />
             ) : (
               <h1 style={{ fontSize: "36px", color: "#1B5E20", margin: "0" }}>
-                {headline || "Your title"}
+                {headline ? <TranslatedText>{headline}</TranslatedText> : <TranslatedText>Your title</TranslatedText>}
               </h1>
             )}
             <p style={{ fontSize: "14px", color: "#1B5E20", margin: "5px 0" }}>
-              Official newsletter
+              <TranslatedText>Official newsletter</TranslatedText>
             </p>
           </div>
 
           <div style={{ padding: "20px 0" }}>
             <h2 style={{ fontSize: "24px", color: "#1B5E20" }}>
-              Featured Content
+              <TranslatedText>Featured Content</TranslatedText>
             </h2>
             {isEditing ? (
               <TextField
@@ -916,7 +915,7 @@ const Template = () => {
           </div>
           <div style={{ padding: "20px 0", backgroundColor: "#C8E6C9" }}>
             <h3 style={{ fontSize: "18px", color: "#1B5E20" }}>
-              Connect with us
+              <TranslatedText>Connect with us</TranslatedText>
             </h3>
             <div
               style={{
@@ -924,18 +923,18 @@ const Template = () => {
                 textAlign: "center",
               }}
             >
-              <p style={{ margin: "0", fontSize: "12px" }}>Follow us on:</p>
+              <p style={{ margin: "0", fontSize: "12px" }}><TranslatedText>Follow us on:</TranslatedText></p>
               <p style={{ margin: "0", fontSize: "12px" }}>
                 <a href="https://facebook.com" style={{ margin: "0 5px" }}>
-                  Facebook
+                  <TranslatedText>Facebook</TranslatedText>
                 </a>{" "}
                 |
                 <a href="https://twitter.com" style={{ margin: "0 5px" }}>
-                  Twitter
+                  <TranslatedText>Twitter</TranslatedText>
                 </a>{" "}
                 |
                 <a href="https://linkedin.com" style={{ margin: "0 5px" }}>
-                  LinkedIn
+                  <TranslatedText>LinkedIn</TranslatedText>
                 </a>
               </p>
               <p style={{ margin: "0", fontSize: "12px" }}>
@@ -1116,7 +1115,7 @@ const Template = () => {
                     fontSize: "20px",
                 }}
               >
-                  Section 1
+                  <TranslatedText>Section 1</TranslatedText>
               </h2>
               <TextField
                 fullWidth
@@ -1148,7 +1147,7 @@ const Template = () => {
                     fontSize: "20px",
                   }}
                 >
-                  Section 2
+                  <TranslatedText>Section 2</TranslatedText>
                 </h2>
                 <TextField
                   fullWidth
@@ -1180,7 +1179,7 @@ const Template = () => {
                     fontSize: "20px",
                   }}
                 >
-                  Section 3
+                  <TranslatedText>Section 3</TranslatedText>
                 </h2>
                 <TextField
                   fullWidth
@@ -1268,7 +1267,7 @@ const Template = () => {
                 }}
               >
                 <h2 style={{ borderBottom: "2px solid #00796b", paddingBottom: "10px" }}>
-                  Summary
+                  <TranslatedText>Summary</TranslatedText>
                 </h2>
                 <TextField
                   fullWidth
@@ -1356,7 +1355,7 @@ const Template = () => {
                 }}
               >
                 <h2 style={{ borderBottom: "2px solid #6200ea", paddingBottom: "10px" }}>
-                  Summary
+                  <TranslatedText>Summary</TranslatedText>
                 </h2>
                 <TextField
                   fullWidth
@@ -1652,12 +1651,11 @@ const Template = () => {
           mb: "var(--spacing-lg)",
         }}
       >
-        Newsletter Templates
+        <TranslatedText>Newsletter Templates</TranslatedText>
       </Typography>
 
       <Typography variant="body1" sx={{ mb: "var(--spacing-lg)" }}>
-        Choose a template format for your newsletter. You can customize colors,
-        content, and layout after selection.
+        <TranslatedText>Choose a template format for your newsletter. You can customize colors, content, and layout after selection.</TranslatedText>
       </Typography>
 
       <Grid container spacing={4}>
@@ -1695,10 +1693,10 @@ const Template = () => {
                 </Box>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
-                    {template.name}
+                    <TranslatedText>{template.name}</TranslatedText>
                   </Typography>
                   <Typography variant="body2" color="text.secondary" paragraph>
-                    {template.description}
+                    <TranslatedText>{template.description}</TranslatedText>
                   </Typography>
                   <Box component="ul" sx={{ pl: 2, mt: 1 }}>
                     {template.features.map((feature, idx) => (
@@ -1708,7 +1706,7 @@ const Template = () => {
                         key={idx}
                         sx={{ mb: 0.5 }}
                       >
-                        {feature}
+                        <TranslatedText>{feature}</TranslatedText>
                       </Typography>
                     ))}
                   </Box>
@@ -1736,10 +1734,10 @@ const Template = () => {
         >
           <Box>
             <Typography variant="h4" className="heading-primary">
-              {templates[selectedTemplate].name}
+              <TranslatedText>{templates[selectedTemplate].name}</TranslatedText>
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Preview the template with your recent summaries
+              <TranslatedText>Preview the template with your recent summaries</TranslatedText>
             </Typography>
           </Box>
           <Button
@@ -1754,7 +1752,7 @@ const Template = () => {
               },
             }}
           >
-            Back to Templates
+            <TranslatedText>Back to Templates</TranslatedText>
           </Button>
         </Box>
 
@@ -1767,14 +1765,10 @@ const Template = () => {
           }}
         >
           <Typography variant="body2" paragraph>
-            <strong>How it works:</strong> Select one of your saved summaries
-            from the dropdown below to see how it would look in this template.
+            <strong><TranslatedText>How it works:</TranslatedText></strong> <TranslatedText>Select one of your saved summaries from the dropdown below to see how it would look in this template.</TranslatedText>
           </Typography>
           <Typography variant="body2">
-            Once you've found the perfect combination, click "Use This Template"
-            to proceed to the editor where you can make further customizations.
-            You can also click the Edit button to make changes to the headline
-            and content directly in this preview.
+            <TranslatedText>Once you've found the perfect combination, click "Use This Template" to proceed to the editor where you can make further customizations. You can also click the Edit button to make changes to the headline and content directly in this preview.</TranslatedText>
           </Typography>
         </Box>
 
@@ -1787,27 +1781,27 @@ const Template = () => {
           }}
         >
           <FormControl fullWidth sx={{ flexGrow: 1 }}>
-            <InputLabel id="summary-select-label">Select a Summary</InputLabel>
+            <InputLabel id="summary-select-label"><TranslatedText>Select a Summary</TranslatedText></InputLabel>
             <Select
               labelId="summary-select-label"
               id="summary-select"
               value={selectedSummary?.id || ""}
-              label="Select a Summary"
+              label={<TranslatedText>Select a Summary</TranslatedText>}
               onChange={handleSummaryChange}
               disabled={loading || !summaries.length || isEditing}
             >
               {summaries.length > 0 ? (
                 summaries.map((summary) => (
                   <MenuItem key={summary.id} value={summary.id}>
-                    {summary.headline || `Summary #${summary.id}`}
+                    {summary.headline || <TranslatedText>Summary #{summary.id}</TranslatedText>}
                   </MenuItem>
                 ))
               ) : (
-                <MenuItem disabled>No summaries available</MenuItem>
+                <MenuItem disabled><TranslatedText>No summaries available</TranslatedText></MenuItem>
               )}
             </Select>
           </FormControl>
-          <Tooltip title="Refresh summaries list">
+          <Tooltip title={<TranslatedText>Refresh summaries list</TranslatedText>}>
             <IconButton
               onClick={handleRefreshSummaries}
               disabled={loading || isEditing}
@@ -1816,7 +1810,7 @@ const Template = () => {
               <RefreshIcon />
             </IconButton>
           </Tooltip>
-          <Tooltip title={isEditing ? "Save changes" : "Edit content"}>
+          <Tooltip title={isEditing ? <TranslatedText>Save changes</TranslatedText> : <TranslatedText>Edit content</TranslatedText>}>
             <IconButton
               color={isEditing ? "success" : "primary"}
               onClick={handleToggleEdit}
@@ -1868,7 +1862,7 @@ const Template = () => {
                 },
               }}
             >
-              Use This Template
+              <TranslatedText>Use This Template</TranslatedText>
             </Button>
           </Grid>
         </Grid>
@@ -1919,10 +1913,10 @@ const Template = () => {
             onClick={() => handleOverlaySelection("template")}
           >
             <Typography variant="h5" gutterBottom>
-              <strong>Template</strong>
+              <strong><TranslatedText>Template</TranslatedText></strong>
             </Typography>
             <Typography variant="body2">
-              Templated summaries can only be sent out as emails.
+              <TranslatedText>Templated summaries can only be sent out as emails.</TranslatedText>
             </Typography>
           </Box>
           <Box
@@ -1941,11 +1935,10 @@ const Template = () => {
             onClick={() => handleOverlaySelection("no-template")}
           >
             <Typography variant="h5" gutterBottom>
-              <strong>No Template</strong>
+              <strong><TranslatedText>No Template</TranslatedText></strong>
             </Typography>
             <Typography variant="body2">
-              Non-templated summaries can be sent out as an email or posted to
-              social media.
+              <TranslatedText>Non-templated summaries can be sent out as an email or posted to social media.</TranslatedText>
             </Typography>
           </Box>
         </Paper>

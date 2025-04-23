@@ -1,4 +1,5 @@
 import React from "react";
+import TranslatedText from "../components/TranslatedText";
 
 const Template3 = ({ headline, content }) => {
   // Log the received content for debugging
@@ -245,13 +246,13 @@ const Template3 = ({ headline, content }) => {
       }}
     >
         <h1 style={{ margin: "0", fontSize: "36px", fontWeight: "bold" }}>
-          {headline || "Newsletter Title"}
+          {headline || <TranslatedText>Newsletter Title</TranslatedText>}
         </h1>
         <p style={{ margin: "8px 0 0 0", fontSize: "14px" }}>
-          {new Date().toLocaleDateString("en-US", {
+          <TranslatedText>{new Date().toLocaleDateString("en-US", {
             month: "long",
             year: "numeric",
-          })}
+          })}</TranslatedText>
         </p>
     </div>
 
@@ -272,10 +273,10 @@ const Template3 = ({ headline, content }) => {
             fontSize: "20px",
           }}
         >
-          Section 1
+          <TranslatedText>Section 1</TranslatedText>
         </h2>
         <p style={{ fontSize: "14px", lineHeight: "1.6" }}>
-          {section1}
+          {typeof section1 === 'string' ? <TranslatedText>{section1}</TranslatedText> : section1}
         </p>
       </div>
 
@@ -295,10 +296,10 @@ const Template3 = ({ headline, content }) => {
             fontSize: "20px",
           }}
         >
-          Section 2
+          <TranslatedText>Section 2</TranslatedText>
         </h2>
         <p style={{ fontSize: "14px", lineHeight: "1.6" }}>
-          {section2}
+          {typeof section2 === 'string' ? <TranslatedText>{section2}</TranslatedText> : section2}
         </p>
       </div>
 
@@ -318,10 +319,10 @@ const Template3 = ({ headline, content }) => {
             fontSize: "20px",
           }}
         >
-          Section 3
+          <TranslatedText>Section 3</TranslatedText>
         </h2>
         <p style={{ fontSize: "14px", lineHeight: "1.6" }}>
-          {section3}
+          {typeof section3 === 'string' ? <TranslatedText>{section3}</TranslatedText> : section3}
         </p>
       </div>
 
@@ -336,22 +337,22 @@ const Template3 = ({ headline, content }) => {
           borderRadius: "5px",
       }}
     >
-      <p style={{ margin: "0", fontSize: "12px" }}>Follow us on:</p>
+      <p style={{ margin: "0", fontSize: "12px" }}><TranslatedText>Follow us on:</TranslatedText></p>
         <p style={{ margin: "5px 0", fontSize: "12px" }}>
           <a href="https://facebook.com" style={{ color: "#fff", margin: "0 5px" }}>
-          Facebook
+          <TranslatedText>Facebook</TranslatedText>
         </a>{" "}
         |
           <a href="https://twitter.com" style={{ color: "#fff", margin: "0 5px" }}>
-          Twitter
+          <TranslatedText>Twitter</TranslatedText>
         </a>{" "}
         |
           <a href="https://linkedin.com" style={{ color: "#fff", margin: "0 5px" }}>
-          LinkedIn
+          <TranslatedText>LinkedIn</TranslatedText>
         </a>
       </p>
         <p style={{ margin: "5px 0", fontSize: "12px" }}>
-          © {new Date().getFullYear()} Your Organization
+          <TranslatedText>© {new Date().getFullYear()} Your Organization</TranslatedText>
         </p>
       </div>
   </div>

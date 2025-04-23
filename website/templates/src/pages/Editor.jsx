@@ -10,6 +10,7 @@ import {
   Button
 } from '@mui/material';
 import '../styles/theme.css';
+import TranslatedText from '../components/TranslatedText';
 
 function Editor() {
   const [editorState, setEditorState] = useState(() => EditorState.createEmpty());
@@ -35,7 +36,7 @@ function Editor() {
   };
 
   if (!isLoaded) {
-    return <div>Loading editor...</div>;
+    return <div><TranslatedText>Loading editor...</TranslatedText></div>;
   }
 
   return (
@@ -72,7 +73,7 @@ function Editor() {
                 fontWeight: 'var(--font-weight-bold)'
               }}
             >
-              Content Editor
+              <TranslatedText>Content Editor</TranslatedText>
             </Typography>
             
             <Paper 
@@ -103,7 +104,7 @@ function Editor() {
               <DraftEditor
                 editorState={editorState}
                 onChange={handleEditorChange}
-                placeholder="Start typing your content here..."
+                placeholder={<TranslatedText>Start typing your content here...</TranslatedText>}
               />
             </Paper>
 
@@ -125,7 +126,7 @@ function Editor() {
               }}
               onClick={handleSave}
             >
-              Save Content
+              <TranslatedText>Save Content</TranslatedText>
             </Button>
           </Box>
         </Container>

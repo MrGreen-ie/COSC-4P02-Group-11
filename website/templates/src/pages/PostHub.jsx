@@ -1,18 +1,19 @@
 import React, { useState } from 'react';
 import { Box, Typography, Paper, Grid, Modal, IconButton } from '@mui/material';
-import TwitterIcon from '@mui/icons-material/Twitter';
+import TranslatedText from '../components/TranslatedText';
+import XIcon from '../components/XIcon'; 
 import EmailIcon from '@mui/icons-material/Email';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import CloseIcon from '@mui/icons-material/Close';
 import Newsletters from './Newsletters';
-import PostSystem from './PostSystem';  // Import the PostSystem page
+import PostSystem from './PostSystem';  
 
 const PostHub = () => {
   const [selectedPlatform, setSelectedPlatform] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleIconClick = (platform) => {
-    if (platform === 'github-demo') return; // not clickable
+    if (platform === 'github-demo') return; 
     setSelectedPlatform(platform);
     setIsModalOpen(true);
   };
@@ -23,12 +24,12 @@ const PostHub = () => {
   };
 
   const platformIcons = [
-    { platform: 'twitter', icon: <TwitterIcon sx={{ fontSize: 60, color: 'primary.main' }} />, label: 'Twitter' },
-    { platform: 'email', icon: <EmailIcon sx={{ fontSize: 60, color: 'red' }} />, label: 'Newsletter' },
+    { platform: 'x', icon: <XIcon sx={{ fontSize: 60, color: '#000000' }} />, label: <TranslatedText>X</TranslatedText> },
+    { platform: 'email', icon: <EmailIcon sx={{ fontSize: 60, color: 'red' }} />, label: <TranslatedText>Newsletter</TranslatedText> },
     {
       platform: 'github-demo',
       icon: <GitHubIcon sx={{ fontSize: 60, color: 'grey.500' }} />,
-      label: 'GitHub Demo (Coming Soon)',
+      label: <TranslatedText>GitHub Demo (Coming Soon)</TranslatedText>,
       clickable: false
     }
   ];
@@ -36,10 +37,10 @@ const PostHub = () => {
   return (
     <Box sx={{ p: { xs: 2, sm: 4 }, backgroundColor: 'background.default', minHeight: '100vh' }}>
       <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', color: 'text.primary' }}>
-        Post Hub
+        <TranslatedText>Post Hub</TranslatedText>
       </Typography>
       <Typography variant="subtitle1" gutterBottom sx={{ color: 'text.secondary', mb: 3 }}>
-        Select a platform to post your content:
+        <TranslatedText>Select a platform to post your content:</TranslatedText>
       </Typography>
       <Grid container spacing={4}>
         {platformIcons.map((item) => (
@@ -85,17 +86,17 @@ const PostHub = () => {
           <IconButton onClick={handleClose} sx={{ position: 'absolute', top: 8, right: 8 }}>
             <CloseIcon />
           </IconButton>
-          {selectedPlatform === 'twitter' ? (
+          {selectedPlatform === 'x' ? (
             <>
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
-                Post Tweet
+                <TranslatedText>Post X</TranslatedText>
               </Typography>
-              <PostSystem />  {/* Render the full PostSystem page */}
+              <PostSystem />  
             </>
           ) : (
             <>
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
-                Send Newsletter
+                <TranslatedText>Send Newsletter</TranslatedText>
               </Typography>
               <Newsletters />
             </>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import TranslatedText from '../components/TranslatedText';
 import { 
   Box, Typography, Paper, Grid, IconButton, CircularProgress, 
   Alert, Snackbar, Divider, Select, MenuItem, Button, 
@@ -71,7 +72,7 @@ const Articles = () => {
       console.error('Error fetching favorite articles:', err);
       setNotification({
         open: true,
-        message: 'Failed to load favorite articles',
+        message: <TranslatedText>Failed to load favorite articles</TranslatedText>,
         severity: 'error'
       });
     }
@@ -89,7 +90,7 @@ const Articles = () => {
     if (categories.length === 0) {
       setNotification({
         open: true,
-        message: 'Please select at least one category',
+        message: <TranslatedText>Please select at least one category</TranslatedText>,
         severity: 'warning'
       });
       return;
@@ -115,7 +116,7 @@ const Articles = () => {
       console.error('Error searching articles:', err);
       setNotification({
         open: true,
-        message: 'Failed to fetch articles',
+        message: <TranslatedText>Failed to fetch articles</TranslatedText>,
         severity: 'error'
       });
       setArticles([]); // Clear loading placeholders on error
@@ -129,7 +130,7 @@ const Articles = () => {
     if (String(plan).toLowerCase() === 'free') {
       setNotification({
         open: true,
-        message: 'Limited Access, for Pro only',
+        message: <TranslatedText>Limited Access, for Pro only</TranslatedText>,
         severity: 'error',
       });
       return;
@@ -149,14 +150,14 @@ const Articles = () => {
           setFavoriteArticles([...favoriteArticles, { ...article, is_favorite: true }]);
           setNotification({ 
             open: true, 
-            message: 'Added to saved articles!', 
+            message: <TranslatedText>Added to saved articles!</TranslatedText>, 
             severity: 'success' 
           });
         } else {
           setFavoriteArticles(favoriteArticles.filter(a => a.uuid !== article.uuid));
           setNotification({ 
             open: true, 
-            message: 'Removed from saved articles!', 
+            message: <TranslatedText>Removed from saved articles!</TranslatedText>, 
             severity: 'info' 
           });
         }
@@ -165,7 +166,7 @@ const Articles = () => {
       console.error('Error toggling article favorite:', err);
       setNotification({ 
         open: true, 
-        message: 'Failed to update article save status.', 
+        message: <TranslatedText>Failed to update article save status.</TranslatedText>, 
         severity: 'error' 
       });
     }
@@ -293,14 +294,14 @@ const Articles = () => {
                   }
                 }}
               >
-                News Articles
+                <TranslatedText>News Articles</TranslatedText>
               </Typography>
             </Box>
           </Grow>
 
           <Box sx={{ pl: 'var(--spacing-md)', pr: 'var(--spacing-md)', mb: 4 }}>
             <FormControl sx={{ m: 1, width: '100%' }}>
-              <InputLabel id="category-select-label">Categories</InputLabel>
+              <InputLabel id="category-select-label"><TranslatedText>Categories</TranslatedText></InputLabel>
               <Select
                 labelId="category-select-label"
                 multiple
@@ -327,11 +328,11 @@ const Articles = () => {
               >
                 {AVAILABLE_CATEGORIES.map((category) => (
                   <MenuItem key={category} value={category}>
-                    {category.charAt(0).toUpperCase() + category.slice(1)}
+                    <TranslatedText>{category.charAt(0).toUpperCase() + category.slice(1)}</TranslatedText>
                   </MenuItem>
                 ))}
               </Select>
-              <FormHelperText>Select up to 2 categories</FormHelperText>
+              <FormHelperText><TranslatedText>Select up to 2 categories</TranslatedText></FormHelperText>
             </FormControl>
             
             <Button
@@ -370,142 +371,220 @@ const Articles = () => {
               {articleLoading ? (
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                   <CircularProgress size={20} sx={{ mr: 1, color: 'white' }} />
-                  Searching...
+                  <TranslatedText>Searching...</TranslatedText>
                 </Box>
-              ) : 'Search Articles'}
+              ) : <TranslatedText>Search Articles</TranslatedText>}
             </Button>
           </Box>
 
-          {/* Article Results with improved loading and empty states */}
-          {showArticles && (
-            <Fade in={true} timeout={800}>
-              <Box sx={{ mb: 4 }}>
-                {articles.length > 0 ? (
-                  <Grid container spacing={3}>
-                    {articles.map((article, index) => (
-                      <Grow in={true} timeout={(index + 1) * 200} key={article.uuid || index}>
-                        <Grid item xs={12} sm={6} md={4}>
-                          <ArticleCard 
-                            article={article}
-                            onToggleFavorite={handleArticleFavoriteToggle}
-                            onSummarize={handleSummarizeArticle}
-                            loading={article.loading || false}
-                          />
-                        </Grid>
-                      </Grow>
-                    ))}
-                  </Grid>
-                ) : (
-                  !articleLoading && (
-                    <Fade in={true} timeout={500}>
-                      <Paper 
-                        elevation={2}
+          <Box sx={{ pl: 'var(--spacing-md)', pr: 'var(--spacing-md)', mb: 4 }}>
+            <FormControl sx={{ m: 1, width: '100%' }}>
+              <InputLabel id="category-select-label"><TranslatedText>Categories</TranslatedText></InputLabel>
+              <Select
+                labelId="category-select-label"
+                multiple
+                value={categories}
+                onChange={handleCategoryChange}
+                input={<OutlinedInput label="Categories" />}
+                renderValue={(selected) => (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {selected.map((value) => (
+                      <Chip 
+                        key={value} 
+                        label={value} 
                         sx={{
-                          p: 4,
-                          mb: 3,
-                          backgroundColor: 'var(--bg-secondary)',
-                          borderRadius: 'var(--border-radius-lg)',
-                          textAlign: 'center',
-                          border: '1px dashed var(--border-color)',
+                          transition: 'all 0.2s ease',
+                          '&:hover': {
+                            backgroundColor: 'var(--primary-light)',
+                            color: 'white',
+                          }
                         }}
-                      >
-                        <SearchIcon sx={{ fontSize: 60, color: 'var(--text-secondary)', mb: 2, opacity: 0.6 }} />
-                        <Typography variant="h6" sx={{ mb: 1 }}>No articles found</Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Try different categories or try again later
-                        </Typography>
-                      </Paper>
-                    </Fade>
-                  )
+                      />
+                    ))}
+                  </Box>
                 )}
-              </Box>
-            </Fade>
-          )}
-
-          <Divider sx={{ my: 4 }} />
-
-          {/* Saved Articles Section with improved animations and UI */}
-          <Grow in={true} timeout={1000}>
-            <Box sx={{ padding: 'var(--spacing-md)', mb: 2 }}>
-              <Typography 
-                variant="h4" 
-                className="heading-primary"
-                gutterBottom 
-                sx={{ 
-                  textAlign: 'left', 
-                  pl: 'var(--spacing-md)', 
-                  pr: 'var(--spacing-md)',
-                  position: 'relative',
-                  '&:after': {
-                    content: '""',
-                    position: 'absolute',
-                    bottom: -8,
-                    left: 'var(--spacing-md)',
-                    width: 80,
-                    height: 4,
-                    backgroundColor: 'var(--primary)',
-                    borderRadius: 2
+              >
+                {AVAILABLE_CATEGORIES.map((category) => (
+                  <MenuItem key={category} value={category}>
+                    <TranslatedText>{category.charAt(0).toUpperCase() + category.slice(1)}</TranslatedText>
+                  </MenuItem>
+                ))}
+              </Select>
+              <FormHelperText><TranslatedText>Select up to 2 categories</TranslatedText></FormHelperText>
+            </FormControl>
+            
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={articleLoading ? null : <SearchIcon />}
+              onClick={handleSearchArticles}
+              disabled={articleLoading}
+              sx={{ 
+                mt: 2, 
+                mb: 2, 
+                minWidth: 150,
+                position: 'relative',
+                overflow: 'hidden',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: 'var(--shadow-md)',
+                },
+                '&:after': articleLoading ? {
+                  content: '""',
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  width: '100%',
+                  height: 3,
+                  backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                  animation: 'loading 1.5s infinite linear',
+                  '@keyframes loading': {
+                    '0%': { transform: 'translateX(-100%)' },
+                    '100%': { transform: 'translateX(100%)' }
                   }
+                } : {}
+              }}
+            >
+              {articleLoading ? (
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <CircularProgress size={20} sx={{ mr: 1, color: 'white' }} />
+                  <TranslatedText>Searching...</TranslatedText>
+                </Box>
+              ) : <TranslatedText>Search Articles</TranslatedText>}
+            </Button>
+          </Box>
+
+        {/* Article Results with improved loading and empty states */}
+        {showArticles && (
+          <Fade in={true} timeout={800}>
+            <Box sx={{ mb: 4 }}>
+              {articles.length > 0 ? (
+                <Grid container spacing={3}>
+                  {articles.map((article, index) => (
+                    <Grow in={true} timeout={(index + 1) * 200} key={article.uuid || index}>
+                      <Grid item xs={12} sm={6} md={4}>
+                        <ArticleCard 
+                          article={article}
+                          onToggleFavorite={handleArticleFavoriteToggle}
+                          onSummarize={handleSummarizeArticle}
+                          loading={article.loading || false}
+                        />
+                      </Grid>
+                    </Grow>
+                  ))}
+                </Grid>
+              ) : (
+                !articleLoading && (
+                  <Fade in={true} timeout={500}>
+                    <Paper 
+                      elevation={2}
+                      sx={{
+                        p: 4,
+                        mb: 3,
+                        backgroundColor: 'var(--bg-secondary)',
+                        borderRadius: 'var(--border-radius-lg)',
+                        textAlign: 'center',
+                        border: '1px dashed var(--border-color)',
+                      }}
+                    >
+                      <SearchIcon sx={{ fontSize: 60, color: 'var(--text-secondary)', mb: 2, opacity: 0.6 }} />
+                      <Typography variant="h6" sx={{ mb: 1 }}><TranslatedText>No articles found</TranslatedText></Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        <TranslatedText>Try different categories or try again later</TranslatedText>
+                      </Typography>
+                    </Paper>
+                  </Fade>
+                )
+              )}
+            </Box>
+          </Fade>
+        )}
+
+        <Divider sx={{ my: 4 }} />
+
+        {/* Saved Articles Section with improved animations and UI */}
+        <Grow in={true} timeout={1000}>
+          <Box sx={{ padding: 'var(--spacing-md)', mb: 2 }}>
+            <Typography 
+              variant="h4" 
+              className="heading-primary"
+              gutterBottom 
+              sx={{ 
+                textAlign: 'left', 
+                pl: 'var(--spacing-md)', 
+                pr: 'var(--spacing-md)',
+                position: 'relative',
+                '&:after': {
+                  content: '""',
+                  position: 'absolute',
+                  bottom: -8,
+                  left: 'var(--spacing-md)',
+                  width: 80,
+                  height: 4,
+                  backgroundColor: 'var(--primary)',
+                  borderRadius: 2
+                }
+              }}
+            >
+              <TranslatedText>Saved Articles</TranslatedText>
+            </Typography>
+          </Box>
+        </Grow>
+
+        <Box sx={{ mb: 4 }}>
+          {favoriteArticles.length > 0 ? (
+            <Grid container spacing={3}>
+              {favoriteArticles.map((article, index) => (
+                <Grow in={true} timeout={(index + 1) * 200} key={article.uuid || index}>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <ArticleCard 
+                      article={article}
+                      onToggleFavorite={handleArticleFavoriteToggle}
+                      onSummarize={handleSummarizeArticle}
+                    />
+                  </Grid>
+                </Grow>
+              ))}
+            </Grid>
+          ) : (
+            <Fade in={true} timeout={500}>
+              <Paper
+                elevation={2}
+                sx={{
+                  padding: 'var(--spacing-lg)',
+                  mb: 'var(--spacing-md)',
+                  backgroundColor: 'var(--bg-secondary)',
+                  color: 'var(--text-primary)',
+                  borderRadius: 'var(--border-radius-lg)',
+                  textAlign: 'center',
+                  border: '1px dashed var(--border-color)',
+                  p: 4,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
-                Saved Articles
-              </Typography>
-            </Box>
-          </Grow>
-
-          <Box sx={{ mb: 4 }}>
-            {favoriteArticles.length > 0 ? (
-              <Grid container spacing={3}>
-                {favoriteArticles.map((article, index) => (
-                  <Grow in={true} timeout={(index + 1) * 200} key={article.uuid || index}>
-                    <Grid item xs={12} sm={6} md={4}>
-                      <ArticleCard 
-                        article={article}
-                        onToggleFavorite={handleArticleFavoriteToggle}
-                        onSummarize={handleSummarizeArticle}
-                      />
-                    </Grid>
-                  </Grow>
-                ))}
-              </Grid>
-            ) : (
-              <Fade in={true} timeout={500}>
-                <Paper
-                  elevation={2}
-                  sx={{
-                    padding: 'var(--spacing-lg)',
-                    mb: 'var(--spacing-md)',
-                    backgroundColor: 'var(--bg-secondary)',
-                    color: 'var(--text-primary)',
-                    borderRadius: 'var(--border-radius-lg)',
-                    textAlign: 'center',
-                    border: '1px dashed var(--border-color)',
-                    p: 4,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <StarBorderIcon sx={{ fontSize: 60, color: 'var(--text-secondary)', mb: 2, opacity: 0.6 }} />
-                  <Typography variant="h6">
-                    {String(plan).toLowerCase() === 'free'
-                      ? 'Limited Access, for Pro only'
-                      : 'No saved articles yet'}
+                <StarBorderIcon sx={{ fontSize: 60, color: 'var(--text-secondary)', mb: 2, opacity: 0.6 }} />
+                <Typography variant="h6">
+                  {String(plan).toLowerCase() === 'free'
+                    ? <TranslatedText>Limited Access, for Pro only</TranslatedText>
+                    : <TranslatedText>No saved articles yet</TranslatedText>}
+                </Typography>
+                {String(plan).toLowerCase() !== 'free' && (
+                  <Typography variant="body2" className="text-secondary" sx={{ mt: 'var(--spacing-sm)' }}>
+                    <TranslatedText>Star articles to save them here</TranslatedText>
                   </Typography>
-                  {String(plan).toLowerCase() !== 'free' && (
-                    <Typography variant="body2" className="text-secondary" sx={{ mt: 'var(--spacing-sm)' }}>
-                      Star articles to save them here
-                    </Typography>
-                  )}
-                </Paper>
-              </Fade>
-            )}
-          </Box>
-        </Paper>
-      </Box>
-    </Fade>
+                )}
+              </Paper>
+            </Fade>
+          )}
+        </Box>
+      </Paper>
+    </Box>
+  </Fade>
   );
 };
 
-export default Articles; 
+export default Articles;

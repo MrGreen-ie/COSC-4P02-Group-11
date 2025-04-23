@@ -124,6 +124,7 @@ const AISummary = () => {
   const [detectedLanguage, setDetectedLanguage] = useState('');
   const [showTranslation, setShowTranslation] = useState(false);
   const [detectingLanguage, setDetectingLanguage] = useState(false);
+  const [savingTranslation, setSavingTranslation] = useState(false);
 
   const API_KEY = 'AIzaSyDqkyW03Bw4A5rK1ZlJCzgkYvo0dMzDxjM';
   const API_URL = 'https://translation.googleapis.com/language/translate/v2';
@@ -612,6 +613,52 @@ const AISummary = () => {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveTranslation = async () => {
+    if (!outputText) {
+      setSnackbar({
+        open: true,
+        message: 'No translation to save',
+        severity: 'error'
+      });
+      return;
+    }
+  
+    setSavingTranslation(true);
+  
+    try {
+      // Using the same API endpoint as summary saving but with translation data
+      const response = await axios.post('/api/newsletter', {
+        headline: `Translation from ${getLanguageName(sourceLanguage)} to ${getLanguageName(targetLanguage)}`,
+        summary: outputText,
+        metadata: {
+          source_language: sourceLanguage,
+          target_language: targetLanguage,
+          original_text: inputText,
+          type: 'translation'
+        }
+      });
+  
+      if (response.data.success) {
+        setSnackbar({
+          open: true,
+          message: 'Translation saved successfully',
+          severity: 'success'
+        });
+      } else {
+        throw new Error(response.data.error || 'Failed to save translation');
+      }
+    } catch (err) {
+      console.error('Error saving translation:', err);
+      setSnackbar({
+        open: true,
+        message: err.message || 'Failed to save translation',
+        severity: 'error'
+      });
+    } finally {
+      setSavingTranslation(false);
     }
   };
 
@@ -1340,22 +1387,43 @@ const AISummary = () => {
               </Box>
             </Box>
 
-            <Button
-              onClick={handleTranslate}
-              disabled={translationLoading}
-              fullWidth
-              variant="contained"
-              sx={{
-                mt: 2,
-                mb: 2,
-                height: '45px',
-                borderRadius: '4px',
-                textTransform: 'none',
-                fontSize: '16px',
-              }}
-            >
-              {translationLoading ? <CircularProgress size={24} /> : <TranslatedText>Translate</TranslatedText>}
-            </Button>
+            {/* Translation Action Buttons */}
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, mb: 2, gap: 2 }}>
+              <Button
+                startIcon={<SaveIcon />}
+                onClick={handleSaveTranslation}
+                disabled={savingTranslation || !outputText}
+                sx={{ 
+                  mr: 1, 
+                  backgroundColor: '#dc3545', // Red color
+                  color: 'white',
+                  '&:hover': {
+                    backgroundColor: '#c82333',
+                  },
+                  '&.Mui-disabled': {
+                    backgroundColor: '#f5c2c7',
+                    color: '#842029',
+                  }
+                }}
+              >
+                {savingTranslation ? <CircularProgress size={24} color="inherit" /> : <TranslatedText>Save</TranslatedText>}
+              </Button>
+
+              <Button
+                onClick={handleTranslate}
+                disabled={translationLoading}
+                variant="contained"
+                sx={{
+                  height: '45px',
+                  borderRadius: '4px',
+                  textTransform: 'none',
+                  fontSize: '16px',
+                  minWidth: '150px'
+                }}
+              >
+                {translationLoading ? <CircularProgress size={24} /> : <TranslatedText>Translate</TranslatedText>}
+              </Button>
+            </Box>
 
             <Typography variant="caption" sx={{ display: 'block', mt: 2, textAlign: 'center', color: 'text.secondary' }}>
               <TranslatedText>Powered by Google Translate API</TranslatedText>

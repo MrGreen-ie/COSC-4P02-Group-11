@@ -46,6 +46,7 @@ import {
   Edit as EditIcon,
   ExpandLess as ExpandLessIcon,
   ExpandMore as ExpandMoreIcon,
+  HelpOutline as HelpOutlineIcon,
   Link as LinkIcon,
   Refresh as RefreshIcon,
   Save as SaveIcon,
@@ -105,8 +106,8 @@ const AISummary = () => {
   });
   const [saving, setSaving] = useState(false);
   const [plan, setPlan] = useState('Free'); // Default to 'Free', update based on user session
-  const [showTutorial, setShowTutorial] = useState(false); // Removed manual tutorial toggle
-  const [runTutorial, setRunTutorial] = useState(true); // Automatically start Joyride
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [runTutorial, setRunTutorial] = useState(false); // Don't start tutorial automatically
   const [twitterShareUrl, setTwitterShareUrl] = useState('');
   const [isEditing, setIsEditing] = useState(false); // Track editing state
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
@@ -386,42 +387,40 @@ const AISummary = () => {
     }
   }, []);
 
-  useEffect(() => {
-    setRunTutorial(true); // Automatically start the tutorial when the component loads
-  }, []);
+  // Removed auto-start tutorial effect
 
   const steps = [
     {
       target: '.heading-primary',
-      content: 'Welcome to the AI Summary Tool! Let me guide you through the features.',
+      content: <TranslatedText>Welcome to the AI Summary Tool! Let me guide you through the features.</TranslatedText>,
     },
     {
       target: '#summary-length-slider',
-      content: 'Use this slider to adjust the summary length as a percentage of the original content.',
+      content: <TranslatedText>Use this slider to adjust the summary length as a percentage of the original content.</TranslatedText>,
     },
     {
       target: '#tone-select',
-      content: 'Select the tone for your summary. Free users are limited to the Professional tone.',
+      content: <TranslatedText>Select the tone for your summary. Free users are limited to the Professional tone.</TranslatedText>,
     },
     {
       target: '.MuiTabs-root',
-      content: 'Switch between providing text content or a URL to summarize.',
+      content: <TranslatedText>Switch between providing text content or a URL to summarize.</TranslatedText>,
     },
     {
       target: '.MuiButton-containedPrimary',
-      content: 'Click this button to generate your summary after configuring the options.',
+      content: <TranslatedText>Click this button to generate your summary after configuring the options.</TranslatedText>,
     },
     {
       target: '.MuiPaper-root:last-of-type',
-      content: 'Here you will see the generated summary along with options to regenerate, copy, or save it.',
+      content: <TranslatedText>Here you will see the generated summary along with options to regenerate, copy, or save it.</TranslatedText>,
     },
     {
       target: '.edit-button',
-      content: 'You can now edit your summary! Click the Edit button to make changes to both the headline and summary text, then click Save Edits when done.',
+      content: <TranslatedText>You can now edit your summary! Click the Edit button to make changes to both the headline and summary text, then click Save Edits when done.</TranslatedText>,
     },
     {
       target: 'button:has([data-testid="DesignServicesIcon"])',
-      content: 'Click the Template button to save your summary and create a newsletter template with it. You will be redirected to the template editor.',
+      content: <TranslatedText>Click the Template button to save your summary and create a newsletter template with it. You will be redirected to the template editor.</TranslatedText>,
     },
   ];
 
@@ -810,15 +809,39 @@ const AISummary = () => {
             zIndex: 10000,
           },
         }}
+        locale={{
+          back: <TranslatedText>Back</TranslatedText>,
+          close: <TranslatedText>Close</TranslatedText>,
+          last: <TranslatedText>Finish</TranslatedText>,
+          next: <TranslatedText>Next</TranslatedText>,
+          skip: <TranslatedText>Skip</TranslatedText>
+        }}
         callback={(data) => {
           if (data.status === 'finished' || data.status === 'skipped') {
             setRunTutorial(false); // Stop the tutorial when finished or skipped
           }
         }}
       />
-      <Typography variant="h4" gutterBottom className="heading-primary">
-        <TranslatedText>AI Content Summary</TranslatedText>
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h4" gutterBottom className="heading-primary">
+          <TranslatedText>AI Content Summary</TranslatedText>
+        </Typography>
+        <Button 
+          variant="outlined" 
+          color="primary" 
+          onClick={() => setRunTutorial(true)}
+          startIcon={<HelpOutlineIcon />}
+          sx={{ 
+            borderRadius: '20px',
+            textTransform: 'none',
+            '&:hover': {
+              backgroundColor: 'rgba(25, 118, 210, 0.08)'
+            }
+          }}
+        >
+          <TranslatedText>Start Tutorial</TranslatedText>
+        </Button>
+      </Box>
       
       <Paper sx={{ 
         p: 'var(--spacing-xl)', 

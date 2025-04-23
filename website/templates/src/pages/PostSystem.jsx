@@ -1164,7 +1164,7 @@ useEffect(() => {
               '&.Mui-focused': { color: 'var(--primary)' }
             }
           }}
-          helperText={contentError || `${content.length}/280 <TranslatedText>characters</TranslatedText>`}
+          helperText={contentError || ""}
         />
         
         {/* Media attachments section */}

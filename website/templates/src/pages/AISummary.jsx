@@ -125,6 +125,7 @@ const AISummary = () => {
   const [showTranslation, setShowTranslation] = useState(false);
   const [detectingLanguage, setDetectingLanguage] = useState(false);
   const [savingTranslation, setSavingTranslation] = useState(false);
+  const [translatedHeadline, setTranslatedHeadline] = useState('');
 
   const API_KEY = 'AIzaSyDqkyW03Bw4A5rK1ZlJCzgkYvo0dMzDxjM';
   const API_URL = 'https://translation.googleapis.com/language/translate/v2';
@@ -249,54 +250,60 @@ const AISummary = () => {
 
     setTranslationLoading(true);
     setTranslationError('');
+    setOutputText('');
+    setTranslatedHeadline('');
 
     try {
+      let source = sourceLanguage;
+      
       // If auto-detect is enabled, detect the language first
-      let sourceLang = sourceLanguage;
       if (autoDetect) {
-        setDetectingLanguage(true);
-        const detected = await detectLanguage(inputText);
-        if (detected) {
-          sourceLang = detected;
-        }
-        setDetectingLanguage(false);
+        await detectLanguage(inputText);
+        source = detectedLanguage || 'en'; // Default to English if detection fails
       }
 
-      const requestBody = {
-        q: inputText,
-        target: targetLanguage,
-        format: 'text'
-      };
-      
-      // Only include source parameter if not using auto-detect
-      if (!autoDetect) {
-        requestBody.source = sourceLang;
+      // Don't translate if source and target languages are the same
+      if (source === targetLanguage) {
+        setOutputText(inputText);
+        setTranslatedHeadline(headline);
+        setTranslationLoading(false);
+        return;
       }
 
-      console.log("Translation request body:", requestBody);
-      
+      // First translate the main content
       const response = await axios.post(
-        `${API_URL}?key=${API_KEY}`,
-        requestBody
+        `https://translation.googleapis.com/language/translate/v2?key=${API_KEY}`,
+        {
+          q: inputText,
+          source: source,
+          target: targetLanguage,
+          format: 'text'
+        }
       );
 
-      console.log("Translation response:", response.data);
-      
-      if (response.data && 
-          response.data.data && 
-          response.data.data.translations && 
-          response.data.data.translations.length > 0) {
+      // Then translate the headline if it exists
+      if (headline) {
+        const headlineResponse = await axios.post(
+          `https://translation.googleapis.com/language/translate/v2?key=${API_KEY}`,
+          {
+            q: headline,
+            source: source,
+            target: targetLanguage,
+            format: 'text'
+          }
+        );
         
+        if (headlineResponse.data && headlineResponse.data.data && headlineResponse.data.data.translations) {
+          setTranslatedHeadline(headlineResponse.data.data.translations[0].translatedText);
+        }
+      }
+
+      if (response.data && response.data.data && response.data.data.translations) {
         setOutputText(response.data.data.translations[0].translatedText);
         
-        // If the translation included detected language info, update the UI
-        if (response.data.data.translations[0].detectedSourceLanguage) {
-          const detected = response.data.data.translations[0].detectedSourceLanguage;
-          console.log("Detected language from translation:", detected);
-          setDetectedLanguage(detected);
-          if (autoDetect) {
-            setSourceLanguage(detected);
-          }
+        // Check if we need to update the detected language
+        if (autoDetect && response.data.data.translations[0].detectedSourceLanguage) {
+          setDetectedLanguage(response.data.data.translations[0].detectedSourceLanguage);
         }
       } else {
         setTranslationError('Translation failed. Please try again.');
@@ -625,17 +632,18 @@ const AISummary = () => {
       });
       return;
     }
-  
+
     setSavingTranslation(true);
-  
+
     try {
-      // Using the same API endpoint as summary saving but with translation data
+      // Using the same API endpoint as summary saving but with both translated headline and content
       const response = await axios.post('/api/newsletter', {
-        headline: `Translation from ${getLanguageName(sourceLanguage)} to ${getLanguageName(targetLanguage)}`,
+        headline: translatedHeadline || `Translation from ${getLanguageName(sourceLanguage)} to ${getLanguageName(targetLanguage)}`,
         summary: outputText,
         metadata: {
           source_language: sourceLanguage,
           target_language: targetLanguage,
+          original_headline: headline,
           original_text: inputText,
           type: 'translation'
         }
@@ -1331,6 +1339,31 @@ const AISummary = () => {
             <Box sx={{ display: 'flex', width: '100%', mb: 3 }}>
               {/* Left Column - Source Text Input */}
               <Box sx={{ flex: 1, pr: { xs: 0, md: 1.5 } }}>
+                {/* Source Headline Box */}
+                <Box 
+                  sx={{ 
+                    mb: 2, 
+                    p: 2, 
+                    border: '1px solid #ddd', 
+                    borderRadius: '4px',
+                    minHeight: '60px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: '#f8f9fa'
+                  }}
+                >
+                  <Typography 
+                    variant="h6" 
+                    align="center"
+                    sx={{ 
+                      fontWeight: 'bold',
+                      color: sourceLanguage === 'en' ? '#1976d2' : '#333'
+                    }}
+                  >
+                    {headline || <Typography variant="body2" color="text.secondary"><TranslatedText>Source headline will appear here</TranslatedText></Typography>}
+                  </Typography>
+                </Box>
                 <TextField
                   fullWidth
                   multiline
@@ -1360,6 +1393,32 @@ const AISummary = () => {
               
               {/* Right Column - Translation Output */}
               <Box sx={{ flex: 1, pl: { xs: 0, md: 1.5 }, mt: { xs: 3, md: 0 } }}>
+                {/* Target Headline Box */}
+                <Box 
+                  sx={{ 
+                    mb: 2, 
+                    p: 2, 
+                    border: '1px solid #ddd', 
+                    borderRadius: '4px',
+                    minHeight: '60px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: '#f8f9fa'
+                  }}
+                >
+                  <Typography 
+                    variant="h6" 
+                    align="center"
+                    sx={{ 
+                      fontWeight: 'bold',
+                      color: targetLanguage === 'en' ? '#1976d2' : '#dc3545'
+                    }}
+                  >
+                    {outputText ? (translatedHeadline || <Typography variant="body2" color="text.secondary"><TranslatedText>No headline available</TranslatedText></Typography>) : 
+                      <Typography variant="body2" color="text.secondary"><TranslatedText>Translated headline will appear here</TranslatedText></Typography>}
+                  </Typography>
+                </Box>
                 <TextField
                   fullWidth
                   multiline

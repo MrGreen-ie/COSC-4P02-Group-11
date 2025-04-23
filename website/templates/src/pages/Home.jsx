@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Typography, Button, Grid, Card, CardContent, Link, IconButton, Rating } from '@mui/material';
 import { AutoAwesome, Speed, DesignServices, Bolt, Facebook, Twitter, LinkedIn, Instagram } from '@mui/icons-material';
+import TranslatedText from '../components/TranslatedText';
 
 function Home() {
   return (
@@ -41,10 +42,10 @@ function Home() {
           {/* Hero Text */}
           <Box sx={{ flexGrow: 1, maxWidth: '500px' }}>
             <Typography variant="h2" fontWeight="bold" gutterBottom color="white">
-              AI-Powered Newsletter Writing Made Easy
+              <TranslatedText>AI-Powered Newsletter Writing Made Easy</TranslatedText>
             </Typography>
             <Typography variant="h5" sx={{ opacity: 0.9, mb: 3 }} color="white">
-              Join us and write high-quality AI-powered newsletters to boost your business.
+              <TranslatedText>Join us and write high-quality AI-powered newsletters to boost your business.</TranslatedText>
             </Typography>
             <Button
               component="a"
@@ -63,7 +64,7 @@ function Home() {
                 },
               }}
             >
-              Start Writing—For Free
+              <TranslatedText>Start Writing—For Free</TranslatedText>
             </Button>
           </Box>
         </Box>
@@ -73,16 +74,16 @@ function Home() {
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', backgroundColor: '#f9f9f9', py: 8, textAlign: 'center' }}>
         <Box sx={{ width: '80%' }}>
           <Typography variant="h4" fontWeight="bold" gutterBottom>
-            Why Marketers Love Us
+            <TranslatedText>Why Marketers Love Us</TranslatedText>
           </Typography>
           <br />
 
           <Grid container spacing={4} justifyContent="center">
             {[
-              { icon: <AutoAwesome sx={{ fontSize: 50, color: 'black' }} />, title: 'AI-Powered Writing', text: 'Generate engaging content effortlessly.' },
-              { icon: <Speed sx={{ fontSize: 50, color: 'black' }} />, title: 'Lightning Fast', text: 'Create marketing copy in seconds.' },
-              { icon: <DesignServices sx={{ fontSize: 50, color: 'black' }} />, title: 'Custom Templates', text: 'Pre-built templates for various needs.' },
-              { icon: <Bolt sx={{ fontSize: 50, color: 'black' }} />, title: 'SEO Optimized', text: 'Boost rankings with AI-generated copy.' },
+              { icon: <AutoAwesome sx={{ fontSize: 50, color: 'black' }} />, title: <TranslatedText>AI-Powered Writing</TranslatedText>, text: <TranslatedText>Generate engaging content effortlessly.</TranslatedText> },
+              { icon: <Speed sx={{ fontSize: 50, color: 'black' }} />, title: <TranslatedText>Lightning Fast</TranslatedText>, text: <TranslatedText>Create marketing copy in seconds.</TranslatedText> },
+              { icon: <DesignServices sx={{ fontSize: 50, color: 'black' }} />, title: <TranslatedText>Custom Templates</TranslatedText>, text: <TranslatedText>Pre-built templates for various needs.</TranslatedText> },
+              { icon: <Bolt sx={{ fontSize: 50, color: 'black' }} />, title: <TranslatedText>SEO Optimized</TranslatedText>, text: <TranslatedText>Boost rankings with AI-generated copy.</TranslatedText> },
             ].map((feature, index) => (
               <Grid item xs={12} sm={6} md={3} key={index}>
                 <Card sx={{ textAlign: 'center', p: 3, boxShadow: 3, borderRadius: 2, background: 'transparent', border: '2px solid black' }}>
@@ -114,10 +115,10 @@ function Home() {
         >
           <Box sx={{ flexGrow: 1, maxWidth: '500px' }}>
             <Typography variant="h4" fontWeight="bold" gutterBottom>
-              Send Your Newsletter to Social Media & Email
+              <TranslatedText>Send Your Newsletter to Social Media & Email</TranslatedText>
             </Typography>
             <Typography variant="h6" sx={{ opacity: 0.9, mb: 3 }}>
-              Instantly share your AI-generated newsletters on Twitter, Facebook, Instagram, and via Email to reach a wider audience.
+              <TranslatedText>Instantly share your AI-generated newsletters on Twitter, Facebook, Instagram, and via Email to reach a wider audience.</TranslatedText>
             </Typography>
           </Box>
           <Box sx={{ flexShrink: 0, marginLeft: { md: 'auto' }, mt: { xs: 4, md: 0 } }}>
@@ -133,13 +134,13 @@ function Home() {
       {/* Customer Reviews Section */}
       <Box sx={{ backgroundColor: '#f9f9f9', py: 8, textAlign: 'center' }}>
         <Typography variant="h4" fontWeight="bold" gutterBottom>
-          What Our Customers Say
+          <TranslatedText>What Our Customers Say</TranslatedText>
         </Typography>
         <Grid container spacing={4} justifyContent="center">
           {[
-            { name: 'John Doe', review: 'I love the newsletter! It saves me so much time.', rating: 5 },
-            { name: 'Jane Smith', review: 'Fantastic tool for creating high-quality content.', rating: 5 },
-            { name: 'Emily Johnson', review: 'This has improved my email marketing significantly!', rating: 5 },
+            { name: <TranslatedText>John Doe</TranslatedText>, review: <TranslatedText>I love the newsletter! It saves me so much time.</TranslatedText>, rating: 5 },
+            { name: <TranslatedText>Jane Smith</TranslatedText>, review: <TranslatedText>Fantastic tool for creating high-quality content.</TranslatedText>, rating: 5 },
+            { name: <TranslatedText>Emily Johnson</TranslatedText>, review: <TranslatedText>This has improved my email marketing significantly!</TranslatedText>, rating: 5 },
           ].map((customer, index) => (
             <Grid item xs={12} sm={6} md={4} key={index}>
               <Card sx={{ p: 3, boxShadow: 3, borderRadius: 2, textAlign: 'center' }}>
@@ -161,15 +162,15 @@ function Home() {
       {/* Footer */}
       <Box sx={{ background: 'linear-gradient(135deg, #8B0000, #FF4C4C)', py: 4, textAlign: 'center' }}>
         <Grid container spacing={4} justifyContent="center">
-          <Grid item xs={12} sm={4}><Typography variant="h6" fontWeight="bold">Quick Links</Typography>
-            <Link href="#">Home</Link><br />
-            <Link href="#">Features</Link><br />
-            <Link href="#">Pricing</Link><br />
-            <Link href="#">Contact</Link>
+          <Grid item xs={12} sm={4}><Typography variant="h6" fontWeight="bold"><TranslatedText>Quick Links</TranslatedText></Typography>
+            <Link href="#"><TranslatedText>Home</TranslatedText></Link><br />
+            <Link href="#"><TranslatedText>Features</TranslatedText></Link><br />
+            <Link href="#"><TranslatedText>Pricing</TranslatedText></Link><br />
+            <Link href="#"><TranslatedText>Contact</TranslatedText></Link>
           </Grid>
         </Grid>
         <Box sx={{ mt: 3, opacity: 0.7 }}>
-          <Typography variant="body2">© {new Date().getFullYear()} AI Powered Newsletter. All rights reserved.</Typography>
+          <Typography variant="body2"><TranslatedText>© {new Date().getFullYear()} AI Powered Newsletter. All rights reserved.</TranslatedText></Typography>
         </Box>
       </Box>
     </Box>

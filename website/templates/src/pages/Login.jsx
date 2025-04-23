@@ -9,6 +9,7 @@ import {
   Paper,
 } from '@mui/material';
 import { login } from '../services/api';
+import TranslatedText from '../components/TranslatedText';
 
 const Login = ({ onLogin }) => {
   const navigate = useNavigate();
@@ -84,7 +85,7 @@ const Login = ({ onLogin }) => {
         }}
       >
         <Typography component="h1" variant="h5" gutterBottom sx={{ fontWeight: 'bold', color: 'white' }}>
-          Sign In
+          <TranslatedText>Sign In</TranslatedText>
         </Typography>
 
         {serverError && (
@@ -99,7 +100,7 @@ const Login = ({ onLogin }) => {
             required
             fullWidth
             id="email"
-            label="Email Address"
+            label={<TranslatedText>Email Address</TranslatedText>}
             name="email"
             autoComplete="email"
             autoFocus
@@ -123,7 +124,7 @@ const Login = ({ onLogin }) => {
             required
             fullWidth
             name="password"
-            label="Password"
+            label={<TranslatedText>Password</TranslatedText>}
             type="password"
             id="password"
             autoComplete="current-password"
@@ -156,13 +157,13 @@ const Login = ({ onLogin }) => {
               '&:hover': { background: '#fff', color: '#8B0000' },
             }}
           >
-            Sign In
+            <TranslatedText>Sign In</TranslatedText>
           </Button>
 
           <Typography sx={{ color: 'white' }}>
-            Don't have an account?{' '}
+            <TranslatedText>Don't have an account?</TranslatedText>{' '}
             <Link to="/register" style={{ color: '#ffdd57', fontWeight: 'bold', textDecoration: 'none' }}>
-              Sign Up
+              <TranslatedText>Sign Up</TranslatedText>
             </Link>
           </Typography>
         </Box>

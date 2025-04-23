@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Box, TextField, Button, Typography, Alert, Paper, Grid } from '@mui/material';
 import { register, login } from '../services/api';
+import TranslatedText from '../components/TranslatedText';
 
 const Register = ({ onLogin }) => {
   const navigate = useNavigate();
@@ -76,17 +77,17 @@ const Register = ({ onLogin }) => {
           }
         } catch (loginError) {
           console.error('Login after registration failed:', loginError);
-          setServerError('Registration successful! Redirecting to login...');
+          setServerError(<TranslatedText>Registration successful! Redirecting to login...</TranslatedText>);
           setTimeout(() => navigate('/login', { replace: true }), 2000);
         }
       }
     } catch (error) {
       if (error.error === 'Email already exists') {
-        setServerError('This email is already registered. Please use a different email or try logging in.');
+        setServerError(<TranslatedText>This email is already registered. Please use a different email or try logging in.</TranslatedText>);
         setErrors((prev) => ({ ...prev, email: 'Email already exists' }));
       } else if (error.errors) {
         setErrors((prev) => ({ ...prev, ...error.errors }));
-        setServerError('Please check your information and try again.');
+        setServerError(<TranslatedText>Please check your information and try again.</TranslatedText>);
       } else {
         setServerError(error.error || 'An unexpected error occurred. Please try again.');
       }
@@ -118,7 +119,7 @@ const Register = ({ onLogin }) => {
         }}
       >
         <Typography component="h1" variant="h5" gutterBottom sx={{ fontWeight: 'bold', color: 'white' }}>
-          Sign Up
+          <TranslatedText>Create an Account</TranslatedText>
         </Typography>
 
         {serverError && (
@@ -134,7 +135,7 @@ const Register = ({ onLogin }) => {
                 fullWidth
                 required
                 id="firstName"
-                label="First Name"
+                label={<TranslatedText>First Name</TranslatedText>}
                 name="firstName"
                 value={formData.firstName}
                 onChange={handleChange}
@@ -157,7 +158,7 @@ const Register = ({ onLogin }) => {
                 fullWidth
                 required
                 id="lastName"
-                label="Last Name"
+                label={<TranslatedText>Last Name</TranslatedText>}
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleChange}
@@ -180,7 +181,7 @@ const Register = ({ onLogin }) => {
                 fullWidth
                 required
                 id="email"
-                label="Email Address"
+                label={<TranslatedText>Email Address</TranslatedText>}
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
@@ -203,7 +204,7 @@ const Register = ({ onLogin }) => {
                 fullWidth
                 required
                 name="password"
-                label="Password"
+                label={<TranslatedText>Password</TranslatedText>}
                 type="password"
                 id="password"
                 value={formData.password}
@@ -227,7 +228,7 @@ const Register = ({ onLogin }) => {
                 fullWidth
                 required
                 name="confirmPassword"
-                label="Confirm Password"
+                label={<TranslatedText>Confirm Password</TranslatedText>}
                 type="password"
                 id="confirmPassword"
                 value={formData.confirmPassword}
@@ -261,13 +262,13 @@ const Register = ({ onLogin }) => {
               '&:hover': { background: '#fff', color: '#8B0000' },
             }}
           >
-            Sign Up
+            <TranslatedText>Sign Up</TranslatedText>
           </Button>
 
           <Typography sx={{ color: 'white' }}>
-            Already have an account?{' '}
+            <TranslatedText>Already have an account?</TranslatedText>{' '}
             <Link to="/login" style={{ color: '#ffdd57', fontWeight: 'bold', textDecoration: 'none' }}>
-              Sign In
+              <TranslatedText>Sign In</TranslatedText>
             </Link>
           </Typography>
         </Box>

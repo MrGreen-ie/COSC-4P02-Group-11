@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Typography, Button, Paper, Grid } from '@mui/material';
+import TranslatedText from '../components/TranslatedText';
 
 const Pricing = () => {
   return (
@@ -28,23 +29,23 @@ const Pricing = () => {
         }}
       >
         <Typography variant="h4" fontWeight="bold" gutterBottom>
-          Choose Your Plan
+          <TranslatedText>Choose Your Plan</TranslatedText>
         </Typography>
         <Typography variant="body1" sx={{ mb: 4 }}>
-          Find the perfect plan that fits your needs.
+          <TranslatedText>Find the perfect plan that fits your needs.</TranslatedText>
         </Typography>
         
         <Grid container spacing={3} justifyContent="center">
           {/* Basic Plan */}
           <Grid item xs={12} sm={4}>
             <Paper sx={{ padding: 3, backgroundColor: '#8B0000', color: 'white', borderRadius: '15px' }}>
-              <Typography variant="h6" fontWeight="bold">Basic</Typography>
+              <Typography variant="h6" fontWeight="bold"><TranslatedText>Basic</TranslatedText></Typography>
               <Typography variant="h4" fontWeight="bold">$5</Typography>
-              <Typography>30 Summarizations/month</Typography>
-              <Typography>100 Newsletters</Typography>
-              <Typography>100 Social Media Posts</Typography>
+              <Typography><TranslatedText>30 Summarizations/month</TranslatedText></Typography>
+              <Typography><TranslatedText>100 Newsletters</TranslatedText></Typography>
+              <Typography><TranslatedText>100 Social Media Posts</TranslatedText></Typography>
               <Button variant="contained" sx={{ mt: 2, backgroundColor: '#FFD700', color: 'black' }}>
-                Choose Plan
+                <TranslatedText>Choose Plan</TranslatedText>
               </Button>
             </Paper>
           </Grid>
@@ -52,13 +53,13 @@ const Pricing = () => {
           {/* Pro (Preferred) Plan */}
           <Grid item xs={12} sm={4}>
             <Paper sx={{ padding: 3, backgroundColor: '#B22222', color: 'white', borderRadius: '15px', border: '3px solid #FFD700' }}>
-              <Typography variant="h6" fontWeight="bold" color="#FFD700">Pro (Preferred)</Typography>
+              <Typography variant="h6" fontWeight="bold" color="#FFD700"><TranslatedText>Pro (Preferred)</TranslatedText></Typography>
               <Typography variant="h4" fontWeight="bold">$10</Typography>
-              <Typography>100 Summarizations/month</Typography>
-              <Typography>200 Newsletters</Typography>
-              <Typography>200 Social Media Posts</Typography>
+              <Typography><TranslatedText>100 Summarizations/month</TranslatedText></Typography>
+              <Typography><TranslatedText>200 Newsletters</TranslatedText></Typography>
+              <Typography><TranslatedText>200 Social Media Posts</TranslatedText></Typography>
               <Button variant="contained" sx={{ mt: 2, backgroundColor: '#FFD700', color: 'black' }}>
-                Choose Plan
+                <TranslatedText>Choose Plan</TranslatedText>
               </Button>
             </Paper>
           </Grid>
@@ -66,13 +67,13 @@ const Pricing = () => {
           {/* Unlimited Plan */}
           <Grid item xs={12} sm={4}>
             <Paper sx={{ padding: 3, backgroundColor: '#8B0000', color: 'white', borderRadius: '15px' }}>
-              <Typography variant="h6" fontWeight="bold">Unlimited</Typography>
+              <Typography variant="h6" fontWeight="bold"><TranslatedText>Unlimited</TranslatedText></Typography>
               <Typography variant="h4" fontWeight="bold">$15</Typography>
-              <Typography>Unlimited Summarizations</Typography>
-              <Typography>Unlimited Newsletters</Typography>
-              <Typography>Unlimited Social Media Posts</Typography>
+              <Typography><TranslatedText>Unlimited Summarizations</TranslatedText></Typography>
+              <Typography><TranslatedText>Unlimited Newsletters</TranslatedText></Typography>
+              <Typography><TranslatedText>Unlimited Social Media Posts</TranslatedText></Typography>
               <Button variant="contained" sx={{ mt: 2, backgroundColor: '#FFD700', color: 'black' }}>
-                Choose Plan
+                <TranslatedText>Choose Plan</TranslatedText>
               </Button>
             </Paper>
           </Grid>

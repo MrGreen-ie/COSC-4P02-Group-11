@@ -256,7 +256,7 @@ function Home() {
         {/* Copyright */}
         <Box sx={{ mt: 4, opacity: 0.7, textAlign: 'center' }}>
           <Typography variant="body2">
-            © {new Date().getFullYear()} AI Powered Newsletter. All rights reserved.
+            © {new Date().getFullYear()} Summit. All rights reserved.
           </Typography>
           <Typography variant="body2">
             Designed with ❤️ by COSC-4P02 Group 11.

@@ -2032,6 +2032,7 @@ def get_subscribers():
         'email': sub.email,
         'created_at': sub.created_at.isoformat()
     } for sub in subscribers]
+    print(f"Subscribers for user {current_user.id}: {subscribers}")
     return jsonify({'subscribers': subscriber_list}), 200
 
 @views.route('/api/subscribers/<int:id>', methods=['DELETE'])
@@ -2049,6 +2050,33 @@ def delete_subscriber(id):
         db.session.rollback()
         print(f"Error deleting subscriber: {str(e)}")
         return jsonify({'error': 'An error occurred while deleting the subscriber.'}), 500
+
+@views.route('/api/subscribers', methods=['POST'])
+@login_required
+def add_subscriber():
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        if not email:
+            return jsonify({'error': 'Email is required'}), 400
+
+        # Check if the subscriber already exists
+        existing_subscriber = Subscriber.query.filter_by(user_id=current_user.id, email=email).first()
+        if existing_subscriber:
+            return jsonify({'error': 'Subscriber already exists'}), 400
+
+        # Add new subscriber
+        new_subscriber = Subscriber(user_id=current_user.id, email=email, created_at=datetime.utcnow())
+        db.session.add(new_subscriber)
+        db.session.commit()
+        
+        print(f"Received data: {data}")
+        print(f"Email to add: {email}")
+
+        return jsonify({'success': 'Subscriber added successfully'}), 201
+    except Exception as e:
+        print(f"Error adding subscriber: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred'}), 500
 
 # TheNewsAPI endpoint
 @views.route('/api/news/search', methods=['POST'])

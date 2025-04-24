@@ -54,6 +54,8 @@ const Newsletters = () => {
     fetchUserInfo();
     fetchTemplates();
     fetchSentThisMonth();
+    console.log("Detected user plan/role:", plan);
+
   }, []);
 
   const fetchTemplates = async () => {

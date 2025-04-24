@@ -1,0 +1,15 @@
+/* darkmode.css */
+* {
+    background-color: #121212 !important;
+    color: #f0f0f0 !important;
+  }
+  
+  a {
+    color: #90caf9 !important;
+  }
+  
+  button {
+    background-color: #333 !important;
+    color: #fff !important;
+  }
+  

@@ -1,7 +1,11 @@
 # Summit (4P02-G11)
 
 ## Overview
-A content management system with AI-powered features for content creation, management, and social media integration.
+A content management system with AI-powered features for content creation, management, and social media / email integration.
+
+Scrum Master: Ethan Green (6930267)
+Product Owner: Mark Zupan (7254956)
+Developers: Mew Tanglimsmarnsuk (7304140), Mohammad Safari (7209513), Esbah Majoka (7357981), Sean Reed (7033251), Long Tong (6790125)
 
 ## Setup & Installation
 

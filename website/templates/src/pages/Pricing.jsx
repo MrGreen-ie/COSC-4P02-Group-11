@@ -35,14 +35,15 @@ const Pricing = () => {
         </Typography>
         
         <Grid container spacing={3} justifyContent="center">
-          {/* Basic Plan */}
-          <Grid item xs={12} sm={4}>
+          {/* Free Plan */}
+          <Grid item xs={12} sm={6}>
             <Paper sx={{ padding: 3, backgroundColor: '#8B0000', color: 'white', borderRadius: '15px' }}>
-              <Typography variant="h6" fontWeight="bold">Basic</Typography>
-              <Typography variant="h4" fontWeight="bold">$5</Typography>
-              <Typography>30 Summarizations/month</Typography>
-              <Typography>100 Newsletters</Typography>
-              <Typography>100 Social Media Posts</Typography>
+              <Typography variant="h6" fontWeight="bold">Free</Typography>
+              <Typography variant="h4" fontWeight="bold">$0</Typography>
+              <Typography>Summarization limited to 500 words long</Typography>
+              <Typography>Locked to the “Professional” Tone</Typography>
+              <Typography>Can not favourite any article</Typography>
+              <Typography>Limited to 5 slots of summarized text, FIFO</Typography>
               <Button variant="contained" sx={{ mt: 2, backgroundColor: '#FFD700', color: 'black' }}>
                 Choose Plan
               </Button>
@@ -50,27 +51,14 @@ const Pricing = () => {
           </Grid>
 
           {/* Pro (Preferred) Plan */}
-          <Grid item xs={12} sm={4}>
+          <Grid item xs={12} sm={6}>
             <Paper sx={{ padding: 3, backgroundColor: '#B22222', color: 'white', borderRadius: '15px', border: '3px solid #FFD700' }}>
               <Typography variant="h6" fontWeight="bold" color="#FFD700">Pro (Preferred)</Typography>
               <Typography variant="h4" fontWeight="bold">$10</Typography>
-              <Typography>100 Summarizations/month</Typography>
-              <Typography>200 Newsletters</Typography>
-              <Typography>200 Social Media Posts</Typography>
-              <Button variant="contained" sx={{ mt: 2, backgroundColor: '#FFD700', color: 'black' }}>
-                Choose Plan
-              </Button>
-            </Paper>
-          </Grid>
-
-          {/* Unlimited Plan */}
-          <Grid item xs={12} sm={4}>
-            <Paper sx={{ padding: 3, backgroundColor: '#8B0000', color: 'white', borderRadius: '15px' }}>
-              <Typography variant="h6" fontWeight="bold">Unlimited</Typography>
-              <Typography variant="h4" fontWeight="bold">$15</Typography>
-              <Typography>Unlimited Summarizations</Typography>
-              <Typography>Unlimited Newsletters</Typography>
-              <Typography>Unlimited Social Media Posts</Typography>
+              <Typography>Unlimited Summarization Length</Typography>
+              <Typography>Pick from a range of tones</Typography>
+              <Typography>Favoriting Articles</Typography>
+              <Typography>Unlimited Slots</Typography>
               <Button variant="contained" sx={{ mt: 2, backgroundColor: '#FFD700', color: 'black' }}>
                 Choose Plan
               </Button>

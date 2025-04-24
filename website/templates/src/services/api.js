@@ -636,6 +636,48 @@ export const deleteTemplate = async (templateId) => {
 };
 
 /**
+ * Get summaries from the past week
+ * @returns {Promise<Object>} - The response with the list of summaries sent in the past week
+ */
+export const getWeeklySummaries = async () => {
+  try {
+    // Add timestamp for cache busting
+    const timestamp = new Date().getTime();
+    const response = await api.get(`/api/summaries/weekly?_=${timestamp}`, {
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Failed to get weekly summaries:', error);
+    throw error.response?.data || { error: error.message };
+  }
+};
+
+/**
+ * Get newsletters from the past week
+ * @returns {Promise<Object>} - The response with the list of newsletters created in the past week
+ */
+export const getWeeklyNewsletters = async () => {
+  try {
+    // Add timestamp for cache busting
+    const timestamp = new Date().getTime();
+    const response = await api.get(`/api/newsletters/weekly?_=${timestamp}`, {
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Failed to get weekly newsletters:', error);
+    throw error.response?.data || { error: error.message };
+  }
+};
+
+/**
  * Delete a saved summary
  * @param {number} summaryId - The ID of the summary to delete
  * @param {boolean} forceDelete - Whether to force delete associated templates

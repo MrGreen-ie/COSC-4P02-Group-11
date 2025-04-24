@@ -2758,3 +2758,87 @@ def delete_summary(id):
         db.session.rollback()
         print(f"Error deleting summary: {str(e)}")
         return jsonify({'error': 'An unexpected error occurred while deleting the summary.'}), 500
+
+@views.route('/api/summaries/weekly', methods=['GET'])
+@login_required
+def get_weekly_summaries():
+    """
+    Get summaries created in the past week, grouped by day
+    Uses the sent_at field to determine when the summary was sent
+    """
+    from datetime import datetime, timedelta
+    from flask_login import current_user
+    from flask import jsonify, make_response
+    from .models import SavedSummary
+    
+    # Calculate the date 7 days ago
+    one_week_ago = datetime.now() - timedelta(days=7)
+    
+    try:
+        # Query for summaries from the last 7 days
+        summaries = SavedSummary.query.filter(
+            SavedSummary.user_id == current_user.id,
+            SavedSummary.sent_at.isnot(None),  # Only include summaries that have been sent
+            SavedSummary.sent_at >= one_week_ago
+        ).all()
+        
+        # Convert to dict for JSON response
+        weekly_data = []
+        for summary in summaries:
+            weekly_data.append({
+                'id': summary.id,
+                'headline': summary.headline,
+                'sent_at': summary.sent_at.isoformat() if summary.sent_at else None
+            })
+        
+        response = make_response(jsonify({'weekly_data': weekly_data}))
+        # Add cache control headers to prevent caching
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
+    except Exception as e:
+        print(f"Error fetching weekly summaries: {str(e)}")
+        return jsonify({'error': str(e), 'weekly_data': []}), 500
+
+@views.route('/api/newsletters/weekly', methods=['GET'])
+@login_required
+def get_weekly_newsletters():
+    """
+    Get newsletters created in the past week, grouped by day
+    Uses the created_at field to determine when the newsletter was created
+    """
+    from datetime import datetime, timedelta
+    from flask_login import current_user
+    from flask import jsonify, make_response
+    from .models import ScheduledPost
+    
+    # Calculate the date 7 days ago
+    one_week_ago = datetime.now() - timedelta(days=7)
+    
+    try:
+        # Query for scheduled posts (newsletters) from the last 7 days
+        newsletters = ScheduledPost.query.filter(
+            ScheduledPost.user_id == current_user.id,
+            ScheduledPost.created_at >= one_week_ago
+        ).all()
+        
+        # Convert to dict for JSON response
+        weekly_data = []
+        for newsletter in newsletters:
+            weekly_data.append({
+                'id': newsletter.id,
+                'content': newsletter.content[:50] + '...' if len(newsletter.content) > 50 else newsletter.content,
+                'status': newsletter.status,
+                'created_at': newsletter.created_at.isoformat()
+            })
+        
+        response = make_response(jsonify({'weekly_data': weekly_data}))
+        # Add cache control headers to prevent caching
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
+    except Exception as e:
+        print(f"Error fetching weekly newsletters: {str(e)}")
+        return jsonify({'error': str(e), 'weekly_data': []}), 500

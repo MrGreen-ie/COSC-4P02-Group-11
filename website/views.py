@@ -2661,3 +2661,72 @@ def get_twitter_posts_count():
     except Exception as e:
         print(f"Error fetching Twitter post count: {str(e)}")
         return jsonify({'error': 'Failed to fetch Twitter post count'}), 500
+
+@views.route('/api/summary/<int:id>', methods=['DELETE'])
+@login_required
+def delete_summary(id):
+    """
+    Delete a saved summary
+    
+    Parameters:
+        id (int): ID of the summary to delete
+    
+    Returns:
+        JSON response confirming deletion
+    """
+    try:
+        # Start a transaction
+        db.session.begin_nested()
+        
+        # Get the summary
+        summary = SavedSummary.query.get_or_404(id)
+        
+        # Check if the summary belongs to the current user
+        if summary.user_id != current_user.id:
+            return jsonify({'error': 'Unauthorized access'}), 403
+
+        # Check if there are any templates using this summary
+        templates = SavedTemplate.query.filter_by(summary_id=id).all()
+        template_count = len(templates)
+        
+        # Check if force_delete parameter is provided
+        force_delete = request.args.get('force_delete', 'false').lower() == 'true'
+        
+        if templates and not force_delete:
+            # Return information about templates using this summary
+            return jsonify({
+                'has_templates': True,
+                'template_count': template_count,
+                'message': f'This summary is used in {template_count} template(s). Use force_delete=true to delete the summary and all associated templates.'
+            }), 200
+        
+        # If force_delete is true or there are no templates, proceed with deletion
+        # Delete associated templates first if they exist
+        for template in templates:
+            db.session.delete(template)
+            
+        # Delete any favorite references
+        favorites = FavoriteSummary.query.filter_by(summary_id=id).all()
+        for favorite in favorites:
+            db.session.delete(favorite)
+            
+        # Delete the summary
+        db.session.delete(summary)
+        db.session.commit()
+        
+        # Return appropriate success message
+        if template_count > 0:
+            return jsonify({
+                'success': True,
+                'message': f'Summary and {template_count} associated template(s) deleted successfully'
+            })
+        else:
+            return jsonify({
+                'success': True,
+                'message': 'Summary deleted successfully'
+            })
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting summary: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred while deleting the summary.'}), 500

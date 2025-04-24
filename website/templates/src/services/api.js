@@ -634,3 +634,19 @@ export const deleteTemplate = async (templateId) => {
     throw error.response?.data || { error: error.message };
   }
 };
+
+/**
+ * Delete a saved summary
+ * @param {number} summaryId - The ID of the summary to delete
+ * @param {boolean} forceDelete - Whether to force delete associated templates
+ * @returns {Promise<Object>} - The response confirming deletion
+ */
+export const deleteSummary = async (summaryId, forceDelete = false) => {
+  try {
+    const response = await api.delete(`/api/summary/${summaryId}${forceDelete ? '?force_delete=true' : ''}`);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to delete summary:', error);
+    throw error.response?.data || { error: error.message };
+  }
+};

@@ -103,70 +103,16 @@ const Template = () => {
           normalizedSummaries.length
         );
       } else {
-        // If no summaries are available, show mock data as fallback
-        console.log("No summaries found in API response, using fallback data");
-        const mockSummaries = [
-          {
-            id: 1,
-            headline: "The Future of AI in Healthcare",
-            content:
-              "Artificial intelligence is revolutionizing healthcare in unprecedented ways. From diagnosis to treatment planning, AI tools are becoming invaluable assets to medical professionals.\n\nRecent studies show that AI can detect certain conditions with accuracy comparable to human specialists. This could lead to earlier interventions and better patient outcomes, especially in underserved regions.\n\nHowever, challenges remain regarding ethics, data privacy, and integration with existing systems. As technology advances, addressing these concerns will be crucial for widespread adoption.",
-            created_at: "2023-04-15",
-          },
-          {
-            id: 2,
-            headline: "Sustainable Business Practices",
-            content:
-              "Companies worldwide are increasingly adopting sustainable business models to address environmental concerns while meeting stakeholder expectations.\n\nImplementing green initiatives not only helps protect the planet but can also lead to cost savings and improved brand reputation. Many organizations are finding that sustainability and profitability can go hand in hand.\n\nConsumers are becoming more environmentally conscious, creating market demand for eco-friendly products and services. Businesses that adapt to this shift may find competitive advantages in the changing landscape.",
-            created_at: "2023-04-12",
-          },
-          {
-            id: 3,
-            headline: "The Remote Work Revolution",
-            content:
-              "The pandemic has permanently altered how we think about work, with remote and hybrid models becoming the new normal for many industries.\n\nStudies indicate that remote work can increase productivity and employee satisfaction when implemented thoughtfully. Organizations are now investing in tools and policies to support distributed teams effectively.\n\nHowever, challenges around collaboration, company culture, and work-life boundaries continue to evolve. The most successful companies will be those that can balance flexibility with meaningful connection.",
-            created_at: "2023-04-08",
-          },
-        ];
-
-        setSummaries(mockSummaries);
-        setSelectedSummary(mockSummaries[0]);
-        setEditedHeadline(mockSummaries[0].headline || "");
-        setEditedContent(mockSummaries[0].content || "");
+        // If no summaries are available, set empty arrays but don't show mock data
+        console.log("No summaries found in API response");
+        setSummaries([]);
+        setSelectedSummary(null);
       }
     } catch (err) {
       console.error("Error fetching summaries:", err);
       setError("Failed to load recent summaries. Please try again later.");
-
-      // In case of error, load mock data as fallback
-      const mockSummaries = [
-        {
-          id: 1,
-          headline: "The Future of AI in Healthcare",
-          content:
-            "Artificial intelligence is revolutionizing healthcare in unprecedented ways. From diagnosis to treatment planning, AI tools are becoming invaluable assets to medical professionals.\n\nRecent studies show that AI can detect certain conditions with accuracy comparable to human specialists. This could lead to earlier interventions and better patient outcomes, especially in underserved regions.\n\nHowever, challenges remain regarding ethics, data privacy, and integration with existing systems. As technology advances, addressing these concerns will be crucial for widespread adoption.",
-          created_at: "2023-04-15",
-        },
-        {
-          id: 2,
-          headline: "Sustainable Business Practices",
-          content:
-            "Companies worldwide are increasingly adopting sustainable business models to address environmental concerns while meeting stakeholder expectations.\n\nImplementing green initiatives not only helps protect the planet but can also lead to cost savings and improved brand reputation. Many organizations are finding that sustainability and profitability can go hand in hand.\n\nConsumers are becoming more environmentally conscious, creating market demand for eco-friendly products and services. Businesses that adapt to this shift may find competitive advantages in the changing landscape.",
-          created_at: "2023-04-12",
-        },
-        {
-          id: 3,
-          headline: "The Remote Work Revolution",
-          content:
-            "The pandemic has permanently altered how we think about work, with remote and hybrid models becoming the new normal for many industries.\n\nStudies indicate that remote work can increase productivity and employee satisfaction when implemented thoughtfully. Organizations are now investing in tools and policies to support distributed teams effectively.\n\nHowever, challenges around collaboration, company culture, and work-life boundaries continue to evolve. The most successful companies will be those that can balance flexibility with meaningful connection.",
-          created_at: "2023-04-08",
-        },
-      ];
-
-      setSummaries(mockSummaries);
-      setSelectedSummary(mockSummaries[0]);
-      setEditedHeadline(mockSummaries[0].headline || "");
-      setEditedContent(mockSummaries[0].content || "");
+      setSummaries([]);
+      setSelectedSummary(null);
     } finally {
       setLoading(false);
     }
@@ -642,42 +588,88 @@ const Template = () => {
     }
   };
 
+  // NoSummariesAvailable component definition moved here before it's used
+  const NoSummariesAvailable = () => {
+    const navigate = useNavigate();
+    
+    return (
+      <Box
+        sx={{
+          textAlign: 'center',
+          py: 6, 
+          px: 4,
+          border: '1px dashed var(--border-color)',
+          borderRadius: 'var(--border-radius-md)',
+          backgroundColor: 'rgba(var(--primary-rgb), 0.05)',
+          maxWidth: '800px',
+          mx: 'auto'
+        }}
+      >
+        <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', color: 'var(--primary)' }}>
+          <TranslatedText>No Summaries Available</TranslatedText>
+        </Typography>
+        
+        <Typography variant="body1" sx={{ mb: 4 }}>
+          <TranslatedText>
+            To create a newsletter template, you need a summary first. You can either search for 
+            articles to summarize or create an AI summary directly.
+          </TranslatedText>
+        </Typography>
+        
+        <Grid container spacing={3} justifyContent="center">
+          <Grid item>
+            <Button
+              variant="outlined"
+              color="primary"
+              size="large"
+              onClick={() => navigate('/articles')}
+              startIcon={<RefreshIcon />}
+              sx={{
+                borderWidth: '2px',
+                fontWeight: 'bold',
+                px: 3,
+                '&:hover': {
+                  borderWidth: '2px',
+                  bgcolor: 'rgba(var(--primary-rgb), 0.08)'
+                }
+              }}
+            >
+              <TranslatedText>Search Articles</TranslatedText>
+            </Button>
+          </Grid>
+          <Grid item>
+            <Button
+              variant="contained"
+              color="primary"
+              size="large"
+              onClick={() => navigate('/ai-summary')}
+              sx={{
+                fontWeight: 'bold',
+                px: 3,
+                boxShadow: 'var(--shadow-md)',
+                '&:hover': {
+                  boxShadow: 'var(--shadow-lg)'
+                }
+              }}
+            >
+              <TranslatedText>Generate AI Summary</TranslatedText>
+            </Button>
+          </Grid>
+        </Grid>
+        
+        <Typography variant="body2" sx={{ mt: 4, color: 'text.secondary' }}>
+          <TranslatedText>
+            Once you have created summaries, they will appear here for use with newsletter templates.
+          </TranslatedText>
+        </Typography>
+      </Box>
+    );
+  };
+
   // Custom templates that accept content as props
   const TemplateWithContent = ({ Component, summary }) => {
     if (!summary) {
-      // More informative message when no summary is selected
-      return (
-        <Box
-          sx={{
-            padding: "40px 20px",
-            textAlign: "center",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-            height: "100%",
-            color: "text.secondary",
-          }}
-        >
-          <Typography variant="h5" gutterBottom>
-            <TranslatedText>No Summary Selected</TranslatedText>
-          </Typography>
-          <Typography variant="body1" paragraph>
-            <TranslatedText>Please select a summary from the dropdown above to preview in this template.</TranslatedText>
-          </Typography>
-          <Typography variant="body2">
-            <TranslatedText>If you haven't created any summaries yet, go to the AI Summary page first.</TranslatedText>
-          </Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => navigate("/ai-summary")}
-            sx={{ mt: 2 }}
-          >
-            <TranslatedText>Create Summary</TranslatedText>
-          </Button>
-        </Box>
-      );
+      return <NoSummariesAvailable />;
     }
 
     // Log the complete summary object to help debug issues
@@ -893,9 +885,6 @@ const Template = () => {
                   "& .MuiOutlinedInput-root": {
                     "& fieldset": {
                       borderColor: "#1B5E20",
-                    },
-                    "&:hover fieldset": {
-                      borderColor: "#2E7D32",
                     },
                   },
                 }}
@@ -1756,116 +1745,118 @@ const Template = () => {
           </Button>
         </Box>
 
-        <Box
-          sx={{
-            mb: "var(--spacing-md)",
-            p: 2,
-            backgroundColor: "rgba(var(--primary-rgb), 0.05)",
-            borderRadius: 1,
-          }}
-        >
-          <Typography variant="body2" paragraph>
-            <strong><TranslatedText>How it works:</TranslatedText></strong> <TranslatedText>Select one of your saved summaries from the dropdown below to see how it would look in this template.</TranslatedText>
-          </Typography>
-          <Typography variant="body2">
-            <TranslatedText>Once you've found the perfect combination, click "Use This Template" to proceed to the editor where you can make further customizations. You can also click the Edit button to make changes to the headline and content directly in this preview.</TranslatedText>
-          </Typography>
-        </Box>
-
-        {/* Summary Selection */}
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            mb: "var(--spacing-lg)",
-          }}
-        >
-          <FormControl fullWidth sx={{ flexGrow: 1 }}>
-            <InputLabel id="summary-select-label"><TranslatedText>Select a Summary</TranslatedText></InputLabel>
-            <Select
-              labelId="summary-select-label"
-              id="summary-select"
-              value={selectedSummary?.id || ""}
-              label={<TranslatedText>Select a Summary</TranslatedText>}
-              onChange={handleSummaryChange}
-              disabled={loading || !summaries.length || isEditing}
-            >
-              {summaries.length > 0 ? (
-                summaries.map((summary) => (
-                  <MenuItem key={summary.id} value={summary.id}>
-                    {summary.headline || <TranslatedText>Summary #{summary.id}</TranslatedText>}
-                  </MenuItem>
-                ))
-              ) : (
-                <MenuItem disabled><TranslatedText>No summaries available</TranslatedText></MenuItem>
-              )}
-            </Select>
-          </FormControl>
-          <Tooltip title={<TranslatedText>Refresh summaries list</TranslatedText>}>
-            <IconButton
-              onClick={handleRefreshSummaries}
-              disabled={loading || isEditing}
-              sx={{ ml: 1 }}
-            >
-              <RefreshIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title={isEditing ? <TranslatedText>Save changes</TranslatedText> : <TranslatedText>Edit content</TranslatedText>}>
-            <IconButton
-              color={isEditing ? "success" : "primary"}
-              onClick={handleToggleEdit}
-              disabled={!selectedSummary}
-              sx={{ ml: 1 }}
-            >
-              {isEditing ? <SaveIcon /> : <EditIcon />}
-            </IconButton>
-          </Tooltip>
-        </Box>
-
-        {loading ? (
-          <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-            <CircularProgress />
-          </Box>
-        ) : error ? (
-          <Typography color="error" sx={{ my: 2 }}>
-            {error}
-          </Typography>
-        ) : (
-          <Box
-            sx={{
-              border: "1px solid var(--border-color)",
-              borderRadius: "var(--border-radius-md)",
-              height: "auto",
-              minHeight: "500px",
-              mb: "var(--spacing-lg)",
-              overflow: "auto",
-            }}
-          >
-            <TemplateWithContent
-              Component={ActiveTemplate}
-              summary={selectedSummary}
-            />
-          </Box>
-        )}
-
-        <Grid container spacing={2} justifyContent="flex-end">
-          <Grid item>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleUseTemplate}
-              disabled={!selectedSummary || isEditing}
+        {summaries.length > 0 ? (
+          <>
+            <Box
               sx={{
-                backgroundColor: "var(--primary)",
-                "&:hover": {
-                  backgroundColor: "var(--primary-dark)",
-                },
+                mb: "var(--spacing-md)",
+                p: 2,
+                backgroundColor: "rgba(var(--primary-rgb), 0.05)",
+                borderRadius: 1,
               }}
             >
-              <TranslatedText>Use This Template</TranslatedText>
-            </Button>
-          </Grid>
-        </Grid>
+              <Typography variant="body2" paragraph>
+                <strong><TranslatedText>How it works:</TranslatedText></strong> <TranslatedText>Select one of your saved summaries from the dropdown below to see how it would look in this template.</TranslatedText>
+              </Typography>
+              <Typography variant="body2">
+                <TranslatedText>Once you've found the perfect combination, click "Use This Template" to proceed to the editor where you can make further customizations. You can also click the Edit button to make changes to the headline and content directly in this preview.</TranslatedText>
+              </Typography>
+            </Box>
+
+            {/* Summary Selection */}
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                mb: "var(--spacing-lg)",
+              }}
+            >
+              <FormControl fullWidth sx={{ flexGrow: 1 }}>
+                <InputLabel id="summary-select-label"><TranslatedText>Select a Summary</TranslatedText></InputLabel>
+                <Select
+                  labelId="summary-select-label"
+                  id="summary-select"
+                  value={selectedSummary?.id || ""}
+                  label={<TranslatedText>Select a Summary</TranslatedText>}
+                  onChange={handleSummaryChange}
+                  disabled={loading || !summaries.length || isEditing}
+                >
+                  {summaries.map((summary) => (
+                    <MenuItem key={summary.id} value={summary.id}>
+                      {summary.headline || <TranslatedText>Summary #{summary.id}</TranslatedText>}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <Tooltip title={<TranslatedText>Refresh summaries list</TranslatedText>}>
+                <IconButton
+                  onClick={handleRefreshSummaries}
+                  disabled={loading || isEditing}
+                  sx={{ ml: 1 }}
+                >
+                  <RefreshIcon />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title={isEditing ? <TranslatedText>Save changes</TranslatedText> : <TranslatedText>Edit content</TranslatedText>}>
+                <IconButton
+                  color={isEditing ? "success" : "primary"}
+                  onClick={handleToggleEdit}
+                  disabled={!selectedSummary}
+                  sx={{ ml: 1 }}
+                >
+                  {isEditing ? <SaveIcon /> : <EditIcon />}
+                </IconButton>
+              </Tooltip>
+            </Box>
+
+            {loading ? (
+              <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+                <CircularProgress />
+              </Box>
+            ) : error ? (
+              <Typography color="error" sx={{ my: 2 }}>
+                {error}
+              </Typography>
+            ) : (
+              <Box
+                sx={{
+                  border: "1px solid var(--border-color)",
+                  borderRadius: "var(--border-radius-md)",
+                  height: "auto",
+                  minHeight: "500px",
+                  mb: "var(--spacing-lg)",
+                  overflow: "auto",
+                }}
+              >
+                <TemplateWithContent
+                  Component={ActiveTemplate}
+                  summary={selectedSummary}
+                />
+              </Box>
+            )}
+
+            <Grid container spacing={2} justifyContent="flex-end">
+              <Grid item>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleUseTemplate}
+                  disabled={!selectedSummary || isEditing}
+                  sx={{
+                    backgroundColor: "var(--primary)",
+                    "&:hover": {
+                      backgroundColor: "var(--primary-dark)",
+                    },
+                  }}
+                >
+                  <TranslatedText>Use This Template</TranslatedText>
+                </Button>
+              </Grid>
+            </Grid>
+          </>
+        ) : (
+          <NoSummariesAvailable />
+        )}
       </>
     );
   };

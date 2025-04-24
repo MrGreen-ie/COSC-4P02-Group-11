@@ -21,6 +21,12 @@ import {
   Collapse,
   Grid,
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Alert,
 } from '@mui/material';
 import {
   Mail as MailIcon,
@@ -37,7 +43,7 @@ import {
   Article as ArticleIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
-import { getSavedTemplates, deleteTemplate } from '../services/api';
+import { getSavedTemplates, deleteTemplate, getSavedSummaries, deleteSummary } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 
 const History = () => {
@@ -48,6 +54,15 @@ const History = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedSummary, setExpandedSummary] = useState(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [summaryToDelete, setSummaryToDelete] = useState(null);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [hasTemplates, setHasTemplates] = useState(false);
+  const [templateCount, setTemplateCount] = useState(0);
+  const [deleteState, setDeleteState] = useState('initial'); // 'initial', 'hasTemplates', 'error', 'success'
+  const [templateDeleteConfirmOpen, setTemplateDeleteConfirmOpen] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState(null);
+  const [templateDeleteError, setTemplateDeleteError] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -56,21 +71,14 @@ const History = () => {
       try {
         setLoading(true);
         console.log('Fetching saved summaries...');
-        const response = await axios.get('/api/summary/saved');
+        const response = await getSavedSummaries();
         console.log('API Response:', response);
-        console.log('Response data:', response.data);
-        console.log('Response type:', typeof response.data);
-        console.log('Is Array?', Array.isArray(response.data));
         
-        if (response.data && typeof response.data === 'object') {
-          console.log('Response data keys:', Object.keys(response.data));
-        }
-
         // Determine what data to use based on response structure
-        let summariesData = response.data;
-        if (response.data && response.data.summaries) {
-          console.log('Found summaries in response.data.summaries');
-          summariesData = response.data.summaries;
+        let summariesData = response;
+        if (response && response.summaries) {
+          console.log('Found summaries in response.summaries');
+          summariesData = response.summaries;
         }
 
         // Ensure we're setting an array, even if the response is empty or malformed
@@ -169,13 +177,76 @@ const History = () => {
     navigator.clipboard.writeText(textToCopy);
   };
 
-  const handleDeleteTemplate = async (id) => {
+  const handleDeleteTemplateClick = (id) => {
+    setTemplateToDelete(id);
+    setTemplateDeleteConfirmOpen(true);
+    setTemplateDeleteError('');
+  };
+
+  const handleConfirmDeleteTemplate = async () => {
     try {
-      await deleteTemplate(id);
-      setTemplates((prevTemplates) => prevTemplates.filter((template) => template.id !== id));
+      setTemplateDeleteError('');
+      await deleteTemplate(templateToDelete);
+      setTemplates((prevTemplates) => prevTemplates.filter((template) => template.id !== templateToDelete));
+      setTemplateDeleteConfirmOpen(false);
+      setTemplateToDelete(null);
     } catch (error) {
       console.error('Error deleting template:', error);
+      setTemplateDeleteError(error.response?.data?.error || 'An unexpected error occurred while deleting the template.');
     }
+  };
+
+  const handleCancelTemplateDelete = () => {
+    setTemplateDeleteConfirmOpen(false);
+    setTemplateToDelete(null);
+    setTemplateDeleteError('');
+  };
+
+  const handleDeleteSummaryClick = (id) => {
+    setSummaryToDelete(id);
+    setDeleteConfirmOpen(true);
+    setDeleteState('initial');
+    setErrorMessage('');
+    setHasTemplates(false);
+    setTemplateCount(0);
+  };
+
+  const handleConfirmDeleteSummary = async (forceDelete = false) => {
+    try {
+      setErrorMessage('');
+      const response = await deleteSummary(summaryToDelete, forceDelete);
+      
+      // Check if the summary has templates but wasn't force deleted
+      if (response.has_templates && !forceDelete) {
+        setHasTemplates(true);
+        setTemplateCount(response.template_count);
+        setDeleteState('hasTemplates');
+        return;
+      }
+      
+      // If we got here, the deletion was successful
+      setSavedSummaries((prevSummaries) => prevSummaries.filter((summary) => summary.id !== summaryToDelete));
+      setDeleteConfirmOpen(false);
+      setSummaryToDelete(null);
+      setDeleteState('success');
+    } catch (error) {
+      console.error('Error deleting summary:', error);
+      setErrorMessage(error.response?.data?.error || 'An unexpected error occurred while deleting the summary.');
+      setDeleteState('error');
+    }
+  };
+
+  const handleForceDelete = () => {
+    handleConfirmDeleteSummary(true);
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteConfirmOpen(false);
+    setSummaryToDelete(null);
+    setErrorMessage('');
+    setHasTemplates(false);
+    setTemplateCount(0);
+    setDeleteState('initial');
   };
 
   const getStatusColor = (status) => {
@@ -321,9 +392,36 @@ const History = () => {
               <Typography variant="h6" className="text-secondary">
                 <TranslatedText>No content history available</TranslatedText>
               </Typography>
-              <Typography variant="body1" className="text-secondary" sx={{ mt: 'var(--spacing-md)' }}>
-                <TranslatedText>Your newsletters and AI summaries will appear here</TranslatedText>
+              <Typography variant="body1" className="text-secondary" sx={{ mt: 'var(--spacing-md)', mb: 3 }}>
+                <TranslatedText>Create AI summaries or newsletter templates to get started</TranslatedText>
               </Typography>
+              
+              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  startIcon={<ArticleIcon />}
+                  onClick={() => navigate('/articles')}
+                >
+                  <TranslatedText>Find Articles</TranslatedText>
+                </Button>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<AIIcon />}
+                  onClick={() => navigate('/summarize')}
+                >
+                  <TranslatedText>Create AI Summary</TranslatedText>
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  startIcon={<TemplateIcon />}
+                  onClick={() => navigate('/templates?skipOverlay=true')}
+                >
+                  <TranslatedText>Create Template</TranslatedText>
+                </Button>
+              </Box>
             </Box>
           ) : (
             <List>
@@ -383,23 +481,36 @@ const History = () => {
                           </IconButton>
                         )}
                         {item.type === 'summary' ? (
-                          <IconButton
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCopyToClipboard(item.headline, item.summary);
-                            }}
-                            sx={{ mr: 1 }}
-                          >
-                            <CopyIcon />
-                          </IconButton>
+                          <>
+                            <IconButton
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopyToClipboard(item.headline, item.summary);
+                              }}
+                              sx={{ mr: 1 }}
+                            >
+                              <CopyIcon />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              title="Delete"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteSummaryClick(item.id);
+                              }}
+                              sx={{ mr: 1 }}
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </>
                         ) : (
                           <IconButton
                             size="small"
                             title="Delete"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleDeleteTemplate(item.id);
+                              handleDeleteTemplateClick(item.id);
                             }}
                             sx={{ mr: 1 }}
                           >
@@ -569,7 +680,11 @@ const History = () => {
                         <IconButton size="small" title="Send" onClick={() => navigate(`/newsletters`)}>
                           <SendIcon />
                         </IconButton>
-                        <IconButton size="small" title="Delete" onClick={() => handleDeleteTemplate(template.id)}>
+                        <IconButton 
+                          size="small" 
+                          title="Delete" 
+                          onClick={() => handleDeleteTemplateClick(template.id)}
+                        >
                           <DeleteIcon />
                         </IconButton>
                       </CardActions>
@@ -598,9 +713,28 @@ const History = () => {
               <Typography variant="h6" className="text-secondary">
                 <TranslatedText>No saved AI summaries</TranslatedText>
               </Typography>
-              <Typography variant="body1" className="text-secondary" sx={{ mt: 'var(--spacing-md)' }}>
-                <TranslatedText>Generate and save summaries in the AI Summary tool to see them here</TranslatedText>
+              <Typography variant="body1" className="text-secondary" sx={{ mt: 'var(--spacing-md)', mb: 3 }}>
+                <TranslatedText>Generate and save summaries to see them here</TranslatedText>
               </Typography>
+              
+              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  startIcon={<ArticleIcon />}
+                  onClick={() => navigate('/articles')}
+                >
+                  <TranslatedText>Find Articles</TranslatedText>
+                </Button>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<AIIcon />}
+                  onClick={() => navigate('/summarize')}
+                >
+                  <TranslatedText>Create AI Summary</TranslatedText>
+                </Button>
+              </Box>
             </Box>
           ) : (
             <List>
@@ -646,8 +780,20 @@ const History = () => {
                             e.stopPropagation();
                             handleCopyToClipboard(summary.headline, summary.summary);
                           }}
+                          sx={{ mr: 1 }}
                         >
                           <CopyIcon />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          title="Delete"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteSummaryClick(summary.id);
+                          }}
+                          sx={{ mr: 1 }}
+                        >
+                          <DeleteIcon />
                         </IconButton>
                         <IconButton size="small">
                           {expandedSummary === summary.id ? <ExpandLessIcon /> : <ExpandMoreIcon />}
@@ -698,6 +844,101 @@ const History = () => {
           </Box>
         )}
       </Paper>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={handleCancelDelete}
+      >
+        <DialogTitle>
+          <TranslatedText>Delete Summary</TranslatedText>
+        </DialogTitle>
+        <DialogContent>
+          {deleteState === 'error' && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {errorMessage}
+            </Alert>
+          )}
+          
+          {deleteState === 'hasTemplates' ? (
+            <>
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                <TranslatedText>This summary is used in </TranslatedText> 
+                {templateCount} 
+                <TranslatedText> template(s).</TranslatedText>
+              </Alert>
+              <DialogContentText>
+                <TranslatedText>
+                  If you delete this summary, all associated templates will also be deleted. 
+                  Do you want to continue?
+                </TranslatedText>
+              </DialogContentText>
+            </>
+          ) : (
+            <DialogContentText>
+              <TranslatedText>
+                Are you sure you want to delete this summary? This action cannot be undone.
+              </TranslatedText>
+            </DialogContentText>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelDelete} color="primary">
+            <TranslatedText>Cancel</TranslatedText>
+          </Button>
+          
+          {deleteState === 'hasTemplates' ? (
+            <Button 
+              onClick={handleForceDelete} 
+              color="error"
+            >
+              <TranslatedText>Delete All</TranslatedText>
+            </Button>
+          ) : (
+            <Button 
+              onClick={() => handleConfirmDeleteSummary(false)} 
+              color="error"
+              disabled={deleteState === 'error'}
+            >
+              <TranslatedText>Delete</TranslatedText>
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Template Delete Confirmation Dialog */}
+      <Dialog
+        open={templateDeleteConfirmOpen}
+        onClose={handleCancelTemplateDelete}
+      >
+        <DialogTitle>
+          <TranslatedText>Delete Template</TranslatedText>
+        </DialogTitle>
+        <DialogContent>
+          {templateDeleteError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {templateDeleteError}
+            </Alert>
+          )}
+          <DialogContentText>
+            <TranslatedText>
+              Are you sure you want to delete this template? This action cannot be undone.
+            </TranslatedText>
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelTemplateDelete} color="primary">
+            <TranslatedText>Cancel</TranslatedText>
+          </Button>
+          <Button 
+            onClick={handleConfirmDeleteTemplate} 
+            color="error"
+            disabled={!!templateDeleteError}
+          >
+            <TranslatedText>Delete</TranslatedText>
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

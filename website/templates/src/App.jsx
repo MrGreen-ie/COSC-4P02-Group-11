@@ -4,7 +4,6 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
-import Editor from './pages/Editor';
 import Template from './pages/Template';
 import AISummary from './pages/AISummary';
 import PostSystem from './pages/PostSystem';
@@ -87,10 +86,6 @@ const App = () => {
             <Route
               path="/dashboard"
               element={user ? <Dashboard /> : <Navigate to="/login" replace />}
-            />
-            <Route
-              path="/editor"
-              element={user ? <Editor /> : <Navigate to="/login" replace />}
             />
             <Route
               path="/templates"

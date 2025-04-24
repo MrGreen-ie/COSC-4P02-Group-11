@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef, Component } from 'react';
 import TranslatedText from '../components/TranslatedText';
 
+// Import API functions
+import { getSavedSummaries } from '../services/api';
+
 import {
   Alert,
   AlertTitle,
@@ -176,6 +179,12 @@ const PostSystem = () => {
   // State for media attachments
   const [mediaFiles, setMediaFiles] = useState([]);
   const [mediaError, setMediaError] = useState('');
+  
+  // State for saved summaries
+  const [summaries, setSummaries] = useState([]);
+  const [selectedSummary, setSelectedSummary] = useState(null);
+  const [isFetchingSummaries, setIsFetchingSummaries] = useState(false);
+  const [summariesError, setSummariesError] = useState('');
   
   // File input reference
   const fileInputRef = useRef(null);
@@ -489,6 +498,57 @@ useEffect(() => {
   };
 }, []); // Empty dependency array ensures this only runs once on mount
 
+// Fetch saved summaries when component mounts
+useEffect(() => {
+  fetchSavedSummaries();
+}, []);
+
+// Function to fetch saved summaries
+const fetchSavedSummaries = async () => {
+  try {
+    setIsFetchingSummaries(true);
+    setSummariesError('');
+    
+    const response = await getSavedSummaries();
+    
+    if (response && response.success && response.summaries) {
+      setSummaries(response.summaries);
+    } else {
+      setSummariesError('Failed to load summaries');
+    }
+  } catch (error) {
+    console.error('Error fetching summaries:', error);
+    setSummariesError('Error loading summaries: ' + (error.message || 'Unknown error'));
+  } finally {
+    setIsFetchingSummaries(false);
+  }
+};
+
+// Function to handle selecting a summary
+const handleSummarySelect = (event) => {
+  const selectedId = Number(event.target.value);
+  
+  if (!selectedId) {
+    setSelectedSummary(null);
+    return;
+  }
+  
+  const selected = summaries.find(summary => summary.id === selectedId);
+  
+  if (selected) {
+    setSelectedSummary(selected);
+    
+    // Update the content with headline and summary text
+    const headline = selected.headline || '';
+    const summaryText = selected.summary || '';
+    const combinedText = headline + '\n\n' + summaryText;
+    setContent(combinedText);
+    
+    // Validate the content length for Twitter
+    validateContent(combinedText);
+  }
+};
+
   // Function to render a scheduled post
   const renderScheduledPost = (post) => {
     const isPastDue = new Date(post.scheduled_time) < new Date();
@@ -753,6 +813,23 @@ useEffect(() => {
     return null;
   };
 
+  // Function to auto-truncate content to fit Twitter's character limit
+  const handleAutoTruncate = () => {
+    if (!platforms.twitter || content.length <= characterLimits.twitter) return;
+    
+    // Truncate the content to fit Twitter's character limit
+    const truncatedContent = content.substring(0, characterLimits.twitter - 3) + '...';
+    setContent(truncatedContent);
+    validateContent(truncatedContent);
+    
+    // Show a notification
+    setAlert({
+      open: true,
+      message: 'Content has been truncated to fit Twitter\'s character limit',
+      severity: 'info'
+    });
+  };
+
   // Handle post submission
   const handlePost = async () => {
     // Validate inputs
@@ -802,6 +879,7 @@ useEffect(() => {
         });
         setContent('');
         setMediaFiles([]);
+        setSelectedSummary(null);
         
         // Show detailed results if available
         if (data.results) {
@@ -920,6 +998,7 @@ useEffect(() => {
         setContent('');
         setMediaFiles([]);
         setIsScheduling(false);
+        setSelectedSummary(null);
         fetchScheduledPosts(); // Refresh the list
       } else {
         setAlert({
@@ -963,7 +1042,27 @@ useEffect(() => {
       return false;
     }
     
-    // Validate content against platform rules
+    // Validate Twitter authentication
+    if (platforms.twitter && !isTwitterAuthenticated) {
+      setAlert({
+        open: true,
+        message: 'Please authenticate your Twitter account before posting',
+        severity: 'error'
+      });
+      return false;
+    }
+    
+    // Validate content against character limits for Twitter
+    if (platforms.twitter && content.length > characterLimits.twitter) {
+      setAlert({
+        open: true,
+        message: `Your content exceeds Twitter's ${characterLimits.twitter} character limit by ${content.length - characterLimits.twitter} characters. Please edit your content or use the Auto-Truncate feature.`,
+        severity: 'error'
+      });
+      return false;
+    }
+    
+    // Validate content against platform rules for other platforms
     if (content.trim() && !validateContent(content)) {
       setAlert({
         open: true,
@@ -1143,29 +1242,175 @@ useEffect(() => {
             )}
         
         {/* Content input */}
-        <TextField
-          multiline
-          minRows={4}
-          maxRows={6}
-          placeholder="What's on your mind?"
-          value={content}
-          onChange={handleContentChange}
-          fullWidth
-          sx={{
-            mb: 'var(--spacing-md)',
-            '& .MuiInputBase-root': {
-              color: 'var(--text-primary)',
-              '& fieldset': { borderColor: 'var(--border-color)' },
-              '&:hover fieldset': { borderColor: 'var(--primary)' },
-              '&.Mui-focused fieldset': { borderColor: 'var(--primary)' }
-            },
-            '& .MuiInputLabel-root': {
-              color: 'var(--text-secondary)',
-              '&.Mui-focused': { color: 'var(--primary)' }
-            }
-          }}
-          helperText={contentError || ""}
-        />
+        <Box sx={{ mb: 'var(--spacing-md)' }}>
+          {/* Summary Selection Dropdown */}
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel id="summary-select-label">
+              <TranslatedText>Select a saved summary</TranslatedText>
+            </InputLabel>
+            <Select
+              labelId="summary-select-label"
+              id="summary-select"
+              value={selectedSummary ? Number(selectedSummary.id) : ''}
+              onChange={handleSummarySelect}
+              label={<TranslatedText>Select a saved summary</TranslatedText>}
+              disabled={isFetchingSummaries}
+              sx={{
+                '& .MuiInputBase-root': {
+                  color: 'var(--text-primary)',
+                  '& fieldset': { borderColor: 'var(--border-color)' },
+                  '&:hover fieldset': { borderColor: 'var(--primary)' },
+                  '&.Mui-focused fieldset': { borderColor: 'var(--primary)' }
+                }
+              }}
+            >
+              <MenuItem value="">
+                <em><TranslatedText>None</TranslatedText></em>
+              </MenuItem>
+              {summaries.map((summary) => (
+                <MenuItem key={summary.id} value={summary.id}>
+                  {summary.headline || <TranslatedText>Untitled Summary</TranslatedText>}
+                </MenuItem>
+              ))}
+            </Select>
+            {isFetchingSummaries && <LinearProgress />}
+            {summariesError && (
+              <Typography variant="caption" color="error">
+                {summariesError}
+              </Typography>
+            )}
+          </FormControl>
+          
+          {/* Content Textarea with Character Count */}
+          <TextField
+            multiline
+            minRows={4}
+            maxRows={6}
+            placeholder="What's on your mind?"
+            value={content}
+            onChange={handleContentChange}
+            fullWidth
+            error={Boolean(contentError)}
+            helperText={contentError}
+            InputProps={{
+              endAdornment: platforms.twitter && (
+                <InputAdornment position="end">
+                  <Box 
+                    sx={{ 
+                      width: 35, 
+                      height: 35, 
+                      borderRadius: '50%', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      bgcolor: content.length > characterLimits.twitter 
+                        ? 'error.main' 
+                        : content.length > characterLimits.twitter * 0.9 
+                        ? 'warning.main' 
+                        : 'success.main',
+                      color: 'white',
+                      fontWeight: 'bold',
+                      fontSize: '0.75rem'
+                    }}
+                  >
+                    {characterLimits.twitter - content.length}
+                  </Box>
+                </InputAdornment>
+              )
+            }}
+            sx={{
+              '& .MuiInputBase-root': {
+                color: 'var(--text-primary)',
+                '& fieldset': { borderColor: 'var(--border-color)' },
+                '&:hover fieldset': { borderColor: 'var(--primary)' },
+                '&.Mui-focused fieldset': { borderColor: 'var(--primary)' },
+                '&.Mui-error fieldset': { borderColor: 'var(--error)' }
+              },
+              '& .MuiInputLabel-root': {
+                color: 'var(--text-secondary)',
+                '&.Mui-focused': { color: 'var(--primary)' }
+              }
+            }}
+          />
+          
+          {/* Character Count Display */}
+          {platforms.twitter && (
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'flex-end', 
+              alignItems: 'center', 
+              mt: 1, 
+              mb: 2 
+            }}>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  fontWeight: content.length > characterLimits.twitter ? 'bold' : 'normal',
+                  color: content.length > characterLimits.twitter 
+                    ? 'error.main' 
+                    : content.length > characterLimits.twitter * 0.9 
+                    ? 'warning.main' 
+                    : 'text.secondary',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1
+                }}
+              >
+                {content.length > characterLimits.twitter && (
+                  <ErrorIcon color="error" fontSize="small" />
+                )}
+                <TranslatedText>Character count:</TranslatedText> 
+                <Box component="span" sx={{ fontWeight: 'bold' }}>
+                  {content.length}
+                </Box> 
+                / 
+                <Box component="span">
+                  {characterLimits.twitter}
+                </Box>
+                {content.length > characterLimits.twitter && (
+                  <Box component="span" sx={{ color: 'error.main', fontWeight: 'bold', ml: 1 }}>
+                    (<TranslatedText>Exceeds limit by</TranslatedText> {content.length - characterLimits.twitter} <TranslatedText>characters</TranslatedText>)
+                  </Box>
+                )}
+              </Typography>
+            </Box>
+          )}
+          
+          {/* Tips for Twitter Posts */}
+          {platforms.twitter && (
+            <Paper sx={{ mt: 1, p: 1, bgcolor: 'info.light', borderRadius: 1 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <Box>
+                  <Typography variant="caption" sx={{ color: 'info.contrastText', display: 'block' }}>
+                    <TranslatedText>Twitter Post Tips:</TranslatedText>
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'info.contrastText', display: 'block' }}>
+                    <TranslatedText>• Keep it concise, remember the 280 character limit</TranslatedText>
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'info.contrastText', display: 'block' }}>
+                    <TranslatedText>• Use hashtags sparingly for better reach</TranslatedText>
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'info.contrastText', display: 'block' }}>
+                    <TranslatedText>• Consider adding media to increase engagement</TranslatedText>
+                  </Typography>
+                </Box>
+                
+                {/* Auto-truncate button */}
+                {platforms.twitter && content.length > characterLimits.twitter && (
+                  <Button 
+                    size="small" 
+                    variant="contained" 
+                    color="warning"
+                    onClick={handleAutoTruncate}
+                    sx={{ mt: 1, fontSize: '0.75rem' }}
+                  >
+                    <TranslatedText>Auto-Truncate</TranslatedText>
+                  </Button>
+                )}
+              </Box>
+            </Paper>
+          )}
+        </Box>
         
         {/* Media attachments section */}
         <Box sx={{ mt: 'var(--spacing-md)', mb: 'var(--spacing-md)' }}>
@@ -1312,7 +1557,7 @@ useEffect(() => {
                 variant="contained"
                 startIcon={<SendIcon />}
                 onClick={handlePost}
-                disabled={isLoading || (platforms.twitter && !isTwitterAuthenticated)}
+                disabled={isLoading || (platforms.twitter && !isTwitterAuthenticated) || (platforms.twitter && content.length > characterLimits.twitter)}
                 sx={{
                   background: 'var(--primary)',
                   color: 'white',
@@ -1337,7 +1582,7 @@ useEffect(() => {
                 variant="contained"
                 startIcon={<ScheduleIcon />}
                 onClick={() => setIsScheduling(true)}
-                disabled={isLoading || (platforms.twitter && !isTwitterAuthenticated)}
+                disabled={isLoading || (platforms.twitter && !isTwitterAuthenticated) || (platforms.twitter && content.length > characterLimits.twitter)}
                 sx={{
                   background: 'var(--primary)',
                   color: 'white',
@@ -1534,7 +1779,7 @@ useEffect(() => {
                     variant="contained"
                     startIcon={<ScheduleIcon />}
                     onClick={handleSchedulePost}
-                    disabled={isLoading || (platforms.twitter && !isTwitterAuthenticated)}
+                    disabled={isLoading || (platforms.twitter && !isTwitterAuthenticated) || (platforms.twitter && content.length > characterLimits.twitter)}
                     sx={{
                       background: 'var(--primary)',
                       color: 'white',

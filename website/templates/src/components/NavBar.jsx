@@ -65,7 +65,6 @@ function NavBar({ user, onLogout }) {
 
   const protectedNavItems = [
     { label: "Draft", path: "/templates", icon: <TemplateIcon /> },
-    { label: "Editor", path: "/editor", icon: <EditIcon /> },
     { label: "AI Summary", path: "/ai-summary", icon: <AIIcon /> },
     { label: "Post HUB", path: "/post-hub", icon: <PostIcon /> },
     { label: "Articles", path: "/articles", icon: <FavoritesIcon /> },

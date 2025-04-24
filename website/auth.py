@@ -102,14 +102,6 @@ def logout():
     return jsonify({"message": "Logged out successfully"}), 200
 
 
-@auth.route("/editor")
-@login_required  # This decorator ensures user must be logged in
-def editor():
-    if not current_user.is_authenticated:
-        return redirect(url_for('auth.login'))
-    return render_template("index.html")  # This will load our React app, which handles the editor route internally
-
-
 @auth.route("/api/check-auth")
 def check_auth():
     if current_user.is_authenticated:

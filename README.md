@@ -11,9 +11,9 @@ Developers: Mew Tanglimsmarnsuk (7304140), Mohammad Safari (7209513), Esbah Majo
 
 Bonuses:
 
-Website link: (coming soon)
+Website link: https://summit-4p02.vercel.app/
 
-YouTube Demo: (coming soon)
+YouTube Demo: https://www.youtube.com/watch?v=CCA6Cag6Q6E
 
 ## Setup & Installation
 
